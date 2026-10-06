@@ -1,0 +1,26 @@
+# The bell schedule, aligned to when the story's cameras take their samples. Minutes after midnight.
+day:
+  start: 430                       # first staff arrive
+  end: 900                         # engine stops simulating the day
+  gate_open: 440
+  count_every: 5                   # zone counts written every N minutes
+  transit_minutes: [1, 3]
+  stagger_minutes: 2
+  assembly_start: 510              # 08:30
+  blocks:
+    - {name: arrival,       type: arrival,   start: 430, end: 510}
+    - {name: prayer,        type: assembly,  start: 510, end: 520}
+    - {name: announcements, type: assembly,  start: 520, end: 525}
+    - {name: P1,            type: class,     start: 525, end: 565}
+    - {name: P2,            type: class,     start: 565, end: 605}
+    - {name: short_break,   type: break,     start: 605, end: 625}
+    - {name: P3,            type: class,     start: 625, end: 665}
+    - {name: P4,            type: class,     start: 665, end: 715}
+    - {name: lunch,         type: lunch,     start: 715, end: 760}
+    - {name: P5,            type: class,     start: 760, end: 800}
+    - {name: P6,            type: class,     start: 800, end: 840}
+    - {name: dismissal,     type: dismissal, start: 840, end: 880}
+
+moods:
+  low_below: 42                    # bands shown in the player
+  good_above: 68
