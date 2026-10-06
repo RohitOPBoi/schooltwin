@@ -1,0 +1,17 @@
+node_modules/
+__pycache__/
+tests/shots/
+.agents/
+GEMINI.md
+AGENT_PROMPT.md
+pack/scen_*
+pack/ctrl_*
+pack/On_*
+pack/Starting_*
+pack/water_cooler_broke/
+pack/whatif_story_baseline_*
+pack/benchmark_3month/
+*.pyc
+*.pyo
+.DS_Store
+*.log
