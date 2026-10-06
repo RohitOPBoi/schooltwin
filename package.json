@@ -1,0 +1,7 @@
+{
+  "name": "schooltwin-tests",
+  "private": true,
+  "description": "Only needed to test the player in a simulated browser. The player itself has no dependencies.",
+  "scripts": {"test": "node tests/test_player.js"},
+  "devDependencies": {"jsdom": "^26.0.0", "canvas": "^3.0.0"}
+}
