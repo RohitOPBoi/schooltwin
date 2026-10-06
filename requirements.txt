@@ -1,0 +1,7 @@
+numpy
+pandas
+pyyaml
+plotly
+streamlit
+# optional, only if the AI principal uses Gemini:
+# google-genai
