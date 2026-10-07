@@ -1,0 +1,55 @@
+# Campus layout (2D). rect = [x, y, w, h] on a 100 x 60 grid per floor.
+# camera_id links a zone to one of the story's 18 aggregate counters. No camera = nobody counts it.
+# measure: occupancy (people inside) | entries (cumulative people through) | queue (people waiting)
+floors:
+  0: {name: Ground floor}
+  1: {name: First floor}
+  2: {name: Second floor}
+
+zones:
+  # ---------------- ground floor ----------------
+  - {id: main_gate,        floor: 0, type: gate,      rect: [1, 24, 7, 10],  capacity: 220,  camera_id: CAM-GATE-A, measure: entries, label: Main gate}
+  - {id: main_exit,        floor: 0, type: gate,      rect: [1, 36, 7, 6],   capacity: 120,  camera_id: CAM-EXIT,   measure: entries, label: Exit}
+  - {id: bus_bay,          floor: 0, type: bus,       rect: [1, 2, 9, 20],   capacity: 420,  camera_id: CAM-GATE-B, measure: entries, label: Bus bay}
+  - {id: north_ground,     floor: 0, type: ground,    rect: [12, 2, 40, 20], capacity: 1100, camera_id: CAM-GROUND, measure: occupancy, label: North ground (assembly)}
+  - {id: playground,       floor: 0, type: ground,    rect: [54, 2, 26, 20], capacity: 600,  camera_id: CAM-PLAY,   measure: occupancy, label: Playground}
+  - {id: canteen,          floor: 0, type: canteen,   rect: [82, 2, 16, 12], capacity: 330,  camera_id: CAM-CANTEEN, measure: queue, label: Canteen}
+  - {id: canteen_back,     floor: 0, type: canteen,   rect: [82, 15, 16, 6], capacity: 25,   camera_id: CAM-CAF-BACK, measure: entries, label: Canteen back door}
+  - {id: pump_house,       floor: 0, type: blind_spot, rect: [58, 23, 10, 3], capacity: 8,   blind_spot: true, secrecy: 0.9, label: Pump house}
+  - {id: behind_playground, floor: 0, type: blind_spot, rect: [70, 23, 10, 3], capacity: 8,  blind_spot: true, secrecy: 0.8, label: Behind playground wall}
+  - {id: stair_A,          floor: 0, type: stair,     rect: [12, 26, 6, 7],  capacity: 100,  camera_id: CAM-STAIR-A, measure: occupancy, label: Stairwell A}
+  - {id: corridor_0,       floor: 0, type: corridor,  rect: [20, 26, 72, 7], capacity: 700,  label: Corridor (ground)}
+  - {id: admin_lobby,      floor: 0, type: office,    rect: [12, 52, 12, 7], capacity: 40,   camera_id: CAM-ADMIN, measure: entries, label: Admin lobby}
+  - {id: principal_office, floor: 0, type: office,    rect: [26, 52, 9, 7],  capacity: 10,   label: Principal}
+  - {id: staffroom,        floor: 0, type: staffroom, rect: [37, 52, 16, 7], capacity: 110,  label: Staff room}
+  - {id: infirmary,        floor: 0, type: infirmary, rect: [55, 52, 9, 7],  capacity: 15,   label: Infirmary}
+  - {id: counselling_room, floor: 0, type: office,    rect: [66, 52, 8, 7],  capacity: 8,    label: Counsellor}
+  - {id: store_room,       floor: 0, type: store,     rect: [76, 52, 8, 7],  capacity: 10,   camera_id: CAM-STORE, measure: entries, label: Store room}
+  - {id: wash_0,           floor: 0, type: washroom,  rect: [86, 52, 10, 7], capacity: 60,   label: Washrooms}
+  # ---------------- first floor ----------------
+  - {id: corridor_1,       floor: 1, type: corridor,  rect: [20, 26, 72, 7], capacity: 700,  camera_id: CAM-B1-COR, measure: occupancy, label: Block B corridor}
+  - {id: stair_B,          floor: 1, type: stair,     rect: [12, 26, 6, 7],  capacity: 100,  camera_id: CAM-B2-STAIR, measure: occupancy, label: Block B stairwell}
+  - {id: library,          floor: 1, type: library,   rect: [12, 2, 30, 20], capacity: 140,  camera_id: CAM-LIBRARY, measure: entries_window, label: Library}
+  - {id: lab_sci_1,        floor: 1, type: lab,       rect: [44, 2, 18, 13], capacity: 45,   camera_id: CAM-LAB-1, measure: occupancy, label: Science lab 1}
+  - {id: lab_sci_2,        floor: 1, type: lab,       rect: [64, 2, 18, 13], capacity: 45,   camera_id: CAM-LAB-2, measure: occupancy, label: Science lab 2}
+  - {id: wash_1,           floor: 1, type: washroom,  rect: [86, 2, 10, 8],   capacity: 60,   label: Washrooms}
+  - {id: back_landing,     floor: 1, type: blind_spot, rect: [84, 12, 12, 5], capacity: 8,   blind_spot: true, secrecy: 0.9, label: Back landing}
+  # ---------------- second floor ----------------
+  - {id: corridor_2,       floor: 2, type: corridor,  rect: [20, 26, 72, 7], capacity: 700,  label: Corridor (second)}
+  - {id: stair_C,          floor: 2, type: stair,     rect: [12, 26, 6, 7],  capacity: 100,  camera_id: CAM-STAIR-C, measure: occupancy, label: Stairwell C}
+  - {id: lab_sci_3,        floor: 2, type: lab,       rect: [12, 2, 18, 13], capacity: 45,   label: Science lab 3}
+  - {id: comp_lab_1,       floor: 2, type: lab,       rect: [32, 2, 20, 13], capacity: 45,   camera_id: CAM-COMP-1, measure: occupancy, label: Computer lab 1}
+  - {id: comp_lab_2,       floor: 2, type: lab,       rect: [54, 2, 20, 13], capacity: 45,   label: Computer lab 2}
+  - {id: wash_2,           floor: 2, type: washroom,  rect: [86, 2, 10, 8],   capacity: 60,   label: Washrooms}
+  - {id: terrace_door,     floor: 2, type: blind_spot, rect: [76, 12, 20, 5], capacity: 8,   blind_spot: true, secrecy: 0.95, label: Terrace door}
+
+# Classrooms are built from the story's own (grade, section) rooms, grouped onto floors.
+classroom_floors:
+  0: [N, KG, 1, 2]
+  1: [3, 4, 5, 6]
+  2: [7, 8, 9, 10, 11, 12]
+classroom_row: {y: 36, h: 12, x0: 10, x1: 92}
+classroom_cameras: {C8B: CAM-ROOM-8B, C9A: CAM-ROOM-9A}     # the only two classrooms with a counter
+
+# Optional campus fixtures (water coolers, notice boards, etc.). None shipped by default.
+fixtures: []
