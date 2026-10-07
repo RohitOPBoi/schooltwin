@@ -1,0 +1,21 @@
+{
+  "name": "my_scenario",
+  "mode": "generate",
+  "seed": 7,
+  "randomness": {"intensity": 1.0},
+  "events": {
+    "use_story_events": true,
+    "disable": ["GT-005"],
+    "add": [
+      {"date": "2026-03-10", "type": "transport_lateness_spike", "severity": "high"},
+      {"date": "2026-03-24", "type": "classroom_fan_failure", "severity": "medium", "params": {"room": "C9A"}}
+    ],
+    "random": {"per_month": 1.5}
+  },
+  "levers": {
+    "additional_teachers": 2,
+    "attendance_support_budget_inr_per_month": 100000,
+    "bus_backup_capacity": 1,
+    "autonomy_level": "human_approved"
+  }
+}

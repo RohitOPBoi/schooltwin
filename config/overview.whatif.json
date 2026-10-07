@@ -1,0 +1,9 @@
+{
+  "name": "whatif_fee_up_apr",
+  "mode": "anchor",
+  "patches": [
+    {"from_day": 90, "mode": "generate",
+     "levers": {"tuition_fee_delta_pct": 10, "fee_change_approved": true, "additional_teachers": 3,
+                "attendance_support_budget_inr_per_month": 150000}}
+  ]
+}
