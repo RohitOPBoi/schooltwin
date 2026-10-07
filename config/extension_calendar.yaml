@@ -1,0 +1,49 @@
+# Extension Calendar Configuration for SchoolTwin (Days 151+ / June to December 2026)
+# Every value derived from this configuration carries source: "assumed".
+
+calendar_id: delhi_cbse_2026_extension
+title: Delhi CBSE Academic Extension Calendar 2026
+
+# Reopening configuration (user configurable)
+reopening_date: "2026-07-01"
+summer_break_end_date: "2026-06-30"
+
+# Summer Break Continuation (June 2026)
+summer_break:
+  day_type: summer_break_staff_only
+  school_open_to_students: false
+  staff_on_campus: true
+  source: assumed
+
+# Standard Term Weekly Pattern (after reopening)
+weekly_pattern:
+  weekdays:
+    0: instructional_day  # Monday
+    1: instructional_day  # Tuesday
+    2: instructional_day  # Wednesday
+    3: instructional_day  # Thursday
+    4: instructional_day  # Friday
+  saturdays:
+    open_saturdays: [1, 3, 5]     # 1st, 3rd, 5th Saturday of month: limited_school_day
+    closed_saturdays: [2, 4]      # 2nd, 4th Saturday: weekly_closure
+  sunday: weekly_closure
+
+# Delhi Gazetted National & Festival Holidays 2026 (assumed)
+planned_closures:
+  "2026-08-15": "Independence Day"
+  "2026-10-02": "Gandhi Jayanti"
+  "2026-10-20": "Dussehra / Vijayadashami"
+  "2026-11-08": "Diwali Holiday"
+
+# Environmental Defaults (Neutral baseline end-state)
+# No invented climate; heatwaves/storms must be explicitly injected as scenarios
+environment:
+  weather_disruption_index: 0.1
+  heat_pressure_index: 1.0
+  label: "neutral assumed environment"
+  source: assumed
+
+# Finance defaults (assumed extrapolation)
+finance:
+  pattern: repeat_may_dues_and_collection
+  source: assumed
