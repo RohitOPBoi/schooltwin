@@ -1,0 +1,91 @@
+# Everything that makes the school feel real. Tune here; none of it is hard-coded.
+
+generate:                          # used only in "generate" mode (anchor mode takes attendance from the story)
+  absence_noise_sd: 0.003          # extra day-to-day wobble on top of ordinary chance
+  attendance_offset: 0.005         # families come in slightly more often than their hidden propensity alone says
+  weather_absence: 0.066           # share of attendance lost at weather index 1.0 (fitted to the story)
+  heat_absence: 0.22               # share lost per heat-index point above 1.0 (fitted to the story)
+  late_base: 0.012                 # share of present students arriving after assembly starts
+  late_low_propensity_boost: 3.0
+  teacher_absence_base: 0.06
+  fee_stress_absence: 2.5          # +10% tuition (approved) adds 25% absence pressure
+
+staffing:
+  substitute_availability: 0.35      # share of free teachers able to cover an absent colleague's class
+
+arrival:
+  arrive_gamma: [3.5, 9.0]         # minutes before assembly: shape, scale
+  early_classroom_fraction: 0.2
+  late_window: [1, 24]             # minutes after assembly starts for latecomers
+  rider_bus_lead: [1, 3]           # minutes between bus bay and gate
+
+departure:
+  dismissal_jitter: [0, 25]
+  early_leave_probability: 0.003
+
+assembly:
+  dodge_probability: 0.012
+
+breaks:                            # where students go when the bell rings
+  short_break: {canteen: 0.30, playground: 0.30, north_ground: 0.10, classroom: 0.30}
+  lunch:       {canteen: 0.34, playground: 0.24, north_ground: 0.08, classroom: 0.34}
+  teacher:     {staffroom: 0.65, canteen: 0.2, north_ground: 0.15}
+canteen_service_per_minute: 6.45
+canteen_balk_minutes: 14           # people give up if the wait is longer than this     # people served per minute: sets the queue wait
+
+errands:                           # students leave class briefly (washroom, water, office), always via the corridor
+  trip_prob_per_student_per_class_minute: 0.009
+  washroom_share: 0.40
+  duration: [3, 9]
+library_visits:
+  per_class_minute: 1.25           # students arriving at the library per minute in P3-P5
+  stay: [20, 40]
+
+blind_spots:                       # rare, mild, mostly unknown; knowledge spreads slowly
+  initial_knowledge: {base: 0.004, per_grade_index: 0.0035}
+  class_skip_prob_per_minute: 0.0003
+  break_use_prob_per_minute: 0.005
+  uncovered_class_multiplier: 4
+  duration: [10, 35]
+  learn_prob_per_minute: 0.003
+
+patrol:
+  visit_prob_per_minute: {coordinator: 0.008, security: 0.004, housekeeping: 0.007, principal: 0.004,
+                          vice_principal: 0.004, maintenance_gardener: 0.003}
+  stay_minutes: [2, 4]
+  weights: {corridor: 2.0, north_ground: 1.0, playground: 1.0, canteen: 1.0, library: 0.5, stair: 0.8, blind_spot: 1.0}
+  principal_blind_spot_factor: 0.3
+
+crowding:
+  threshold_ratio: 0.9
+
+# Mood: a 0-100 tendency, not a diagnosis. Today's mood moves 35% of the way to today's target.
+mood:
+  start: 60
+  pull: 0.35
+  temperament: {sociable: 8, curious: 6, "kind but impulsive": 1, quiet: 0, competitive: -1, outspoken: 1, inconsistent: -5, anxious: -12}
+  academic_weight: 0.08            # per point of academic index above 67
+  attendance_weight: 60            # students who come in less often tend to sit lower
+  discipline_weight: 18            # so do students who run into more rules
+  shift_sd: 3.0                    # day-to-day personal drift (persists: 0.9 carry-over)
+  weather: -12                     # at weather index 1.0
+  heat: -4                         # per heat index point above 1.0
+  assessment: {default: -5, anxious: -9, competitive: -2, curious: -3}
+  uncovered_class: -3
+  friend_present: 3
+  no_friend_present: -2
+  absence_drift: -1.5              # per consecutive absent day
+  recovery_on_closed_day: 4
+  late_arrival: -1.5
+  caught: -4
+  canteen_wait: {free_minutes: 10, per_extra_minute: -0.25, cap: -3}
+  playground_break: 1.5
+  crowded_zone: -0.6               # per block spent in a zone above 85% capacity
+  feedback: {negative_below: 45, positive_above: 70}
+  low: 45                          # below this a student is shown as 'low'
+  good: 68
+staff_mood:
+  start: 66
+  cover_period: -1.2               # per cover period taken
+  event_strain: -4
+  pull: 0.3
