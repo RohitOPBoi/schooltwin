@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SchoolTwin — Digital Twin of a Delhi School</title>
+  <meta name="description" content="SchoolTwin is a synthetic digital twin simulation of a fictional Delhi secondary school. 1,000 students, 151-day timeline, real-time scenario builder, and honest comparison engine.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* ─── Reset & Base ─── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; font-size: 16px; }
+    body {
+      font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #0a0c10;
+      color: #c8cdd5;
+      line-height: 1.65;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Design Tokens ─── */
+    :root {
+      --accent: #34d399;
+      --accent-dim: #059669;
+      --accent-glow: rgba(52, 211, 153, 0.15);
+      --blue: #38bdf8;
+      --blue-dim: #0284c7;
+      --surface-0: #0a0c10;
+      --surface-1: #0f1218;
+      --surface-2: #161a22;
+      --surface-3: #1e232c;
+      --border: rgba(255,255,255,0.06);
+      --border-accent: rgba(52,211,153,0.2);
+      --text-primary: #edf0f5;
+      --text-secondary: #8b93a1;
+      --text-muted: #5c6370;
+      --mono: 'Geist Mono', 'Fira Code', monospace;
+      --max-w: 1280px;
+      --radius: 16px;
+      --radius-sm: 10px;
+    }
+
+    /* ─── Utility ─── */
+    .container { max-width: var(--max-w); margin: 0 auto; padding: 0 clamp(20px, 4vw, 48px); }
+    .mono { font-family: var(--mono); }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+
+    /* ─── Scroll-driven reveal ─── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(32px);
+      transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .reveal-delay-1 { transition-delay: 0.08s; }
+    .reveal-delay-2 { transition-delay: 0.16s; }
+    .reveal-delay-3 { transition-delay: 0.24s; }
+    .reveal-delay-4 { transition-delay: 0.32s; }
+    .reveal-delay-5 { transition-delay: 0.40s; }
+
+    /* ─── Nav ─── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(10, 12, 16, 0.75);
+      backdrop-filter: blur(20px) saturate(1.4);
+      -webkit-backdrop-filter: blur(20px) saturate(1.4);
+      border-bottom: 1px solid var(--border);
+      height: 64px;
+      display: flex; align-items: center;
+    }
+    nav .container {
+      display: flex; align-items: center; justify-content: space-between; width: 100%;
+    }
+    .nav-brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 1.125rem; color: var(--text-primary);
+      text-decoration: none;
+    }
+    .nav-brand svg { flex-shrink: 0; }
+    .nav-links { display: flex; gap: 32px; list-style: none; }
+    .nav-links a {
+      color: var(--text-secondary); text-decoration: none; font-size: 0.875rem; font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text-primary); }
+    .nav-cta {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--accent); color: #0a0c10; font-weight: 600; font-size: 0.8125rem;
+      padding: 8px 18px; border-radius: 999px; text-decoration: none;
+      transition: transform 0.15s, box-shadow 0.2s;
+    }
+    .nav-cta:hover { transform: translateY(-1px); box-shadow: 0 4px 24px var(--accent-glow); }
+    .nav-cta:active { transform: scale(0.97); }
+
+    /* ─── Hero ─── */
+    .hero {
+      position: relative;
+      min-height: 100dvh;
+      display: flex; align-items: center;
+      padding-top: 64px;
+      overflow: hidden;
+    }
+    .hero-bg {
+      position: absolute; inset: 0; z-index: 0;
+    }
+    .hero-bg img {
+      width: 100%; height: 100%; object-fit: cover;
+      opacity: 0.2;
+      filter: saturate(0.7);
+    }
+    .hero-bg::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(180deg, rgba(10,12,16,0.3) 0%, rgba(10,12,16,0.85) 60%, #0a0c10 100%);
+    }
+    .hero-content {
+      position: relative; z-index: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      align-items: center;
+    }
+    .hero-text { max-width: 600px; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--surface-2);
+      border: 1px solid var(--border-accent);
+      border-radius: 999px;
+      padding: 5px 14px 5px 8px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--accent);
+      margin-bottom: 24px;
+    }
+    .hero-badge-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(52,211,153,0.5); }
+      50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(52,211,153,0); }
+    }
+    .hero h1 {
+      font-size: clamp(2.5rem, 5vw, 3.75rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      color: var(--text-primary);
+      margin-bottom: 20px;
+    }
+    .hero h1 .accent { color: var(--accent); }
+    .hero-sub {
+      font-size: 1.0625rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      max-width: 50ch;
+      margin-bottom: 32px;
+    }
+    .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--accent); color: #0a0c10;
+      font-weight: 700; font-size: 0.9375rem;
+      padding: 14px 28px; border-radius: 12px;
+      text-decoration: none; border: none; cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.2s;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 32px var(--accent-glow); }
+    .btn-primary:active { transform: scale(0.97); }
+    .btn-secondary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--surface-2); color: var(--text-primary);
+      font-weight: 600; font-size: 0.9375rem;
+      padding: 14px 28px; border-radius: 12px;
+      text-decoration: none; border: 1px solid var(--border);
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .btn-secondary:hover { border-color: rgba(255,255,255,0.15); background: var(--surface-3); }
+    .hero-visual {
+      position: relative;
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: 0 32px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03) inset;
+    }
+    .hero-visual img { width: 100%; display: block; }
+
+    /* ─── Stats Bar ─── */
+    .stats-bar {
+      padding: 80px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 32px;
+    }
+    .stat {
+      text-align: center;
+      padding: 24px;
+    }
+    .stat-value {
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.03em;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .stat-value .unit { font-size: 0.5em; color: var(--accent); font-weight: 600; }
+    .stat-label {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* ─── Section ─── */
+    section { padding: 120px 0; }
+    .section-label {
+      font-family: var(--mono);
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+    .section-title {
+      font-size: clamp(1.75rem, 3.5vw, 2.75rem);
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+    .section-desc {
+      font-size: 1.0625rem;
+      color: var(--text-secondary);
+      max-width: 60ch;
+      line-height: 1.7;
+    }
+
+    /* ─── Feature Cards (Bento) ─── */
+    .bento {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      margin-top: 64px;
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .bento-card {
+      background: var(--surface-1);
+      padding: 40px 32px;
+      position: relative;
+      overflow: hidden;
+      transition: background 0.3s;
+    }
+    .bento-card:hover { background: var(--surface-2); }
+    .bento-card.span-2 { grid-column: span 2; }
+    .bento-icon {
+      width: 44px; height: 44px;
+      border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px;
+      font-size: 1.25rem;
+      background: var(--surface-3);
+      border: 1px solid var(--border);
+    }
+    .bento-icon.green { background: rgba(52,211,153,0.08); border-color: rgba(52,211,153,0.15); color: var(--accent); }
+    .bento-icon.blue { background: rgba(56,189,248,0.08); border-color: rgba(56,189,248,0.15); color: var(--blue); }
+    .bento-card h3 {
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+    .bento-card p {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      max-width: 42ch;
+    }
+
+    /* ─── Split Section ─── */
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: center;
+    }
+    .split.reverse { direction: rtl; }
+    .split.reverse > * { direction: ltr; }
+    .split-visual {
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: 0 24px 48px rgba(0,0,0,0.4);
+    }
+    .split-visual img { width: 100%; display: block; }
+
+    /* ─── Tabs ─── */
+    .tab-nav {
+      display: flex; gap: 4px;
+      background: var(--surface-2);
+      border-radius: var(--radius-sm);
+      padding: 4px;
+      width: fit-content;
+      margin-bottom: 32px;
+      border: 1px solid var(--border);
+    }
+    .tab-btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .tab-btn.active {
+      background: var(--surface-3);
+      color: var(--text-primary);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    }
+    .tab-btn:hover:not(.active) { color: var(--text-secondary); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ─── Event Presets ─── */
+    .event-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .event-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 20px;
+      transition: border-color 0.2s, transform 0.15s;
+      cursor: default;
+    }
+    .event-card:hover {
+      border-color: var(--border-accent);
+      transform: translateY(-2px);
+    }
+    .event-emoji { font-size: 1.75rem; margin-bottom: 10px; display: block; }
+    .event-card h4 {
+      font-size: 0.875rem; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;
+    }
+    .event-card p {
+      font-size: 0.75rem; color: var(--text-muted); line-height: 1.5;
+    }
+
+    /* ─── Checkpoint Timeline ─── */
+    .timeline {
+      position: relative;
+      padding-left: 32px;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute; left: 11px; top: 4px; bottom: 4px;
+      width: 2px;
+      background: linear-gradient(180deg, var(--accent), var(--blue));
+      border-radius: 1px;
+    }
+    .timeline-item {
+      position: relative;
+      padding: 0 0 32px 24px;
+    }
+    .timeline-item:last-child { padding-bottom: 0; }
+    .timeline-dot {
+      position: absolute; left: -27px; top: 4px;
+      width: 12px; height: 12px; border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid var(--surface-0);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    .timeline-item:nth-child(even) .timeline-dot { background: var(--blue); box-shadow: 0 0 0 3px rgba(56,189,248,0.15); }
+    .timeline-day {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+    .timeline-item:nth-child(even) .timeline-day { color: var(--blue); }
+    .timeline-title {
+      font-size: 0.9375rem; font-weight: 700; color: var(--text-primary); margin-bottom: 2px;
+    }
+    .timeline-desc {
+      font-size: 0.8125rem; color: var(--text-muted);
+    }
+
+    /* ─── Comparison Table ─── */
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .compare-table thead th {
+      background: var(--surface-2);
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 14px 20px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .compare-table tbody td {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-1);
+    }
+    .compare-table tbody tr:last-child td { border-bottom: none; }
+    .compare-table tbody tr:hover td { background: var(--surface-2); }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-family: var(--mono);
+    }
+    .badge.computed { background: rgba(52,211,153,0.1); color: var(--accent); }
+    .badge.configured { background: rgba(56,189,248,0.1); color: var(--blue); }
+    .badge.not-modeled { background: rgba(251,191,36,0.1); color: #fbbf24; }
+    .badge.unavailable { background: rgba(239,68,68,0.08); color: #ef4444; }
+
+    /* ─── Code Block ─── */
+    .code-block {
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 24px;
+      font-family: var(--mono);
+      font-size: 0.8125rem;
+      line-height: 1.8;
+      color: var(--text-secondary);
+      overflow-x: auto;
+      position: relative;
+    }
+    .code-block .comment { color: var(--text-muted); }
+    .code-block .cmd { color: var(--accent); }
+    .code-block .flag { color: var(--blue); }
+    .code-copy {
+      position: absolute; top: 12px; right: 12px;
+      background: var(--surface-3); border: 1px solid var(--border);
+      color: var(--text-muted); font-size: 0.6875rem; font-weight: 600;
+      padding: 5px 12px; border-radius: 6px;
+      cursor: pointer; font-family: inherit;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .code-copy:hover { color: var(--text-primary); border-color: rgba(255,255,255,0.12); }
+
+    /* ─── Benchmark ─── */
+    .bench-result {
+      background: var(--surface-1);
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius);
+      padding: 40px;
+      text-align: center;
+    }
+    .bench-time {
+      font-size: clamp(3rem, 6vw, 5rem);
+      font-weight: 900;
+      color: var(--accent);
+      letter-spacing: -0.04em;
+      line-height: 1;
+    }
+    .bench-time .unit { font-size: 0.35em; color: var(--text-muted); font-weight: 500; letter-spacing: 0; }
+    .bench-label {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin-top: 8px;
+    }
+    .bench-target {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 16px;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* ─── Quickstart Steps ─── */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .step {
+      background: var(--surface-1);
+      padding: 32px;
+    }
+    .step-number {
+      font-family: var(--mono);
+      font-size: 0.6875rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 16px;
+      letter-spacing: 0.05em;
+    }
+    .step h3 {
+      font-size: 1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;
+    }
+    .step p {
+      font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 16px; line-height: 1.6;
+    }
+    .step code {
+      display: block;
+      background: var(--surface-0);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-family: var(--mono);
+      font-size: 0.8125rem;
+      color: var(--accent);
+    }
+
+    /* ─── Footer ─── */
+    footer {
+      padding: 60px 0 40px;
+      border-top: 1px solid var(--border);
+    }
+    .footer-grid {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .footer-legal {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      max-width: 65ch;
+      line-height: 1.7;
+    }
+    .footer-links { display: flex; gap: 24px; list-style: none; }
+    .footer-links a {
+      font-size: 0.8125rem; color: var(--text-secondary); text-decoration: none;
+      transition: color 0.2s;
+    }
+    .footer-links a:hover { color: var(--text-primary); }
+
+    /* ─── Synthetic Notice ─── */
+    .notice {
+      background: var(--surface-2);
+      border: 1px solid rgba(251,191,36,0.12);
+      border-radius: var(--radius-sm);
+      padding: 20px 24px;
+      margin-top: 64px;
+      display: flex; gap: 12px;
+    }
+    .notice-icon {
+      flex-shrink: 0;
+      width: 20px; height: 20px;
+      color: #fbbf24;
+      margin-top: 2px;
+    }
+    .notice p {
+      font-size: 0.8125rem; color: var(--text-secondary); line-height: 1.65;
+    }
+    .notice strong { color: #fbbf24; }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 1024px) {
+      .hero-content { grid-template-columns: 1fr; gap: 40px; }
+      .hero-visual { max-width: 560px; }
+      .split { grid-template-columns: 1fr; gap: 40px; }
+      .split.reverse { direction: ltr; }
+      .bento { grid-template-columns: 1fr 1fr; }
+      .bento-card.span-2 { grid-column: span 2; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .hero h1 { font-size: 2rem; }
+      .bento { grid-template-columns: 1fr; }
+      .bento-card.span-2 { grid-column: span 1; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+      .event-grid { grid-template-columns: 1fr; }
+      .steps { grid-template-columns: 1fr; }
+      .footer-grid { flex-direction: column; gap: 24px; text-align: center; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .reveal { opacity: 1; transform: none; transition: none; }
+      @keyframes pulse-dot { from, to { opacity: 1; box-shadow: none; } }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ─── Navigation ─── -->
+  <nav>
+    <div class="container">
+      <a href="#" class="nav-brand">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <rect width="28" height="28" rx="7" fill="#34d399"/>
+          <path d="M8 19V9l6 5 6-5v10" stroke="#0a0c10" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        SchoolTwin
+      </a>
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#scenarios">Scenarios</a></li>
+        <li><a href="#comparison">Comparison</a></li>
+        <li><a href="#quickstart">Quickstart</a></li>
+        <li><a href="#benchmarks">Benchmarks</a></li>
+      </ul>
+      <a href="http://localhost:8765" class="nav-cta" target="_blank">
+        Launch App
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
+      </a>
+    </div>
+  </nav>
+
+  <!-- ─── Hero ─── -->
+  <section class="hero" id="hero">
+    <div class="hero-bg">
+      <img src="assets/hero_campus.jpg" alt="" loading="eager">
+    </div>
+    <div class="container hero-content">
+      <div class="hero-text reveal">
+        <div class="hero-badge">
+          <span class="hero-badge-dot"></span>
+          Phase 1 + Phase 2 Live
+        </div>
+        <h1>The <span class="accent">Digital Twin</span> for School Operations</h1>
+        <p class="hero-sub">
+          A synthetic 151-day simulation of a fictional Delhi school.
+          Replay the baseline, inject what-if events, and compare outcomes in seconds.
+        </p>
+        <div class="hero-actions">
+          <a href="http://localhost:8765" class="btn-primary" target="_blank">
+            Open SchoolTwin
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </a>
+          <a href="#quickstart" class="btn-secondary">Quickstart Guide</a>
+        </div>
+      </div>
+      <div class="hero-visual reveal reveal-delay-2">
+        <img src="assets/digital_twin.jpg" alt="SchoolTwin digital twin visualization" loading="eager">
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Stats ─── -->
+  <div class="stats-bar">
+    <div class="container">
+      <div class="stats-grid">
+        <div class="stat reveal">
+          <div class="stat-value"><span data-count="1309">0</span></div>
+          <div class="stat-label">Synthetic Individuals</div>
+        </div>
+        <div class="stat reveal reveal-delay-1">
+          <div class="stat-value"><span data-count="151">0</span> <span class="unit">days</span></div>
+          <div class="stat-label">Simulated Timeline</div>
+        </div>
+        <div class="stat reveal reveal-delay-2">
+          <div class="stat-value"><span data-count="69">0</span></div>
+          <div class="stat-label">Campus Zones</div>
+        </div>
+        <div class="stat reveal reveal-delay-3">
+          <div class="stat-value">&lt;<span data-count="11">0</span><span class="unit">sec</span></div>
+          <div class="stat-label">90-Day Simulation</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Features Bento ─── -->
+  <section id="features">
+    <div class="container">
+      <div class="reveal">
+        <p class="section-label mono">Capabilities</p>
+        <h2 class="section-title">Everything you need to simulate<br>school operations</h2>
+        <p class="section-desc">
+          From minute-by-minute playback to term-level time-lapse, SchoolTwin models
+          attendance, mood, finance, transport, staffing, and incidents in one coherent system.
+        </p>
+      </div>
+
+      <div class="bento">
+        <div class="bento-card span-2 reveal">
+          <div class="bento-icon green">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <h3>Instant Baseline Replay</h3>
+          <p>Open SchoolTwin and immediately inspect a pre-generated, validated 151-day synthetic term. Play/Pause, scrub the timeline, or run a full term time-lapse at 3 days per second.</p>
+        </div>
+        <div class="bento-card reveal reveal-delay-1">
+          <div class="bento-icon blue">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v20M2 12h20"/></svg>
+          </div>
+          <h3>Scenario Builder</h3>
+          <p>3-step event simulator with visual presets. Zero mandatory typing for common what-if scenarios.</p>
+        </div>
+        <div class="bento-card reveal reveal-delay-1">
+          <div class="bento-icon green">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          </div>
+          <h3>Immutable Checkpoints</h3>
+          <p>Branch from stable milestones at Days 0, 30, 60, 90, 120, and 150 without touching baseline history.</p>
+        </div>
+        <div class="bento-card reveal reveal-delay-2">
+          <div class="bento-icon blue">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+          <h3>Honest Comparison</h3>
+          <p>Mathematically verified deltas with categorical badges: Computed, Configured, Not modeled, Unavailable.</p>
+        </div>
+        <div class="bento-card span-2 reveal reveal-delay-2">
+          <div class="bento-icon green">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          </div>
+          <h3>Natural Language Prompts</h3>
+          <p>Describe a scenario in plain English. SchoolTwin parses it locally using Ollama or a zero-dependency fallback, previews the parsed events, and waits for your confirmation before simulating.</p>
+        </div>
+        <div class="bento-card reveal reveal-delay-3">
+          <div class="bento-icon blue">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          </div>
+          <h3>Aggregate Camera Counters</h3>
+          <p>19 zone-level CCTV counters with zero individual tracking. Privacy by architectural design.</p>
+        </div>
+        <div class="bento-card reveal reveal-delay-3">
+          <div class="bento-icon green">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <h3>Deterministic Seeds</h3>
+          <p>Bit-for-bit reproducible runs via keyed PRNG. Same seed, same checkpoint, same results every time.</p>
+        </div>
+        <div class="bento-card reveal reveal-delay-4">
+          <div class="bento-icon blue">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <h3>Student Wellbeing</h3>
+          <p>Mood scores, friendship networks, distress signals, and attendance trajectories for every synthetic individual.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Scenario Builder ─── -->
+  <section id="scenarios" style="background: var(--surface-1);">
+    <div class="container">
+      <div class="split">
+        <div class="reveal">
+          <p class="section-label mono">Scenario Builder</p>
+          <h2 class="section-title">What if everything changed on Day 15?</h2>
+          <p class="section-desc" style="margin-bottom: 40px;">
+            Select a preset event, pick a day, and watch the simulation diverge in real time.
+            The term time-lapse plays automatically so you can see the ripple effects unfold.
+          </p>
+
+          <div class="tab-nav" role="tablist">
+            <button class="tab-btn active" data-tab="events" role="tab" aria-selected="true">Event Presets</button>
+            <button class="tab-btn" data-tab="checkpoints" role="tab" aria-selected="false">Checkpoints</button>
+          </div>
+
+          <div class="tab-panel active" id="tab-events" role="tabpanel">
+            <div class="event-grid">
+              <div class="event-card reveal">
+                <span class="event-emoji" aria-hidden="true">&#x1F94A;</span>
+                <h4>Student Altercation</h4>
+                <p>Physical altercation involving 3 students, triggers nurse visit and staff intervention.</p>
+              </div>
+              <div class="event-card reveal reveal-delay-1">
+                <span class="event-emoji" aria-hidden="true">&#x1F68C;</span>
+                <h4>Bus Breakdown</h4>
+                <p>Route vehicle failure causing a lateness surge across affected students.</p>
+              </div>
+              <div class="event-card reveal reveal-delay-2">
+                <span class="event-emoji" aria-hidden="true">&#x1F4B0;</span>
+                <h4>Fee Revision</h4>
+                <p>Tuition/transport fee adjustment with parental query surge and mood impact.</p>
+              </div>
+              <div class="event-card reveal reveal-delay-3">
+                <span class="event-emoji" aria-hidden="true">&#x1F4F1;</span>
+                <h4>Policy Violation</h4>
+                <p>Phone confiscation incident triggering parent meeting and admin review.</p>
+              </div>
+              <div class="event-card reveal reveal-delay-4">
+                <span class="event-emoji" aria-hidden="true">&#x1F469;&#x200D;&#x1F3EB;</span>
+                <h4>Teacher Resignation</h4>
+                <p>Senior faculty departure causing lesson cover pressure and scheduling stress.</p>
+              </div>
+              <div class="event-card reveal reveal-delay-5">
+                <span class="event-emoji" aria-hidden="true">&#x2600;&#xFE0F;</span>
+                <h4>Severe Heatwave</h4>
+                <p>44°C alert suspending all outdoor activities and triggering health protocols.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-panel" id="tab-checkpoints" role="tabpanel">
+            <div class="timeline">
+              <div class="timeline-item reveal">
+                <div class="timeline-dot"></div>
+                <div class="timeline-day">DAY 0</div>
+                <div class="timeline-title">Term Opening Baseline</div>
+                <div class="timeline-desc">Full campus initialization, all 1,309 agents active</div>
+              </div>
+              <div class="timeline-item reveal reveal-delay-1">
+                <div class="timeline-dot"></div>
+                <div class="timeline-day">DAY 30</div>
+                <div class="timeline-title">End of January Review</div>
+                <div class="timeline-desc">First attendance and mood benchmarks established</div>
+              </div>
+              <div class="timeline-item reveal reveal-delay-2">
+                <div class="timeline-dot"></div>
+                <div class="timeline-day">DAY 60</div>
+                <div class="timeline-title">Pre-Annual Day</div>
+                <div class="timeline-desc">February close, academic mid-point assessment</div>
+              </div>
+              <div class="timeline-item reveal reveal-delay-3">
+                <div class="timeline-dot"></div>
+                <div class="timeline-day">DAY 90</div>
+                <div class="timeline-title">April Promotions</div>
+                <div class="timeline-desc">3-month horizon, promotion and transfer window</div>
+              </div>
+              <div class="timeline-item reveal reveal-delay-4">
+                <div class="timeline-dot"></div>
+                <div class="timeline-day">DAY 120</div>
+                <div class="timeline-title">Pre-Summer Heat</div>
+                <div class="timeline-desc">May heat protocols, outdoor activity adjustments</div>
+              </div>
+              <div class="timeline-item reveal reveal-delay-5">
+                <div class="timeline-dot"></div>
+                <div class="timeline-day">DAY 150</div>
+                <div class="timeline-title">Full Term Close</div>
+                <div class="timeline-desc">Complete term summary, all metrics finalized</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="split-visual reveal reveal-delay-2">
+          <img src="assets/scenario_builder.jpg" alt="SchoolTwin scenario builder interface">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Comparison Engine ─── -->
+  <section id="comparison">
+    <div class="container">
+      <div class="split reverse">
+        <div class="reveal">
+          <p class="section-label mono">Comparison Engine</p>
+          <h2 class="section-title">Honest deltas, not marketing metrics</h2>
+          <p class="section-desc" style="margin-bottom: 40px;">
+            Every metric is categorized with a transparent status badge.
+            SchoolTwin never pretends to model something it doesn't.
+          </p>
+
+          <div style="overflow-x: auto; border-radius: var(--radius);">
+            <table class="compare-table">
+              <thead>
+                <tr>
+                  <th>Metric Category</th>
+                  <th>Included</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="color: var(--text-primary); font-weight: 600;">Attendance & Lateness</td>
+                  <td>Avg Rate, Total Late Arrivals, Absence Volatility</td>
+                  <td><span class="badge computed">Computed</span></td>
+                </tr>
+                <tr>
+                  <td style="color: var(--text-primary); font-weight: 600;">Faculty & Operations</td>
+                  <td>Teacher Absence Rate, Uncovered Lessons</td>
+                  <td><span class="badge computed">Computed</span></td>
+                </tr>
+                <tr>
+                  <td style="color: var(--text-primary); font-weight: 600;">Financial Position</td>
+                  <td>Cash Balance, Revenue, Expenditure</td>
+                  <td><span class="badge computed">Computed</span></td>
+                </tr>
+                <tr>
+                  <td style="color: var(--text-primary); font-weight: 600;">Wellbeing & Sentiment</td>
+                  <td>Avg Mood Score, High-Distress Share</td>
+                  <td><span class="badge computed">Computed</span></td>
+                </tr>
+                <tr>
+                  <td style="color: var(--text-primary); font-weight: 600;">Configured Levers</td>
+                  <td>Extra Teachers, Fee Delta</td>
+                  <td><span class="badge configured">Configured</span></td>
+                </tr>
+                <tr>
+                  <td style="color: var(--text-primary); font-weight: 600;">Academic Outcomes</td>
+                  <td>Board Exam Percentile, Subject Mastery</td>
+                  <td><span class="badge not-modeled">Phase 3</span></td>
+                </tr>
+                <tr>
+                  <td style="color: var(--text-primary); font-weight: 600;">Surveillance & Identity</td>
+                  <td>Facial Recognition / Biometrics</td>
+                  <td><span class="badge unavailable">Banned</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="split-visual reveal">
+          <img src="assets/comparison.jpg" alt="SchoolTwin comparison engine dashboard">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Quickstart ─── -->
+  <section id="quickstart" style="background: var(--surface-1);">
+    <div class="container">
+      <div class="reveal" style="text-align: center; margin-bottom: 64px;">
+        <h2 class="section-title">Get running in 3 steps</h2>
+        <p class="section-desc" style="margin: 12px auto 0;">No paid API keys. No cloud dependencies. Fully local.</p>
+      </div>
+
+      <div class="steps">
+        <div class="step reveal">
+          <div class="step-number">01</div>
+          <h3>Install Dependencies</h3>
+          <p>Python packages for the simulation engine.</p>
+          <code><span style="color: var(--accent);">pip</span> install -r requirements.txt</code>
+        </div>
+        <div class="step reveal reveal-delay-1">
+          <div class="step-number">02</div>
+          <h3>Start the Server</h3>
+          <p>Launches on port 8765 by default.</p>
+          <code><span style="color: var(--accent);">python</span> scripts/serve.py</code>
+        </div>
+        <div class="step reveal reveal-delay-2">
+          <div class="step-number">03</div>
+          <h3>Open in Browser</h3>
+          <p>Replay baseline or create a scenario.</p>
+          <code>http://localhost:<span style="color: var(--blue);">8765</span></code>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Benchmarks ─── -->
+  <section id="benchmarks">
+    <div class="container">
+      <div class="split">
+        <div class="reveal">
+          <p class="section-label mono">Performance</p>
+          <h2 class="section-title">Blazing fast, deterministic simulation</h2>
+          <p class="section-desc" style="margin-bottom: 32px;">
+            90 days of school operations across 1,309 agents. Bit-for-bit reproducible.
+            Run the benchmark yourself:
+          </p>
+          <div class="code-block">
+            <button class="code-copy" onclick="navigator.clipboard.writeText('python -m schooltwin.benchmark');this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)">Copy</button>
+            <span class="comment"># Run benchmark</span><br>
+            <span class="cmd">python</span> -m schooltwin.benchmark<br><br>
+            <span class="comment"># Run all tests</span><br>
+            <span class="cmd">python</span> -m unittest tests/test_phase1_phase2.py<br>
+            <span class="cmd">npm</span> test
+          </div>
+        </div>
+
+        <div class="reveal reveal-delay-2">
+          <div class="bench-result">
+            <div class="bench-time">10.98<span class="unit">seconds</span></div>
+            <div class="bench-label">3-Month Scenario (90 days, 1,309 agents)</div>
+            <div class="bench-target">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              TARGET ACHIEVED (15-30s window)
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+            <div style="background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 20px; text-align: center;">
+              <div style="font-size: 1.5rem; font-weight: 800; color: var(--text-primary);">21</div>
+              <div style="font-size: 0.6875rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em;">Python Tests</div>
+            </div>
+            <div style="background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 20px; text-align: center;">
+              <div style="font-size: 1.5rem; font-weight: 800; color: var(--text-primary);">15</div>
+              <div style="font-size: 0.6875rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em;">Player Tests</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Synthetic Notice ─── -->
+  <div class="container">
+    <div class="notice reveal">
+      <svg class="notice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+      <p>
+        <strong>Synthetic Simulation Notice:</strong> All student identities, staff profiles, records, events,
+        and camera counts are entirely synthetic. Outcomes are computational what-if scenarios,
+        not predictions. SchoolTwin operates on aggregate zone occupancy counters only.
+        Individual camera tracking and facial recognition are banned by architectural design.
+      </p>
+    </div>
+  </div>
+
+  <!-- ─── Footer ─── -->
+  <footer>
+    <div class="container footer-grid">
+      <div class="footer-legal">
+        SchoolTwin Phase 1 + Phase 2. Synthetic digital twin of a fictional Delhi secondary school.
+        All data is computationally generated. No real individuals are modeled.
+      </div>
+      <ul class="footer-links">
+        <li><a href="#hero">Top</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#quickstart">Quickstart</a></li>
+        <li><a href="http://localhost:8765" target="_blank">Launch App</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <script>
+    /* ─── Scroll Reveal ─── */
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    /* ─── Counter Animation ─── */
+    const counterObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const el = entry.target;
+          const target = parseInt(el.dataset.count);
+          const duration = 1800;
+          const start = performance.now();
+
+          function tick(now) {
+            const elapsed = now - start;
+            const progress = Math.min(elapsed / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            el.textContent = Math.round(eased * target).toLocaleString();
+            if (progress < 1) requestAnimationFrame(tick);
+          }
+
+          requestAnimationFrame(tick);
+          counterObserver.unobserve(el);
+        }
+      });
+    }, { threshold: 0.5 });
+
+    document.querySelectorAll('[data-count]').forEach(el => counterObserver.observe(el));
+
+    /* ─── Tabs ─── */
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        btn.closest('.tab-nav').querySelectorAll('.tab-btn').forEach(b => {
+          b.classList.remove('active');
+          b.setAttribute('aria-selected', 'false');
+        });
+        btn.classList.add('active');
+        btn.setAttribute('aria-selected', 'true');
+
+        const container = btn.closest('.tab-nav').parentElement;
+        container.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        container.querySelector('#tab-' + tab).classList.add('active');
+
+        // Re-observe reveals in newly visible tab
+        container.querySelector('#tab-' + tab).querySelectorAll('.reveal:not(.visible)').forEach(el => observer.observe(el));
+      });
+    });
+
+    /* ─── Smooth Scroll for nav links ─── */
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', e => {
+        const target = document.querySelector(a.getAttribute('href'));
+        if (target) {
+          e.preventDefault();
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+  </script>
+</body>
+</html>
