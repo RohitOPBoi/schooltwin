@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SchoolTwin — Operational Digital Twin Console</title>
+<!-- Dependency-free & offline-first: System font stack, no remote CDNs -->
+<link rel="stylesheet" href="player.css">
+</head>
+<body>
+<div id="app">
+  <!-- Top Navigation & Controls Header -->
+  <header id="top">
+    <div class="brand-group">
+      <div class="brand" id="brandBtn" title="SchoolTwin Digital Twin Overview">
+        <span class="brand-logo">🏫</span> SchoolTwin
+        <small id="schoolName">Saraswati Heights Senior Secondary School</small>
+      </div>
+      <div class="synthetic-badge" title="Saraswati Heights is a synthetic computational model. Sensing is strictly aggregate zone counters.">
+        <span class="dot-live"></span> Synthetic Twin · 1,309 agents
+      </div>
+    </div>
+
+    <!-- Step Rail (Replay -> Create -> Run -> Explore -> Report -> Compare) -->
+    <nav id="stepRail" class="step-rail" aria-label="Simulation Workflow Steps">
+      <button data-step="replay" class="step-btn active" id="btnStepReplay" title="Inspect baseline historical playback">
+        <span class="step-num">1</span>
+        <span class="step-label">Replay</span>
+      </button>
+      <button data-step="create" class="step-btn" id="btnStepCreate" title="Configure what-if scenarios and incidents">
+        <span class="step-num">2</span>
+        <span class="step-label">Create</span>
+      </button>
+      <button data-step="run" class="step-btn" id="btnStepRun" title="Simulate scenario in background">
+        <span class="step-num">3</span>
+        <span class="step-label">Run</span>
+      </button>
+      <button data-step="explore" class="step-btn" id="btnStepExplore" title="Explore spatial incident ripple and timeline flags">
+        <span class="step-num">4</span>
+        <span class="step-label">Explore</span>
+      </button>
+      <button data-step="report" class="step-btn" id="btnStepReport" title="Evidence-based impact report">
+        <span class="step-num">5</span>
+        <span class="step-label">Report</span>
+      </button>
+      <button data-step="compare" class="step-btn" id="btnStepCompare" title="Compare scenario vs control continuation">
+        <span class="step-num">6</span>
+        <span class="step-label">Compare</span>
+      </button>
+    </nav>
+
+    <!-- Top Action Toolbar -->
+    <div class="header-right">
+      <div class="entry-actions">
+        <button id="btnReplayBaseline" class="btn-entry primary" title="Replay the pre-generated 151-day historical baseline">⏮ Replay Baseline</button>
+        <button id="btnNewScenario" class="btn-entry" title="Open the Scenario Builder to customize events and policies">+ Create Scenario</button>
+      </div>
+      <select id="runSel" class="select-field" title="Select active run pack"></select>
+      <div class="seg" id="viewSeg" title="Operator view hides hidden causes and traits">
+        <button data-v="operator" class="on">Operator</button>
+        <button data-v="author">Author</button>
+      </div>
+      <button id="btnMotionToggle" class="btn-toggle" title="Toggle Motion: Full / Reduced / Off (Shortcut: M)">✨ Motion: Full</button>
+      <button id="btnThemeToggle" class="btn-toggle" title="Switch Theme: Dark / Light (Shortcut: T)">🌙 Dark</button>
+      <div id="clock">
+        <b id="clkDate">—</b>
+        <span id="clkTime">—</span>
+        <em id="clkBlock"></em>
+      </div>
+    </div>
+  </header>
+
+  <!-- Legacy Disclaimer Bar (Preserved as hidden container for backward compatibility) -->
+  <div id="disclaimerBar" class="disclaimer" style="display:none">
+    <span><b>Synthetic Simulation Notice:</b> Saraswati Heights is a synthetic school model.</span>
+  </div>
+
+  <main>
+    <!-- Stage: Campus Map Canvas -->
+    <section id="stage">
+      <!-- Floating Map Toolbar -->
+      <div class="map-floating-bar" id="mapToolbar">
+        <div class="seg" id="floorSeg" title="Campus Floor Selection">
+          <button data-v="all" class="on">All Floors</button>
+          <button data-v="0">Ground</button>
+          <button data-v="1">Floor 1</button>
+          <button data-v="2">Floor 2</button>
+        </div>
+        <div class="seg" id="layerSeg" title="Switch between Simulation and Camera Counters">
+          <button data-v="reality" class="on">Simulation</button>
+          <button data-v="camera">Camera Counters</button>
+        </div>
+        <div class="seg" id="colorSeg" title="Color coding of agents">
+          <button data-v="grade" class="on">Grade</button>
+          <button data-v="mood">Mood</button>
+          <button data-v="role">Role</button>
+        </div>
+      </div>
+
+      <canvas id="map"></canvas>
+      <div id="banner"></div>
+
+      <!-- Active Scenario Banner -->
+      <div id="scenBanner" class="scen-banner" style="display:none">
+        <span class="scen-banner-pulse"></span>
+        <div class="scen-banner-info">
+          <b id="scenBannerTitle">Scenario Time-lapse Active</b>
+          <span id="scenBannerSub">Watching simulated campus</span>
+        </div>
+        <div class="scen-banner-ctrls">
+          <button id="scenBannerToggleBtn" type="button" class="scen-banner-btn">⏸ Pause</button>
+          <button id="scenBannerReplayBtn" type="button" class="scen-banner-btn">↺ Replay</button>
+          <button id="scenBannerCloseBtn" type="button" class="scen-banner-close" title="Dismiss">✕</button>
+        </div>
+      </div>
+
+      <div id="tip"></div>
+      <div id="toast"></div>
+    </section>
+
+    <!-- Context Drawer (Changes dynamically with workflow step) -->
+    <aside id="side">
+      <nav id="tabs" class="drawer-tabs">
+        <button data-t="now" class="on">Now</button>
+        <button data-t="inspect">Inspect</button>
+        <button data-t="flags">Flags</button>
+        <button data-t="stats">Trends</button>
+        <button data-t="money">Money</button>
+        <button data-t="run">Builder</button>
+        <button data-t="compare">Compare</button>
+      </nav>
+      <div class="panel on" id="p-now"></div>
+      <div class="panel" id="p-inspect"></div>
+      <div class="panel" id="p-flags"></div>
+      <div class="panel" id="p-stats"></div>
+      <div class="panel" id="p-money"></div>
+      <div class="panel" id="p-run"></div>
+      <div class="panel" id="p-compare"></div>
+    </aside>
+  </main>
+
+  <!-- Timeline Dock -->
+  <footer id="dock">
+    <div id="transport">
+      <button id="bPrevFlag" title="Previous flag  [">⏮</button>
+      <button id="bBack" title="Back 1 min  ←">⏪</button>
+      <button id="bPlay" title="Play / pause  Space" class="primary">▶</button>
+      <button id="bFwd" title="Forward 1 min  →">⏩</button>
+      <button id="bNextFlag" title="Next flag  ]">⏭</button>
+      <select id="modeSel" class="select-field" title="What advances while playing">
+        <option value="day">Watch the day</option>
+        <option value="term">Time-lapse the term</option>
+      </select>
+      <select id="speedSel" class="select-field" title="Replay speed"></select>
+      <label class="chk"><input type="checkbox" id="chkPause" checked> pause at flags</label>
+      <label class="chk"><input type="checkbox" id="chkSkip" checked> skip closed days</label>
+      <button id="bFlag" class="btn-subtle" title="Flag this moment  F">⚑ Flag moment</button>
+    </div>
+    <div class="timeline-canvases">
+      <canvas id="dayStrip" height="64" title="Term Timeline (Days 0–150 Baseline | Day 151+ Scenario)"></canvas>
+      <canvas id="minStrip" height="34" title="Day Minute Strip (8:00 AM – 3:00 PM)"></canvas>
+    </div>
+  </footer>
+</div>
+
+<!-- Welcome Landing Modal -->
+<div id="landingModal" class="modal-backdrop" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>Welcome to SchoolTwin</h2>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <p>A deterministic digital twin of a synthetic Delhi CBSE school (1,309 people, 69 zones, 12 bus routes, 19 aggregate camera counters). Explore the verified 5-month historical baseline or branch into custom "what-if" scenarios starting from Day 151.</p>
+      <div class="entry-cards">
+        <div class="entry-card" id="cardReplay">
+          <div class="card-badge">Option A</div>
+          <h3>Replay Baseline History</h3>
+          <p>Immediately inspect the pre-generated 151-day term history without waiting. Scrub minute-by-minute, inspect student mood trajectories, and review detector alerts.</p>
+          <button class="primary btn-block">Open Baseline History</button>
+        </div>
+        <div class="entry-card" id="cardScenario">
+          <div class="card-badge">Option B</div>
+          <h3>Create a Scenario</h3>
+          <p>Branch from Day 151 (Month 6) or an earlier checkpoint. Schedule incidents (water cooler breakdown, strike, altercation), configure reopening dates, and run independent simulations.</p>
+          <button class="btn-block">Launch Scenario Builder</button>
+        </div>
+      </div>
+      <div class="modal-foot-note">
+        <b>Deterministic & Offline:</b> Runs 100% locally with reproducible random seeds. No paid API keys or cloud dependencies.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="player.js"></script>
+</body>
+</html>
