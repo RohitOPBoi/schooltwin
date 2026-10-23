@@ -505,13 +505,10 @@ class CausalHandlerRegistry:
         repair_cost_inr = int(p.get("repair_cost_inr", 8500))
 
         # Ledger transaction for repair
-        self.ledger.post_transaction(
-            date=current_date,
-            debit_account="repairs_and_maintenance",
-            credit_account="accounts_payable",
-            amount_paise=repair_cost_inr * 100,
-            category="maintenance",
-            description=f"Emergency repair for drinking water cooler in {loc}",
+        self.ledger.book_maintenance_repair(
+            date_str=current_date,
+            amount_inr=repair_cost_inr,
+            issue_desc=f"Emergency repair for drinking water cooler in {loc}",
             source_event_id=event.event_id,
         )
 

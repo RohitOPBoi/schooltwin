@@ -104,6 +104,30 @@ class FinancialLedger:
         self._tx_ids.add(tid)
         return tx
 
+    def post_transaction(
+        self,
+        date: str,
+        debit_account: str,
+        credit_account: str,
+        amount_paise: int = 0,
+        amount_inr: Optional[float] = None,
+        category: str = "general",
+        description: str = "",
+        source_event_id: Optional[str] = None,
+        **kwargs
+    ) -> Transaction:
+        """Compatibility wrapper accepting both amount_paise and amount_inr."""
+        inr = (amount_paise / 100.0) if amount_paise else (amount_inr or 0.0)
+        return self.record_entry(
+            date_str=date,
+            debit_account=debit_account,
+            credit_account=credit_account,
+            amount_inr=inr,
+            category=category,
+            description=description,
+            source_event_id=source_event_id,
+        )
+
     # ---- Specialized Business Logic Transactions ----
 
     def bill_student_fees(self, date_str: str, tuition_inr: float, transport_inr: float, source_event_id: Optional[str] = None) -> List[Transaction]:

@@ -144,12 +144,18 @@ class H(BaseHTTPRequestHandler):
                 f = (ROOT / "pack" / "user_flags_baseline.json").resolve()
             else:
                 f = (base / rel[5:]).resolve()
+            if not f.is_file() and "/days/d" in rel:
+                m_day = re.search(r"/days/(d\d{4}\.json)$", rel)
+                if m_day:
+                    cand_base = (ROOT / "pack" / "story_baseline" / "days" / m_day.group(1)).resolve()
+                    if cand_base.is_file():
+                        f = cand_base
         else:
             base = ROOT / "player"
             f = (base / rel).resolve()
             if f.is_dir():
                 f = (f / "index.html").resolve()
-        if (base.resolve() not in f.parents and f != base.resolve()) or not f.is_file():
+        if (base.resolve() not in f.parents and ROOT / "pack" / "story_baseline" / "days" not in f.parents and f != base.resolve()) or not f.is_file():
             return self._send(404, b"not found", "text/plain")
         data = f.read_bytes()
         ctype = mimetypes.guess_type(str(f))[0] or "application/octet-stream"
@@ -227,7 +233,17 @@ class H(BaseHTTPRequestHandler):
             prompt = body.get("prompt", "")
             if not prompt or not isinstance(prompt, str) or not prompt.strip():
                 return self._json(400, {"ok": False, "error": "Prompt string is required"})
-            parsed = parse_scenario_prompt(prompt.strip())
+            start_day = int(body.get("start_day", 151))
+            duration_days = int(body.get("duration_days", 30))
+            reopening_date = str(body.get("reopening_date", "2026-07-01"))
+            end_day = int(body["end_day"]) if "end_day" in body and body["end_day"] is not None else None
+            parsed = parse_scenario_prompt(
+                prompt.strip(),
+                start_day=start_day,
+                duration_days=duration_days,
+                reopening_date=reopening_date,
+                end_day=end_day,
+            )
             return self._json(200, {"ok": True, "parsed": parsed})
 
         if self.path == "/api/export":
