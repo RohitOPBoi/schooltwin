@@ -84,10 +84,10 @@ CATEGORY_CATALOG: Dict[str, List[Dict[str, Any]]] = {
     "facility": [
         {"type": "water_cooler_breakdown", "locations": ["corridor_1", "corridor_2", "canteen"], "cost_range": [6000, 10000]},
         {"type": "water_motor_failure", "locations": ["pump_house"], "cost_range": [15000, 22000]},
-        {"type": "classroom_fan_failure", "locations": ["class_9a", "class_8b", "class_10a"], "cost_range": [2500, 4500]},
+        {"type": "classroom_fan_failure", "locations": ["C9A", "C8B", "C10A"], "cost_range": [2500, 4500]},
         {"type": "door_lock_failure", "locations": ["library", "comp_lab_1", "store_room"], "cost_range": [1800, 3200]},
         {"type": "door_frame_damage", "locations": ["stair_A", "stair_B", "main_exit"], "cost_range": [3500, 6000]},
-        {"type": "broken_classroom_furniture", "locations": ["class_9a", "class_10a", "class_8b"], "cost_range": [2000, 4000]},
+        {"type": "broken_classroom_furniture", "locations": ["C9A", "C10A", "C8B"], "cost_range": [2000, 4000]},
         {"type": "room_closure", "locations": ["comp_lab_2", "canteen_back"], "cost_range": [1000, 3000]},
     ],
     "utilities": [
@@ -102,7 +102,7 @@ CATEGORY_CATALOG: Dict[str, List[Dict[str, Any]]] = {
         {"type": "it_support_bottleneck", "locations": ["comp_lab_1", "admin_lobby"], "cost_range": [0, 0]},
     ],
     "student_social": [
-        {"type": "student_teacher_conflict", "locations": ["class_8b", "class_9a"], "cost_range": [0, 0]},
+        {"type": "student_teacher_conflict", "locations": ["C8B", "C9A"], "cost_range": [0, 0]},
         {"type": "serious_student_fight", "locations": ["playground", "behind_playground", "canteen"], "cost_range": [0, 0]},
         {"type": "student_group_complaint", "locations": ["admin_lobby", "principal_office"], "cost_range": [0, 0]},
         {"type": "collective_strike", "locations": ["north_ground", "main_gate"], "cost_range": [0, 0]},

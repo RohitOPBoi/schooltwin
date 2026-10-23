@@ -605,27 +605,50 @@ class Engine:
             z = self.zone_map.get(z, z)
         if z in self.closed:
             z = a.home_zone if a.role == "student" else "staffroom"
-        return z
+        return self._normalize_zone(z)
+
+    def _normalize_zone(self, zid):
+        if not zid or zid == OUTSIDE or zid in self.world.zones:
+            return zid
+        s = str(zid).lower().replace("-", "_").strip()
+        if s.startswith("class_") or s.startswith("classroom_"):
+            parts = s.split("_")
+            cand = "C" + parts[-1].upper()
+            if cand in self.world.zones:
+                return cand
+        cand = "C" + str(zid).upper()
+        if cand in self.world.zones:
+            return cand
+        cand_upper = str(zid).upper()
+        if cand_upper in self.world.zones:
+            return cand_upper
+        return "admin_lobby" if "admin_lobby" in self.world.zones else list(self.world.zones.keys())[0]
 
     def _log_move(self, a, zid, t):
-        self.paths[a.id].extend((t, self.zi[zid] if zid != OUTSIDE else -1))
+        norm_z = self._normalize_zone(zid)
+        zi_val = self.zi.get(norm_z, -1) if norm_z != OUTSIDE else -1
+        self.paths[a.id].extend((t, zi_val))
 
     def _move(self, a, zid, t):
+        zid = self._normalize_zone(zid)
         if a.zone == zid:
             return
         ri = ROLE_IDX[a.role]
-        if a.zone != OUTSIDE:
+        if a.zone != OUTSIDE and a.zone in self.members:
             self.members[a.zone].discard(a.id)
             self.counts[a.zone][ri] -= 1
         a.zone = zid
         self._log_move(a, zid, t)
         if zid == OUTSIDE:
             return
-        z = self.world.zones[zid]
+        z = self.world.zones.get(zid)
+        if not z:
+            return
         a.floor = z.floor
         a.x, a.y = z.sample_point(self.rng)
-        self.members[zid].add(a.id)
-        self.counts[zid][ri] += 1
+        if zid in self.members:
+            self.members[zid].add(a.id)
+            self.counts[zid][ri] += 1
         if z.measure.startswith("entries") and (a.role == "student" or zid not in ("main_gate", "bus_bay")):
             self.entries[zid].append(t)
         if zid == "canteen" and a.role == "student" and a.away_until < 0:
