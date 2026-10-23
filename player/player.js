@@ -23,8 +23,41 @@
     days: new Map(), day: 0, minute: 525, dayF: 0, playing: false, busy: false, mode: 'day', speed: 15, view: 'operator',
     layer: 'reality', color: 'grade', floor: 'all', sel: null, tab: 'now', userFlags: [], api: false, cmp: null,
     dirty: true, last: 0, hits: [], lastPanel: 0, snapMinute: 630, approvals: {}, theme: 'dark',
+    pairedMode: false, pairMeta: null, ctrlMeta: null, trtMeta: null,
+    ctrlDays: new Map(), trtDays: new Map(), randomProfile: 'balanced', pairSeed: 20261014,
   };
   window.ST = S;                                    // handy for tests and for poking around in the console
+
+  const RANDOM_PROFILES = {
+    balanced: {
+      id: 'balanced',
+      name: 'Balanced (Default)',
+      desc: 'Normal school operating variation with regular minor friction and occasional utility or staffing challenges.',
+      rate: '1.5/mo', maxDay: 1, maxWk: 2, cooldown: '8d',
+      allowed: 'All operational categories'
+    },
+    calm: {
+      id: 'calm',
+      name: 'Calm',
+      desc: 'Routine variability with mostly minor operational friction. Major disruptions are excluded.',
+      rate: '0.5/mo', maxDay: 1, maxWk: 1, cooldown: '14d',
+      allowed: 'Facility, utilities, academic/admin, transport'
+    },
+    stress_test: {
+      id: 'stress_test',
+      name: 'Stress-test',
+      desc: 'Elevated operational strain: more frequent equipment faults, cover crunches, and logistical disruptions.',
+      rate: '3.5/mo', maxDay: 2, maxWk: 4, cooldown: '4d',
+      allowed: 'All categories with higher incident probability'
+    },
+    custom: {
+      id: 'custom',
+      name: 'Custom',
+      desc: 'User-configured event frequencies, categories, cooldowns, and random seed.',
+      rate: 'Custom', maxDay: 2, maxWk: 3, cooldown: '6d',
+      allowed: 'User specified'
+    }
+  };
 
   function applyTheme(theme) {
     S.theme = theme;
@@ -108,6 +141,31 @@
     } catch (e) { D = null; }
     S.days.set(i, D);
     return D;
+  }
+  async function ensureDualDay(i, branch) {
+    const cache = branch === 'ctrl' ? S.ctrlDays : S.trtDays;
+    if (cache.has(i)) return cache.get(i);
+    const meta = branch === 'ctrl' ? S.ctrlMeta : S.trtMeta;
+    if (!meta) return null;
+    const d = meta.days[i];
+    if (!d) return null;
+    const runId = branch === 'ctrl' ? S.pairMeta.control_run : S.pairMeta.treatment_run;
+    let D = null;
+    try {
+      let raw;
+      try {
+        raw = await getJSON(S.base + runId + '/days/d' + String(i).padStart(4, '0') + '.json');
+      } catch (err) {
+        raw = await getJSON(S.base + 'story_baseline/days/d' + String(i).padStart(4, '0') + '.json');
+      }
+      D = prepDay(raw);
+    } catch (e) { D = null; }
+    cache.set(i, D);
+    return D;
+  }
+  function curDualD(branch) {
+    const cache = branch === 'ctrl' ? S.ctrlDays : S.trtDays;
+    return cache.get(S.day) || null;
   }
   function prefetch(i) {                             // quietly load the next few days so playback never stalls
     for (let k = 1; k <= 3; k++) { const j = i + k; if (j < S.nDays && !S.days.has(j) && S.meta.days[j].open) ensureDay(j); }
@@ -211,11 +269,15 @@
     }
     S.busy = true;
     try {
-      await ensureDay(day);
+      if (S.pairedMode) {
+        await Promise.all([ensureDualDay(day, 'ctrl'), ensureDualDay(day, 'trt')]);
+      } else {
+        await ensureDay(day);
+      }
       S.day = day; S.dayF = day;
       if (minute != null) S.minute = clamp(minute, S.clock.start, S.clock.end);
       if (opt && opt.pause) pause();
-      prefetch(day);
+      if (!S.pairedMode) prefetch(day);
       updateClock(); renderPanels(true); drawStrips();
     } finally {
       S.busy = false; S.dirty = true;
@@ -316,7 +378,178 @@
     lab: '#171224', gate: '#111520', bus: '#161814', office: '#131824', staffroom: '#131824', infirmary: '#241416',
     washroom: '#0f1822', store: '#141822', blind_spot: '#181a24', sports: '#0c1815', parking: '#111520', room: '#121722'
   };
+  function renderDualCanvas(cv, D, meta, isCtrl, isTrt) {
+    if (!cv || !meta) return;
+    const dpr = window.devicePixelRatio || 1;
+    const W = cv.clientWidth || 450, H = cv.clientHeight || 520;
+    if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) {
+      cv.width = Math.round(W * dpr);
+      cv.height = Math.round(H * dpr);
+    }
+    const ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+
+    const L = layout(W, H);
+    const sc = L.scale, t = S.minute, md = meta.days[S.day] || { date: '', open: false, type: 'closed' };
+    const counts = S.zones.map(() => ({ s: 0, t: 0, p: 0, f: 0, v: 0, n: 0 }));
+    const pts = [];
+    if (D) {
+      for (const id of D.ids) {
+        const zi = zoneAt(D.paths.get(id), t);
+        if (zi < 0) continue;
+        const z = S.zones[zi], p = S.people[id], c = counts[zi];
+        const r = p.role; c.n++;
+        if (r === 'student') c.s++; else if (r === 'teacher') c.t++; else if (r === 'principal') c.p++; else if (r === 'visitor') c.v++; else c.f++;
+        if (L.org[z.floor] !== undefined) pts.push([id, zi]);
+      }
+    }
+    const isLight = S.theme === 'light';
+
+    // Floors
+    L.floors.forEach(f => {
+      const o = L.org[f];
+      ctx.fillStyle = isLight ? '#ffffff' : '#0a0d14';
+      ctx.strokeStyle = isLight ? '#cbd5e1' : '#1e2638';
+      ctx.lineWidth = 1;
+      ctx.fillRect(o.x, o.y, FW * sc, FH * sc);
+      ctx.strokeRect(o.x, o.y, FW * sc, FH * sc);
+      ctx.fillStyle = isLight ? '#475569' : '#9ca3af';
+      ctx.font = `600 ${Math.max(10, sc * 2.6)}px system-ui,sans-serif`;
+      ctx.textAlign = 'left';
+      ctx.fillText(meta.floors[f], o.x + 2, o.y - 5);
+    });
+
+    // Incident detection for this branch
+    const bFlags = meta.flags ? meta.flags.filter(f => (S.view === 'author' || f.vis !== 'author') && f.day === S.day) : [];
+    const activeInc = bFlags.filter(f => f.kind !== 'calendar' && f.zone).find(f => Math.abs(f.minute - t) <= 25) || null;
+    const originZoneId = activeInc ? activeInc.zone : null;
+
+    const isSharedBg = !!(S.pairedMode && S.pairMeta && S.pairMeta.shared_background_events.some(e => e.date === md.date));
+    const isCustomEvent = !!(isTrt && S.pairedMode && S.pairMeta && S.pairMeta.custom_event && S.pairMeta.custom_event.date === md.date);
+
+    // Zones
+    S.zones.forEach((z, zi) => {
+      const o = L.org[z.floor]; if (!o) return;
+      const [x, y, w, h] = z.rect, X = o.x + x * sc, Y = o.y + y * sc, WW = w * sc, HH = h * sc, c = counts[zi];
+      const isOrigin = (z.id === originZoneId);
+
+      ctx.fillStyle = (typeof TINT !== 'undefined' && TINT[z.type]) ? TINT[z.type] : (isLight ? '#f8fafc' : '#121722');
+      ctx.fillRect(X, Y, WW, HH);
+
+      if (isOrigin) {
+        ctx.fillStyle = isCustomEvent ? 'rgba(16, 185, 129, 0.25)' : isSharedBg ? 'rgba(56, 189, 248, 0.25)' : 'rgba(239, 68, 68, 0.25)';
+        ctx.fillRect(X, Y, WW, HH);
+        ctx.strokeStyle = isCustomEvent ? '#10b981' : isSharedBg ? '#38bdf8' : '#ef4444';
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([4, 2]);
+        ctx.strokeRect(X, Y, WW, HH);
+        ctx.setLineDash([]);
+      } else {
+        ctx.strokeStyle = isLight ? '#e2e8f0' : '#1a2233';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(X, Y, WW, HH);
+      }
+
+      if (sc >= 2.0) {
+        ctx.fillStyle = isLight ? '#475569' : '#94a3b8';
+        ctx.font = `${Math.max(8, sc * 1.5)}px system-ui,sans-serif`;
+        ctx.textAlign = 'left';
+        ctx.fillText(z.label, X + 2, Y + Math.max(9, sc * 1.7));
+      }
+    });
+
+    // Agents
+    if (D) {
+      for (const [id, zi] of pts) {
+        const z = S.zones[zi], o = L.org[z.floor]; if (!o) continue;
+        const [px, py] = posIn(z, id), x = o.x + px * sc, y = o.y + py * sc;
+        const p = S.people[id], r = p.role;
+        let col;
+        if (S.color === 'mood') { const m = moodAt(D, id, t); col = m == null ? '#94a3b8' : moodColor(m); }
+        else if (S.color === 'grade') { col = r === 'student' ? BANDS[bandOf(gradeOn(p, md.date))][1] : '#f97316'; }
+        else { col = r === 'student' ? '#38bdf8' : r === 'teacher' ? '#f59e0b' : r === 'principal' ? '#8b5cf6' : '#10b981'; }
+
+        ctx.fillStyle = col;
+        if (r === 'student') {
+          ctx.beginPath(); ctx.arc(x, y, Math.max(1.8, sc * 0.38), 0, 6.2832); ctx.fill();
+        } else if (r === 'teacher') {
+          ctx.beginPath(); ctx.moveTo(x, y - sc * 0.7); ctx.lineTo(x + sc * 0.6, y + sc * 0.5); ctx.lineTo(x - sc * 0.6, y + sc * 0.5); ctx.closePath(); ctx.fill();
+        } else if (r === 'principal') {
+          star(ctx, x, y, Math.max(3.5, sc * 0.75));
+        } else {
+          ctx.fillRect(x - sc * 0.4, y - sc * 0.4, sc * 0.8, sc * 0.8);
+        }
+      }
+    }
+
+    // Incident Origin Reticle & Concentric Beacon
+    if (originZoneId) {
+      const oz = S.zones.find(z => z.id === originZoneId);
+      if (oz && L.org[oz.floor]) {
+        const o = L.org[oz.floor];
+        const [ox, oy, ow, oh] = oz.rect;
+        const cx = o.x + (ox + ow / 2) * sc;
+        const cy = o.y + (oy + oh / 2) * sc;
+        const nowMs = performance.now();
+        const phase = (nowMs % 1800) / 1800;
+
+        const reticleColor = isCustomEvent ? '#10b981' : isSharedBg ? '#38bdf8' : '#ef4444';
+        const reticleAura = isCustomEvent ? `rgba(16, 185, 129, ${1 - phase})` : isSharedBg ? `rgba(56, 189, 248, ${1 - phase})` : `rgba(239, 68, 68, ${1 - phase})`;
+
+        const maxR = Math.max(16, Math.min(ow, oh) * sc * 0.75);
+        const pulseR = 8 + phase * (maxR - 8);
+        ctx.beginPath(); ctx.arc(cx, cy, pulseR, 0, 6.2832);
+        ctx.strokeStyle = reticleAura; ctx.lineWidth = 2; ctx.stroke();
+
+        ctx.beginPath(); ctx.arc(cx, cy, 8, 0, 6.2832);
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.5; ctx.stroke();
+        ctx.strokeStyle = reticleColor; ctx.lineWidth = 1.5; ctx.stroke();
+
+        ctx.beginPath(); ctx.arc(cx, cy, 3.5, 0, 6.2832);
+        ctx.fillStyle = reticleColor; ctx.fill();
+
+        const badgeTxt = isCustomEvent ? `★ TREATMENT: ${activeInc.title.slice(0, 20)}` : isSharedBg ? `⚑ SHARED BG: ${activeInc.title.slice(0, 20)}` : `⚑ ${activeInc.title.slice(0, 20)}`;
+        ctx.font = '700 9.5px var(--font-mono), monospace';
+        const bw = ctx.measureText(badgeTxt).width + 12;
+        ctx.fillStyle = isLight ? '#ffffff' : '#090b10';
+        ctx.strokeStyle = reticleColor; ctx.lineWidth = 1;
+        roundRect(ctx, cx - bw / 2, cy - 24, bw, 16, 4);
+        ctx.fill(); ctx.stroke();
+        ctx.fillStyle = reticleColor; ctx.textAlign = 'center';
+        ctx.fillText(badgeTxt, cx, cy - 12);
+      }
+    }
+  }
+
+  function renderDualMap() {
+    const cvCtrl = $('#mapCtrl'), cvTrt = $('#mapTrt');
+    if (!cvCtrl || !cvTrt) return;
+    const dCtrl = curDualD('ctrl');
+    const dTrt = curDualD('trt');
+    renderDualCanvas(cvCtrl, dCtrl, S.ctrlMeta, true, false);
+    renderDualCanvas(cvTrt, dTrt, S.trtMeta, false, true);
+
+    // Update Quick Header Metrics
+    if (S.ctrlMeta && S.ctrlMeta.days && S.ctrlMeta.days[S.day]) {
+      const cd = S.ctrlMeta.days[S.day];
+      const ctrlAtt = $('#ctrlAttVal'); if (ctrlAtt) ctrlAtt.textContent = cd.attendance_rate != null ? Math.round(cd.attendance_rate * 100) + '%' : '—';
+      const ctrlMood = $('#ctrlMoodVal'); if (ctrlMood) ctrlMood.textContent = cd.mood_avg != null ? Math.round(cd.mood_avg) : '—';
+      const ctrlInc = $('#ctrlIncVal'); if (ctrlInc) ctrlInc.textContent = (cd.incidents || []).length;
+    }
+    if (S.trtMeta && S.trtMeta.days && S.trtMeta.days[S.day]) {
+      const td = S.trtMeta.days[S.day];
+      const trtAtt = $('#trtAttVal'); if (trtAtt) trtAtt.textContent = td.attendance_rate != null ? Math.round(td.attendance_rate * 100) + '%' : '—';
+      const trtMood = $('#trtMoodVal'); if (trtMood) trtMood.textContent = td.mood_avg != null ? Math.round(td.mood_avg) : '—';
+      const trtInc = $('#trtIncVal'); if (trtInc) trtInc.textContent = (td.incidents || []).length;
+    }
+  }
+
   function render() {
+    if (S.pairedMode && S.ctrlMeta && S.trtMeta) {
+      renderDualMap();
+      return;
+    }
     const cv = $('#map'), dpr = window.devicePixelRatio || 1;
     const W = cv.clientWidth || 900, H = cv.clientHeight || 520;
     if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
@@ -733,6 +966,29 @@
     // Timeline playhead
     c.fillStyle = isLight ? '#0f172a' : '#10b981';
     c.fillRect(S.day * cw - 0.5, 0, 2, 64);
+    if (S.pairedMode && S.pairMeta) {
+      // Shared Background Events: Cyan diamonds
+      (S.pairMeta.shared_background_events || []).forEach(ev => {
+        const dIdx = days.findIndex(d => d.date === ev.date);
+        if (dIdx >= 0) {
+          const x = dIdx * cw + cw / 2;
+          c.fillStyle = '#38bdf8';
+          c.beginPath();
+          c.moveTo(x, 32); c.lineTo(x + 4, 36); c.lineTo(x, 40); c.lineTo(x - 4, 36);
+          c.closePath();
+          c.fill();
+        }
+      });
+      // Custom Intervention: Emerald star
+      if (S.pairMeta.custom_event && S.pairMeta.custom_event.date) {
+        const dIdx = days.findIndex(d => d.date === S.pairMeta.custom_event.date);
+        if (dIdx >= 0) {
+          const x = dIdx * cw + cw / 2;
+          c.fillStyle = '#10b981';
+          star(c, x, 36, 6);
+        }
+      }
+    }
     if (n > 151) {
       const seamX = 151 * cw;
       c.strokeStyle = isLight ? '#059669' : '#10b981';
@@ -748,7 +1004,7 @@
       c.fillText('SEAM · DAY 151', seamX + 4, 11);
       c.fillStyle = isLight ? '#64748b' : '#34d399';
       c.font = '8px system-ui,sans-serif';
-      c.fillText('ALTERED SIMULATION →', seamX + 4, 21);
+      c.fillText(S.pairedMode ? 'PAIRED (CTRL vs TRT) →' : 'ALTERED SIMULATION →', seamX + 4, 21);
       c.textAlign = 'right';
       c.fillStyle = isLight ? '#64748b' : '#94a3b8';
       c.fillText('← LEGACY BASELINE', seamX - 4, 11);
@@ -1454,10 +1710,39 @@
 
           <div class="step-header" style="margin-top:14px">
             <span class="step-badge">STEP 4</span>
-            <h4 class="step-title">Simulate Horizon & Watch on Campus Map</h4>
+            <h4 class="step-title">Controlled Randomness Profile (Part D)</h4>
           </div>
-          <button class="primary btn-hero-run" data-act="addAndRunTimeLapse" ${S.api ? '' : 'disabled'}>⚡ Simulate Horizon & Watch Time-lapse</button>
-          <div id="heroRunStatus" class="hero-status-pill">Ready to simulate. Preloads Months 1–5 baseline and simulates Month 6 onward.</div>
+          <div class="profile-selector-box">
+            <div class="field"><label>Background Random Events Profile</label>
+              <select id="profileSel" data-act="changeProfile">
+                <option value="balanced" ${S.randomProfile === 'balanced' ? 'selected' : ''}>Balanced (Default: ~1.5 events/mo, moderate disruption)</option>
+                <option value="calm" ${S.randomProfile === 'calm' ? 'selected' : ''}>Calm (Routine variability, minor friction only)</option>
+                <option value="stress_test" ${S.randomProfile === 'stress_test' ? 'selected' : ''}>Stress-test (Frequent equipment faults & staffing strain)</option>
+                <option value="custom" ${S.randomProfile === 'custom' ? 'selected' : ''}>Custom (User-configured limits & seeds)</option>
+              </select>
+            </div>
+            <div class="profile-card-desc" id="profileDesc">${RANDOM_PROFILES[S.randomProfile || 'balanced'].desc}</div>
+            <div class="profile-badge-row" id="profileBadges">
+              <span class="profile-badge">Rate: ${RANDOM_PROFILES[S.randomProfile || 'balanced'].rate}</span>
+              <span class="profile-badge">Max/Day: ${RANDOM_PROFILES[S.randomProfile || 'balanced'].maxDay}</span>
+              <span class="profile-badge">Max/Wk: ${RANDOM_PROFILES[S.randomProfile || 'balanced'].maxWk}</span>
+              <span class="profile-badge">Cooldown: ${RANDOM_PROFILES[S.randomProfile || 'balanced'].cooldown}</span>
+            </div>
+          </div>
+
+          <div class="step-header" style="margin-top:14px">
+            <span class="step-badge">STEP 5</span>
+            <h4 class="step-title">Simulate Horizon & Watch Campus Consequences</h4>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button class="primary btn-hero-run" data-act="runPairedComparison" ${S.api ? '' : 'disabled'} style="background:linear-gradient(135deg, var(--accent) 0%, #059669 100%);box-shadow:var(--shadow-button-glow)">
+              ⚡ Run Paired Comparison (Control vs Treatment)
+            </button>
+            <button class="btn-subtle" data-act="addAndRunTimeLapse" ${S.api ? '' : 'disabled'} style="font-size:11.5px;padding:6px 12px">
+              ▶ Run Single Scenario Time-lapse
+            </button>
+          </div>
+          <div id="heroRunStatus" class="hero-status-pill">Ready. Will generate matched Control (no event) vs Treatment (with event) under identical background schedule.</div>
 
           <details class="builder-accordion" style="margin-top:12px">
             <summary>⚙ Customize Event Details (Optional)</summary>
@@ -1803,6 +2088,57 @@
     const deltas = rep.delta_summary || {};
     const metrics = rep.metrics || [];
     const narr = rep.narrative_summary;
+    const isPaired = !!(S.pairedMode && S.pairMeta);
+    const pm = S.pairMeta;
+
+    const pairedHeaderHtml = isPaired ? `
+      <div class="card" style="margin-bottom:10px;border-left:3px solid var(--accent);background:linear-gradient(180deg, var(--bg-card-hover) 0%, var(--bg-card) 100%)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <b style="color:var(--accent);font-size:12.5px">Matched Paired Future Comparison</b>
+          <span class="badge badge-computed" style="font-size:9.5px">Seeded isolated RNG</span>
+        </div>
+        <div style="font-size:11.5px;color:var(--text-secondary);margin-bottom:4px">
+          <b>Custom Intervention:</b> ${esc((pm.custom_event && (pm.custom_event.title || pm.custom_event.type)) || 'Custom Event')} on <b>${esc(pm.custom_event && pm.custom_event.date)}</b>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);line-height:1.4">
+          Profile: <b>${esc(pm.profile)}</b> · Shared Background Events: <b>${pm.shared_background_events_count || 0} scheduled</b> · Horizon: <b>Day ${pm.start_day} to Day ${pm.end_day}</b>
+        </div>
+      </div>
+
+      ${(pm.shared_background_events && pm.shared_background_events.length > 0) ? `
+        <details style="margin-bottom:10px">
+          <summary style="cursor:pointer;font-size:11px;font-weight:600;color:var(--control-sky)">
+            📅 View Shared Background Event Schedule (${pm.shared_background_events.length})
+          </summary>
+          <div style="margin-top:6px;padding:8px;background:var(--bg-subtle);border-radius:6px">
+            ${pm.shared_background_events.map(ev => `
+              <div style="display:flex;justify-content:space-between;font-size:10.5px;padding:3px 0;border-bottom:1px dashed var(--border-subtle)">
+                <span><b>${esc(ev.date)}</b>: ${esc(ev.title || ev.type)}</span>
+                <span class="badge badge-configured" style="font-size:9px">${esc(ev.severity)} · ${esc(ev.location || (ev.params && ev.params.location) || 'campus')}</span>
+              </div>
+            `).join('')}
+          </div>
+        </details>
+      ` : ''}
+
+      <div class="card" style="margin-bottom:10px;padding:10px">
+        <b style="font-size:11.5px;color:var(--text-primary)">Simulated Point-in-Time Status (Day ${S.day + 1}, ${fmtT(S.minute)})</b>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">
+          <div style="background:var(--bg-subtle);padding:6px;border-radius:4px;border-left:2px solid var(--control-sky)">
+            <small style="color:var(--control-sky);font-weight:700">Control (Sim A)</small>
+            <div style="font-size:11px;font-family:var(--font-mono);margin-top:2px">
+              Att: <b>${$('#ctrlAttVal') ? $('#ctrlAttVal').textContent : '—'}</b> · Mood: <b>${$('#ctrlMoodVal') ? $('#ctrlMoodVal').textContent : '—'}</b>
+            </div>
+          </div>
+          <div style="background:var(--bg-subtle);padding:6px;border-radius:4px;border-left:2px solid var(--accent)">
+            <small style="color:var(--accent);font-weight:700">Treatment (Sim B)</small>
+            <div style="font-size:11px;font-family:var(--font-mono);margin-top:2px">
+              Att: <b>${$('#trtAttVal') ? $('#trtAttVal').textContent : '—'}</b> · Mood: <b>${$('#trtMoodVal') ? $('#trtMoodVal').textContent : '—'}</b>
+            </div>
+          </div>
+        </div>
+      </div>
+    ` : '';
 
     const narrativeHtml = narr ? `
       <div class="card" style="margin-bottom:10px;border-left:3px solid var(--control-sky)">
@@ -1811,7 +2147,7 @@
           <span class="badge badge-computed" style="font-size:9.5px">Audit Traceable</span>
         </div>
         <div class="mut" style="font-size:11px;margin-bottom:6px">
-          Scenario: <b>${esc(narr.scenario_name || '')}</b> · Executed <b>${narr.executed_events_count || 0} events</b> with <b>${narr.applied_effects_count || 0} causal effects</b> applied.
+          ${isPaired ? 'Treatment Future' : 'Scenario'}: <b>${esc(narr.scenario_name || '')}</b> · Executed <b>${narr.executed_events_count || 0} events</b> with <b>${narr.applied_effects_count || 0} causal effects</b> applied.
         </div>
         <ul style="margin:0;padding-left:16px;font-size:11px;color:var(--text-secondary);line-height:1.45">
           ${(narr.primary_findings || []).map(f => `<li>${esc(f)}</li>`).join('')}
@@ -1820,14 +2156,18 @@
     ` : '';
 
     el.innerHTML = `
-      <div class="card" style="margin-bottom:10px">
-        <b style="color:var(--text-primary)">Input Deltas</b>
-        <div class="mut" style="font-size:11.5px;margin-top:2px">
-          Seed: <b>${deltas.seed_baseline}</b> vs <b>${deltas.seed_scenario}</b> ·
-          Mode: <b>${deltas.mode_baseline}</b> vs <b>${deltas.mode_scenario}</b> ·
-          Events added: <b>${deltas.events_added_in_scenario || 0}</b>
+      ${pairedHeaderHtml}
+
+      ${!isPaired ? `
+        <div class="card" style="margin-bottom:10px">
+          <b style="color:var(--text-primary)">Input Deltas</b>
+          <div class="mut" style="font-size:11.5px;margin-top:2px">
+            Seed: <b>${deltas.seed_baseline}</b> vs <b>${deltas.seed_scenario}</b> ·
+            Mode: <b>${deltas.mode_baseline}</b> vs <b>${deltas.mode_scenario}</b> ·
+            Events added: <b>${deltas.events_added_in_scenario || 0}</b>
+          </div>
         </div>
-      </div>
+      ` : ''}
 
       ${narrativeHtml}
 
@@ -1835,10 +2175,10 @@
         <thead>
           <tr>
             <th>Metric</th>
-            <th style="text-align:right">Baseline</th>
-            <th style="text-align:right">Scenario</th>
+            <th style="text-align:right">${isPaired ? 'Control (A)' : 'Baseline'}</th>
+            <th style="text-align:right">${isPaired ? 'Treatment (B)' : 'Scenario'}</th>
             <th style="text-align:right">Diff</th>
-            <th style="text-align:center">Status</th>
+            <th style="text-align:center">Modeling Classification</th>
           </tr>
         </thead>
         <tbody>
@@ -2179,6 +2519,163 @@
     }
   }
 
+  async function runPairedComparison() {
+    const ev = extractCurrentEvent();
+    const dur = +S.form.evalDuration || 30;
+    const profSel = $('#profileSel');
+    const profile = profSel ? profSel.value : (S.randomProfile || 'balanced');
+    const heroBtn = $('[data-act="runPairedComparison"]');
+    const heroSt = $('#heroRunStatus');
+
+    if (heroBtn) { heroBtn.disabled = true; heroBtn.textContent = '⏳ Preparing Matched Pair…'; }
+    if (heroSt) heroSt.textContent = '⏳ Pre-generating common background random schedule…';
+    toast('⚡ Launching Matched Control vs Treatment Paired Simulation...');
+
+    const body = {
+      custom_event: {
+        date: ev.date,
+        type: ev.type,
+        severity: ev.severity || 'medium',
+        params: ev.params || {},
+        title: ev.title || ev.type
+      },
+      start_day: 151,
+      duration_days: dur,
+      profile: profile,
+      seed: S.pairSeed || 20261014,
+      scenario_name: S.form.name || undefined
+    };
+
+    try {
+      const res = await fetch('api/pair/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const j = await res.json();
+      if (!j.ok) {
+        if (heroSt) heroSt.textContent = '❌ ' + (j.error || 'Failed to start pair run');
+        if (heroBtn) { heroBtn.disabled = false; heroBtn.textContent = '⚡ Run Paired Comparison (Control vs Treatment)'; }
+        toast(j.error || 'Failed to start paired run');
+        return;
+      }
+
+      const pollPair = async () => {
+        try {
+          const s = await getJSON('api/pair/status');
+          if (s.running) {
+            const branchLabel = s.branch === 'control' ? 'Sim A (Control)' : s.branch === 'treatment' ? 'Sim B (Treatment)' : 'Orchestrating';
+            const msg = `Simulating ${branchLabel}… day ${s.day}/${s.total || dur}`;
+            if (heroSt) heroSt.textContent = '⏳ ' + msg;
+            if (heroBtn) heroBtn.textContent = `⏳ ${s.branch === 'control' ? 'A:' : 'B:'} ${s.day}/${s.total || dur}`;
+            setTimeout(pollPair, 500);
+            return;
+          }
+          if (s.error) {
+            if (heroSt) heroSt.textContent = '❌ Failed: ' + s.error;
+            if (heroBtn) { heroBtn.disabled = false; heroBtn.textContent = '⚡ Run Paired Comparison (Control vs Treatment)'; }
+            toast('Paired run failed: ' + s.error);
+            return;
+          }
+          if (s.result) {
+            if (heroSt) heroSt.textContent = '✓ Paired simulation completed! Loading synchronized dual cockpit…';
+            if (heroBtn) { heroBtn.disabled = false; heroBtn.textContent = '⚡ Run Paired Comparison (Control vs Treatment)'; }
+            try {
+              S.index = await getJSON(S.base + 'index.json');
+              const runSel = $('#runSel');
+              if (runSel) {
+                runSel.innerHTML = S.index.runs.map(r => `<option value="${esc(r.id)}">${esc(r.name)} · ${esc(r.mode)}</option>`).join('');
+                runSel.value = s.result.treatment_run;
+              }
+            } catch (e) {}
+            await loadPairedRun(s.result);
+          }
+        } catch (pollErr) {
+          console.error('[SchoolTwin paired poll error]', pollErr);
+          toast('Error loading paired comparison: ' + pollErr.message);
+          if (heroBtn) { heroBtn.disabled = false; heroBtn.textContent = '⚡ Run Paired Comparison (Control vs Treatment)'; }
+        }
+      };
+      pollPair();
+    } catch (e) {
+      if (heroSt) heroSt.textContent = 'Run error: server offline';
+      if (heroBtn) { heroBtn.disabled = false; heroBtn.textContent = '⚡ Run Paired Comparison (Control vs Treatment)'; }
+    }
+  }
+
+  async function loadPairedRun(pairMetaOrId) {
+    pause();
+    let pairMeta = pairMetaOrId;
+    if (typeof pairMetaOrId === 'string') {
+      try {
+        const res = await getJSON(`api/pair/meta?run=${encodeURIComponent(pairMetaOrId)}`);
+        if (res && res.ok) pairMeta = res.pair_meta;
+      } catch (e) {}
+    }
+    if (!pairMeta) {
+      toast('Could not load paired comparison metadata.');
+      return;
+    }
+    S.pairedMode = true;
+    S.pairMeta = pairMeta;
+    S.ctrlDays.clear();
+    S.trtDays.clear();
+
+    // Concurrently load both meta packs
+    const [ctrlMeta, trtMeta] = await Promise.all([
+      getJSON(S.base + pairMeta.control_run + '/meta.json'),
+      getJSON(S.base + pairMeta.treatment_run + '/meta.json')
+    ]);
+    S.ctrlMeta = ctrlMeta;
+    S.trtMeta = trtMeta;
+    S.meta = trtMeta;
+    S.run = pairMeta.treatment_run;
+    S.zones = trtMeta.zones;
+    S.zoneIdx = {}; trtMeta.zones.forEach((z, i) => { S.zoneIdx[z.id] = i; });
+    S.people = trtMeta.people;
+    S.trk = {}; trtMeta.tracked.forEach((id, k) => { S.trk[id] = k; });
+    S.clock = trtMeta.clock;
+    S.nDays = trtMeta.days.length;
+
+    // Show dual map container, hide single canvas
+    const singleMap = $('#map'); if (singleMap) singleMap.style.display = 'none';
+    const dualContainer = $('#mapDualContainer'); if (dualContainer) dualContainer.style.display = 'flex';
+    const btnExit = $('#btnExitComparison'); if (btnExit) btnExit.style.display = 'inline-flex';
+
+    // Update Header Titles
+    const ctrlTitle = $('#ctrlRunTitle');
+    if (ctrlTitle) ctrlTitle.textContent = `${pairMeta.control_run} · Shared BG Schedule (${pairMeta.shared_background_events_count || 0} events)`;
+    const trtTitle = $('#trtRunTitle');
+    if (trtTitle) trtTitle.textContent = `${pairMeta.treatment_run} · ${pairMeta.custom_event ? (pairMeta.custom_event.title || pairMeta.custom_event.type) : 'Custom Intervention'}`;
+
+    // Target start day (1 day before event or start_day)
+    const evDate = pairMeta.custom_event ? pairMeta.custom_event.date : null;
+    let targetDay = pairMeta.start_day;
+    if (evDate) {
+      const evDayIdx = trtMeta.days.findIndex(d => d.date === evDate);
+      if (evDayIdx >= 0) targetDay = Math.max(pairMeta.start_day, evDayIdx - 1);
+    }
+    await goTo(targetDay, 525, { pause: true });
+    setTab('compare');
+    toast(`⚡ Synchronized Paired Comparison Active: Day ${targetDay + 1}`);
+    renderAll();
+  }
+
+  async function exitPairedComparison() {
+    S.pairedMode = false;
+    S.pairMeta = null;
+    S.ctrlMeta = null;
+    S.trtMeta = null;
+    S.ctrlDays.clear();
+    S.trtDays.clear();
+    const singleMap = $('#map'); if (singleMap) singleMap.style.display = 'block';
+    const dualContainer = $('#mapDualContainer'); if (dualContainer) dualContainer.style.display = 'none';
+    const btnExit = $('#btnExitComparison'); if (btnExit) btnExit.style.display = 'none';
+    await loadRun('story_baseline');
+    setTab('now');
+    toast('Returned to 151-day Baseline Historical Playback');
+  }
+
   function showScenarioBanner(runId, title, fromDay, eventDay) {
     const ban = $('#scenBanner');
     if (!ban) return;
@@ -2297,6 +2794,8 @@
     // Quick Entry Header & Modal Actions
     const bRep = $('#btnReplayBaseline');
     if (bRep) bRep.onclick = () => { loadRun('story_baseline'); setTab('now'); pause(); toast('Replaying saved baseline history'); };
+    const bExit = $('#btnExitComparison');
+    if (bExit) bExit.onclick = () => exitPairedComparison();
     const bNew = $('#btnNewScenario');
     if (bNew) bNew.onclick = () => { setTab('run'); S.form.bTab = 'events'; renderRun(); };
     const bBrand = $('#brandBtn');
@@ -2400,6 +2899,9 @@
       }
       else if (act === 'addAndRunTimeLapse') {
         await addAndRunTimeLapse();
+      }
+      else if (act === 'runPairedComparison') {
+        await runPairedComparison();
       }
       else if (act === 'addCustomEvent') {
         const evObj = extractCurrentEvent();
@@ -2553,6 +3055,20 @@
         if (p) S.form.curEvSev = p.defaultSev;
         renderRun();
       }
+      if (e.target.id === 'profileSel') {
+        S.randomProfile = e.target.value;
+        const prof = RANDOM_PROFILES[S.randomProfile] || RANDOM_PROFILES.balanced;
+        const dEl = $('#profileDesc'); if (dEl) dEl.textContent = prof.desc;
+        const bEl = $('#profileBadges');
+        if (bEl) {
+          bEl.innerHTML = `
+            <span class="profile-badge">Rate: ${prof.rate}</span>
+            <span class="profile-badge">Max/Day: ${prof.maxDay}</span>
+            <span class="profile-badge">Max/Wk: ${prof.maxWk}</span>
+            <span class="profile-badge">Cooldown: ${prof.cooldown}</span>
+          `;
+        }
+      }
     });
 
     window.addEventListener('keydown', e => {
@@ -2571,5 +3087,6 @@
   window.SchoolTwin.render = render; window.SchoolTwin.renderAll = renderAll; window.SchoolTwin.drawStrips = drawStrips; window.SchoolTwin.setTab = setTab;
   window.SchoolTwin.pickAt = pickAt; window.SchoolTwin.buildOverview = buildOverview; window.SchoolTwin.advance = advance;
   window.SchoolTwin.applyTheme = applyTheme; window.SchoolTwin.toggleTheme = toggleTheme;
+  window.SchoolTwin.loadPairedRun = loadPairedRun; window.SchoolTwin.exitPairedComparison = exitPairedComparison;
   if (!window.__TEST__) { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot(); }
 })();

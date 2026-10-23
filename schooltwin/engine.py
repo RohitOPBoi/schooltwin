@@ -292,7 +292,12 @@ class Engine:
                 r_code = f"BUS-R{r_num:02d}"
                 target_aids = self.cognitive.route_students.get(r_code, []) or self.cognitive.route_students.get(r_num, [])
 
-            if target_aids or etype in ("serious_student_fight", "bus_breakdown", "teacher_resignation_notice", "suspected_prohibited_business"):
+            if target_aids or etype in (
+                "serious_student_fight", "bus_breakdown", "transport_lateness_spike", "teacher_resignation_notice",
+                "suspected_prohibited_business", "water_cooler_breakdown", "collective_strike",
+                "campus_power_outage", "water_service_disruption", "student_group_complaint",
+                "urgent_cover_requirement", "maintenance_team_overload"
+            ):
                 self.cognitive.propagate_event_perception(
                     event_id=ev["id"],
                     event_type=etype,

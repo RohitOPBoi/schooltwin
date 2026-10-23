@@ -57,6 +57,43 @@ def run_job(ov, redact):
         STATE["running"] = False
 
 
+PAIR_STATE = {
+    "running": False,
+    "pair_id": None,
+    "branch": "idle",
+    "day": 0,
+    "total": 0,
+    "error": None,
+    "result": None,
+}
+
+
+def run_paired_job(body):
+    from schooltwin.paired_simulation import run_paired_simulation
+    try:
+        def prog_cb(branch, d, total):
+            with LOCK:
+                PAIR_STATE.update(branch=branch, day=d, total=total)
+
+        res = run_paired_simulation(
+            custom_event=body.get("custom_event", {}),
+            start_day=int(body.get("start_day", 151)),
+            duration_days=int(body.get("duration_days", 30)),
+            profile_name=str(body.get("profile", "balanced")),
+            seed=int(body.get("seed", 20261014)),
+            custom_cfg=body.get("custom_cfg"),
+            levers=body.get("levers"),
+            scenario_name=body.get("scenario_name"),
+            progress_cb=prog_cb,
+        )
+        with LOCK:
+            PAIR_STATE.update(running=False, result=res, branch="completed")
+    except Exception as e:
+        traceback.print_exc()
+        with LOCK:
+            PAIR_STATE.update(running=False, error=str(e), branch="failed")
+
+
 class H(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
@@ -129,6 +166,24 @@ class H(BaseHTTPRequestHandler):
             except Exception as e:
                 return self._json(400, {"ok": False, "error": str(e)})
 
+        if u.path == "/api/pair/profiles":
+            from schooltwin.random_scheduler import RANDOM_PROFILES
+            return self._json(200, {"ok": True, "profiles": RANDOM_PROFILES})
+
+        if u.path == "/api/pair/status":
+            with LOCK:
+                return self._json(200, {"ok": True, **PAIR_STATE})
+
+        if u.path == "/api/pair/meta":
+            params = parse_qs(u.query)
+            run_id = params.get("run", [""])[0]
+            if not run_id:
+                return self._json(400, {"ok": False, "error": "Query param 'run' is required"})
+            pair_f = ROOT / "pack" / run_id / "pair_meta.json"
+            if pair_f.is_file():
+                return self._json(200, {"ok": True, "pair_meta": json.loads(pair_f.read_text(encoding="utf-8"))})
+            return self._json(404, {"ok": False, "error": "pair_meta.json not found for run"})
+
         # Static file delivery
         rel = u.path.lstrip("/") or "index.html"
         if rel == "docs" or rel.startswith("docs/"):
@@ -190,6 +245,17 @@ class H(BaseHTTPRequestHandler):
                 STATE.update(running=True, error=None, name=ov["name"], day=0)
             threading.Thread(target=run_job, args=(ov, bool(body.get("redact"))), daemon=True).start()
             return self._json(200, {"ok": True, "name": ov["name"]})
+
+        if self.path == "/api/pair/run":
+            custom_event = body.get("custom_event")
+            if not custom_event:
+                return self._json(400, {"ok": False, "error": "custom_event is required"})
+            with LOCK:
+                if PAIR_STATE["running"]:
+                    return self._json(409, {"ok": False, "error": "a paired simulation is already running"})
+                PAIR_STATE.update(running=True, error=None, result=None, branch="starting", day=0, total=int(body.get("duration_days", 30)))
+            threading.Thread(target=run_paired_job, args=(body,), daemon=True).start()
+            return self._json(200, {"ok": True, "message": "Paired simulation started"})
 
         if self.path == "/api/flags":
             run = re.sub(r"[^A-Za-z0-9_-]", "", str(body.get("run", "")))
