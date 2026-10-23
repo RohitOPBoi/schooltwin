@@ -2347,7 +2347,7 @@
       evObj.params = { location: loc };
       evObj.title = '🚰 Water cooler breakdown (' + loc + ')';
     } else if (etype === 'classroom_fan_failure') {
-      const loc = ($('#evFanLoc') && $('#evFanLoc').value) || F.fanLoc || 'class_9a';
+      const loc = ($('#evFanLoc') && $('#evFanLoc').value) || F.fanLoc || 'C9A';
       evObj.location = loc;
       evObj.params = { location: loc };
       evObj.title = '🌬️ Classroom fan failure (' + loc + ')';
