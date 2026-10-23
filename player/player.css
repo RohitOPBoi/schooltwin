@@ -1,20 +1,27 @@
-/* SchoolTwin Operational Digital Twin Console — Design System v5.0
- * Dual-Theme System (Dark Operational Cockpit / Light Crisp Twin Console)
- * Enforces: Calibrated dark slate surfaces (#090b10 base, #0f131c panels, #151b26 cards)
- * and Light crisp surfaces (#f1f5f9 base, #ffffff panels, #ffffff cards)
- * with Electric Emerald (#10b981 / #059669) accent, tabular numerals,
- * high-contrast semantic incident tokens, and adaptive Canvas 2D integration.
- */
+/* ==========================================================================
+   SchoolTwin Operational Digital Twin Cockpit — Design System v6.0
+   Derived from Taste Analysis & Anti-Slop Frontend Directives
+   Aesthetic: Operational Digital Twin Cockpit
+   Surfaces: #090b10 base, #0f131c panels, #151b26 cards, #1c2436 hover
+   Primary Accent: Electric Emerald (#10b981 / #059669)
+   Typography: Geist & Geist Mono with font-variant-numeric: tabular-nums
+   Hardware-accelerated micro-motion, smooth scroll animations, glowing beacons
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600;700&family=Geist:wght@300;400;500;600;700;800&display=swap');
 
 :root, [data-theme="dark"] {
-  /* Surfaces & Base Palette */
+  /* Surface Tokens (Calibrated Dark Slate) */
   --bg-base: #090b10;
   --bg-surface: #0f131c;
+  --bg-surface-elevated: #131924;
   --bg-card: #151b26;
-  --bg-card-hover: #1c2433;
-  --bg-elevated: #1a2230;
-  --bg-input: #111622;
+  --bg-card-hover: #1c2436;
+  --bg-card-active: #222d42;
+  --bg-elevated: #182030;
+  --bg-input: #0c1017;
   --bg-subtle: rgba(255, 255, 255, 0.04);
+  --bg-glass: rgba(15, 19, 28, 0.85);
 
   /* Typography Colors */
   --text-primary: #f8fafc;
@@ -25,18 +32,22 @@
   /* Borders & Dividers */
   --border-subtle: rgba(255, 255, 255, 0.07);
   --border-default: #1e2638;
-  --border-active: rgba(255, 255, 255, 0.22);
+  --border-active: rgba(255, 255, 255, 0.24);
   --border-focus: #10b981;
+  --border-glass: rgba(255, 255, 255, 0.1);
 
-  /* Primary Interactive Accent: Electric Emerald */
+  /* Primary Accent: Electric Emerald */
   --accent: #10b981;
   --accent-hover: #059669;
+  --accent-active: #047857;
   --accent-soft: rgba(16, 185, 129, 0.14);
-  --accent-glow: rgba(16, 185, 129, 0.28);
+  --accent-glow: rgba(16, 185, 129, 0.35);
+  --accent-glow-strong: rgba(16, 185, 129, 0.65);
 
   /* Semantic Incident Palette */
   --origin-vermilion: #ef4444;
   --origin-soft: rgba(239, 68, 68, 0.16);
+  --origin-glow: rgba(239, 68, 68, 0.4);
   --affected-amber: #f59e0b;
   --affected-soft: rgba(245, 158, 11, 0.14);
   --secondary-pale-amber: #fbbf24;
@@ -47,7 +58,9 @@
   /* Run Timeline Segmentation */
   --baseline-slate: #64748b;
   --scenario-violet: #8b5cf6;
+  --scenario-violet-soft: rgba(139, 92, 246, 0.16);
   --control-sky: #38bdf8;
+  --control-sky-soft: rgba(56, 189, 248, 0.15);
 
   /* Status Colors */
   --status-ok: #10b981;
@@ -56,14 +69,20 @@
 
   /* Canvas Drawing Tokens */
   --canvas-bg: #090b10;
-  --canvas-floor: #0a0d14;
+  --canvas-floor: #0b0f17;
   --canvas-floor-border: #1e2638;
-  --canvas-zone-default: #121722;
+  --canvas-zone-default: #121724;
   --canvas-zone-border: rgba(255, 255, 255, 0.08);
-  --canvas-text: #9ca3af;
+  --canvas-text: #94a3b8;
   --canvas-playhead: #10b981;
 
-  /* Backward Compatibility & Component Aliases */
+  /* Component Shadows & Glows */
+  --shadow-card: 0 4px 16px -2px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --shadow-card-hover: 0 8px 24px -4px rgba(0, 0, 0, 0.65), 0 0 16px rgba(16, 185, 129, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  --shadow-button-glow: 0 0 16px rgba(16, 185, 129, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  --shadow-button-glow-hover: 0 0 24px rgba(16, 185, 129, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+
+  /* Backward Compatibility Aliases */
   --ink: #f8fafc;
   --ink-light: #94a3b8;
   --mut: #64748b;
@@ -79,13 +98,16 @@
 
 [data-theme="light"] {
   /* Surfaces & Base Palette */
-  --bg-base: #f1f5f9;
+  --bg-base: #f8fafc;
   --bg-surface: #ffffff;
+  --bg-surface-elevated: #f1f5f9;
   --bg-card: #ffffff;
-  --bg-card-hover: #f8fafc;
-  --bg-elevated: #e2e8f0;
+  --bg-card-hover: #f1f5f9;
+  --bg-card-active: #e2e8f0;
+  --bg-elevated: #f1f5f9;
   --bg-input: #ffffff;
   --bg-subtle: rgba(0, 0, 0, 0.04);
+  --bg-glass: rgba(255, 255, 255, 0.9);
 
   /* Typography Colors */
   --text-primary: #0f172a;
@@ -98,16 +120,20 @@
   --border-default: #cbd5e1;
   --border-active: rgba(0, 0, 0, 0.25);
   --border-focus: #059669;
+  --border-glass: rgba(0, 0, 0, 0.08);
 
   /* Primary Interactive Accent: Crisp Emerald */
   --accent: #059669;
   --accent-hover: #047857;
+  --accent-active: #065f46;
   --accent-soft: rgba(5, 150, 105, 0.12);
-  --accent-glow: rgba(5, 150, 105, 0.22);
+  --accent-glow: rgba(5, 150, 105, 0.25);
+  --accent-glow-strong: rgba(5, 150, 105, 0.45);
 
   /* Semantic Incident Palette */
   --origin-vermilion: #dc2626;
   --origin-soft: rgba(220, 38, 38, 0.12);
+  --origin-glow: rgba(220, 38, 38, 0.25);
   --affected-amber: #d97706;
   --affected-soft: rgba(217, 119, 6, 0.12);
   --secondary-pale-amber: #b45309;
@@ -118,7 +144,9 @@
   /* Run Timeline Segmentation */
   --baseline-slate: #475569;
   --scenario-violet: #7c3aed;
+  --scenario-violet-soft: rgba(124, 58, 237, 0.12);
   --control-sky: #0284c7;
+  --control-sky-soft: rgba(2, 132, 199, 0.12);
 
   /* Status Colors */
   --status-ok: #15803d;
@@ -134,7 +162,13 @@
   --canvas-text: #475569;
   --canvas-playhead: #059669;
 
-  /* Backward Compatibility & Component Aliases */
+  /* Component Shadows & Glows */
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  --shadow-card-hover: 0 6px 18px rgba(0, 0, 0, 0.1), 0 0 12px rgba(5, 150, 105, 0.15);
+  --shadow-button-glow: 0 2px 8px rgba(5, 150, 105, 0.3);
+  --shadow-button-glow-hover: 0 4px 14px rgba(5, 150, 105, 0.45);
+
+  /* Backward Compatibility Aliases */
   --ink: #0f172a;
   --ink-light: #334155;
   --mut: #64748b;
@@ -150,22 +184,24 @@
 
 :root {
   /* Typography Families */
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-  /* Motion Tokens */
+  /* Hardware Motion Durations */
   --dur-instant: 90ms;
   --dur-quick: 160ms;
-  --dur-base: 260ms;
-  --dur-slow: 420ms;
-  --dur-cinematic: 700ms;
+  --dur-base: 240ms;
+  --dur-slow: 380ms;
+  --dur-cinematic: 650ms;
 
-  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
-  --ease-decelerate: cubic-bezier(0, 0, 0.2, 1);
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --ease-decel: cubic-bezier(0, 0, 0.2, 1);
 }
 
-/* Base Reset & Typography */
+/* ==========================================================================
+   Base Reset & Typography
+   ========================================================================== */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -181,52 +217,125 @@ html, body {
   background-color: var(--bg-base);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background-color var(--dur-quick), color var(--dur-quick);
+  transition: background-color var(--dur-base) var(--ease-standard), color var(--dur-base) var(--ease-standard);
+  overflow: hidden;
 }
 
-/* Tabular Numerals */
+/* Tabular Numerals for High-Density Telemetry */
 code, pre, .tabular-nums, #clock, #clkTime, #clkDate, .metric-val, .phase-time, .price, .badge, .stat-num, .row .t, .row b {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }
 
-/* Main Application Shell */
+/* Custom Cockpit Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  transition: background var(--dur-quick);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.16);
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* ==========================================================================
+   Keyframes & Dynamic Animations
+   ========================================================================== */
+@keyframes beaconPulse {
+  0% { transform: scale(0.9); opacity: 0.9; box-shadow: 0 0 0 0 var(--accent-glow-strong); }
+  70% { transform: scale(1.05); opacity: 1; box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+  100% { transform: scale(0.9); opacity: 0.9; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+@keyframes incidentPulse {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+  70% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+@keyframes shimmerGlow {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes slideFadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ==========================================================================
+   Main Shell Layout
+   ========================================================================== */
 #app {
   display: grid;
   grid-template-rows: auto 1fr auto;
   height: 100vh;
   background-color: var(--bg-base);
   overflow: hidden;
+  position: relative;
 }
 
-/* Header & Top Bar */
+/* ==========================================================================
+   Header & Top Command Bar
+   ========================================================================== */
 #top {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   padding: 8px 18px;
-  background-color: var(--bg-surface);
+  background: linear-gradient(180deg, var(--bg-surface) 0%, rgba(15, 19, 28, 0.95) 100%);
+  backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-default);
-  z-index: 20;
-  transition: background-color var(--dur-quick), border-color var(--dur-quick);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  z-index: 25;
+  transition: background-color var(--dur-base), border-color var(--dur-base);
 }
 
 .brand-group {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
 
 .brand {
   font-size: 15px;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   color: var(--text-primary);
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  user-select: none;
+  transition: transform var(--dur-quick);
+}
+
+.brand:hover {
+  transform: translateY(-1px);
+}
+
+.brand-logo {
+  font-size: 16px;
+  filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.4));
 }
 
 .brand small {
@@ -234,27 +343,35 @@ code, pre, .tabular-nums, #clock, #clkTime, #clkDate, .metric-val, .phase-time, 
   font-size: 11px;
   font-weight: 400;
   color: var(--text-muted);
+  letter-spacing: 0;
 }
 
 .synthetic-badge {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 8px;
+  padding: 4px 10px;
   font-size: 10.5px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-secondary);
-  background-color: var(--bg-subtle);
+  background: var(--bg-subtle);
   border: 1px solid var(--border-subtle);
   border-radius: 9999px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition: all var(--dur-quick);
+}
+
+.synthetic-badge:hover {
+  border-color: var(--border-active);
+  color: var(--text-primary);
 }
 
 .dot-live {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   background-color: var(--accent);
   border-radius: 50%;
-  box-shadow: 0 0 6px var(--accent);
+  animation: beaconPulse 2.4s infinite var(--ease-standard);
 }
 
 /* Step Rail */
@@ -262,10 +379,11 @@ code, pre, .tabular-nums, #clock, #clkTime, #clkDate, .metric-val, .phase-time, 
   display: flex;
   align-items: center;
   gap: 4px;
-  background-color: var(--bg-subtle);
+  background-color: var(--bg-input);
   padding: 3px 6px;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid var(--border-default);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .step-btn {
@@ -276,28 +394,34 @@ code, pre, .tabular-nums, #clock, #clkTime, #clkDate, .metric-val, .phase-time, 
   background: transparent;
   color: var(--text-secondary);
   border: 1px solid transparent;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 500;
+  border-radius: 7px;
+  font-size: 11.5px;
+  font-weight: 600;
   cursor: pointer;
   transition: all var(--dur-quick) var(--ease-standard);
+  user-select: none;
 }
 
 .step-btn:hover {
   color: var(--text-primary);
   background-color: var(--bg-card-hover);
+  transform: translateY(-1px);
+}
+
+.step-btn:active {
+  transform: scale(0.97);
 }
 
 .step-btn.active {
   color: var(--text-primary);
-  background-color: var(--bg-card);
-  border-color: var(--border-default);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  background: linear-gradient(180deg, var(--bg-card-hover) 0%, var(--bg-card) 100%);
+  border-color: var(--border-active);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .step-num {
-  width: 17px;
-  height: 17px;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -305,12 +429,14 @@ code, pre, .tabular-nums, #clock, #clkTime, #clkDate, .metric-val, .phase-time, 
   border-radius: 50%;
   font-size: 10px;
   font-weight: 700;
-  color: var(--text-secondary);
+  color: var(--text-muted);
+  transition: all var(--dur-quick);
 }
 
 .step-btn.active .step-num {
   background-color: var(--accent);
   color: #ffffff;
+  box-shadow: 0 0 10px var(--accent-glow);
 }
 
 .header-right {
@@ -319,16 +445,23 @@ code, pre, .tabular-nums, #clock, #clkTime, #clkDate, .metric-val, .phase-time, 
   gap: 8px;
 }
 
-/* Clock & Telemetry */
+.entry-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Clock & Telemetry Widget */
 #clock {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  padding: 3px 8px;
-  background-color: var(--bg-card);
-  border-radius: 6px;
+  padding: 4px 10px;
+  background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-input) 100%);
+  border-radius: 8px;
   border: 1px solid var(--border-default);
-  min-width: 110px;
+  min-width: 114px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 #clkDate {
@@ -338,9 +471,10 @@ code, pre, .tabular-nums, #clock, #clkTime, #clkDate, .metric-val, .phase-time, 
 }
 
 #clkTime {
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 700;
   color: var(--accent);
+  text-shadow: 0 0 10px var(--accent-glow);
 }
 
 #clkBlock {
@@ -350,10 +484,12 @@ code, pre, .tabular-nums, #clock, #clkTime, #clkDate, .metric-val, .phase-time, 
   text-transform: capitalize;
 }
 
-/* Stage & Floating Canvas Area */
+/* ==========================================================================
+   Main Stage & Floating Overlays
+   ========================================================================== */
 main {
   display: grid;
-  grid-template-columns: 1fr 350px;
+  grid-template-columns: 1fr 380px;
   height: 100%;
   overflow: hidden;
   position: relative;
@@ -374,7 +510,7 @@ main {
   display: block;
 }
 
-/* Floating Map Toolbar */
+/* Floating Map Control Capsule */
 .map-floating-bar {
   position: absolute;
   top: 14px;
@@ -382,21 +518,26 @@ main {
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: var(--bg-surface);
-  backdrop-filter: blur(8px);
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
   padding: 6px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--border-default);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  border-radius: 10px;
+  border: 1px solid var(--border-glass);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   z-index: 10;
+  transition: transform var(--dur-quick);
 }
 
-/* Segmented Toggle Buttons */
+.map-floating-bar:hover {
+  border-color: var(--border-active);
+}
+
+/* Segmented Toggle Pills */
 .seg {
   display: inline-flex;
-  background-color: var(--bg-subtle);
+  background-color: var(--bg-input);
   padding: 2px;
-  border-radius: 6px;
+  border-radius: 7px;
   border: 1px solid var(--border-default);
 }
 
@@ -407,23 +548,27 @@ main {
   color: var(--text-muted);
   background: transparent;
   border: none;
-  border-radius: 4px;
+  border-radius: 5px;
   cursor: pointer;
   transition: all var(--dur-quick) var(--ease-standard);
+  user-select: none;
 }
 
 .seg button:hover {
   color: var(--text-primary);
+  background-color: var(--bg-subtle);
 }
 
 .seg button.on {
   color: var(--text-primary);
-  background-color: var(--bg-card);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  background: var(--bg-card);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   font-weight: 600;
 }
 
-/* Standard Buttons & Controls */
+/* ==========================================================================
+   Buttons & Interactive Elements
+   ========================================================================== */
 button {
   font-family: inherit;
   font-size: 12px;
@@ -431,31 +576,41 @@ button {
   background-color: var(--bg-card);
   border: 1px solid var(--border-default);
   color: var(--text-primary);
-  border-radius: 6px;
+  border-radius: 7px;
   cursor: pointer;
-  transition: all var(--dur-quick);
+  transition: all var(--dur-quick) var(--ease-standard);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 
 button:hover {
   background-color: var(--bg-card-hover);
   border-color: var(--border-active);
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: scale(0.98);
 }
 
 button.primary, .btn-primary {
-  padding: 6px 12px;
+  padding: 6px 14px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   color: #ffffff !important;
-  background-color: var(--accent);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
   border: 1px solid var(--accent);
-  border-radius: 6px;
+  border-radius: 7px;
+  box-shadow: var(--shadow-button-glow);
   cursor: pointer;
-  transition: background-color var(--dur-quick) var(--ease-standard);
 }
 
 button.primary:hover, .btn-primary:hover {
-  background-color: var(--accent-hover);
-  border-color: var(--accent-hover);
+  box-shadow: var(--shadow-button-glow-hover);
+  transform: translateY(-1px);
+}
+
+button.primary:active, .btn-primary:active {
+  transform: scale(0.97);
 }
 
 .btn-subtle {
@@ -465,30 +620,42 @@ button.primary:hover, .btn-primary:hover {
   color: var(--text-secondary);
   background-color: var(--bg-subtle);
   border: 1px solid var(--border-default);
-  border-radius: 6px;
+  border-radius: 7px;
   cursor: pointer;
 }
 
 .btn-subtle:hover {
   background-color: var(--bg-card-hover);
   color: var(--text-primary);
+  border-color: var(--border-active);
 }
 
 .btn-entry {
-  padding: 6px 11px;
+  padding: 6px 12px;
   font-size: 11.5px;
   font-weight: 600;
   color: var(--text-secondary);
-  background: transparent;
+  background: var(--bg-card);
   border: 1px solid var(--border-default);
-  border-radius: 6px;
+  border-radius: 7px;
   cursor: pointer;
+}
+
+.btn-entry:hover {
+  color: var(--text-primary);
+  border-color: var(--border-active);
 }
 
 .btn-entry.primary {
   color: var(--accent);
   border-color: var(--accent);
-  background-color: var(--accent-soft);
+  background: var(--accent-soft);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+}
+
+.btn-entry.primary:hover {
+  background: rgba(16, 185, 129, 0.22);
+  box-shadow: 0 0 16px var(--accent-glow);
 }
 
 .btn-toggle {
@@ -498,12 +665,12 @@ button.primary:hover, .btn-primary:hover {
   color: var(--text-primary);
   background-color: var(--bg-card);
   border: 1px solid var(--border-default);
-  border-radius: 6px;
+  border-radius: 7px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  transition: all var(--dur-quick);
+  gap: 5px;
+  user-select: none;
 }
 
 .btn-toggle:hover {
@@ -513,24 +680,25 @@ button.primary:hover, .btn-primary:hover {
 
 /* Form Controls & Inputs */
 .select-field, .input-field, select, input[type="text"], input[type="number"], input[type="date"], textarea {
-  padding: 5px 9px;
+  padding: 6px 10px;
   font-size: 12px;
   color: var(--text-primary);
   background-color: var(--bg-input);
   border: 1px solid var(--border-default);
-  border-radius: 6px;
+  border-radius: 7px;
   outline: none;
   font-family: inherit;
-  transition: border-color var(--dur-quick);
+  transition: all var(--dur-quick);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .select-field:focus, .input-field:focus, select:focus, input:focus, textarea:focus {
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 1px var(--border-focus);
+  box-shadow: 0 0 0 2px var(--accent-soft), inset 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .field {
-  margin: 8px 0;
+  margin: 10px 0;
 }
 
 .field label {
@@ -538,7 +706,7 @@ button.primary:hover, .btn-primary:hover {
   font-size: 11px;
   font-weight: 600;
   color: var(--text-secondary);
-  margin-bottom: 3px;
+  margin-bottom: 4px;
 }
 
 .field input, .field select, .field textarea {
@@ -553,28 +721,38 @@ button.primary:hover, .btn-primary:hover {
   color: var(--text-secondary);
   cursor: pointer;
   user-select: none;
+  transition: color var(--dur-quick);
 }
 
-/* Context Drawer & Panels */
+.chk:hover {
+  color: var(--text-primary);
+}
+
+/* ==========================================================================
+   Context Drawer & Dynamic Panels
+   ========================================================================== */
 #side {
   background-color: var(--bg-surface);
   border-left: 1px solid var(--border-default);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: background-color var(--dur-quick), border-color var(--dur-quick);
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.3);
+  z-index: 15;
+  transition: background-color var(--dur-base), border-color var(--dur-base);
 }
 
 .drawer-tabs {
   display: flex;
-  background-color: var(--bg-subtle);
+  background-color: var(--bg-input);
   border-bottom: 1px solid var(--border-default);
   overflow-x: auto;
+  padding: 2px 4px 0;
 }
 
 .drawer-tabs button {
   flex: 1;
-  padding: 9px 8px;
+  padding: 10px 10px;
   font-size: 11.5px;
   font-weight: 600;
   color: var(--text-muted);
@@ -584,17 +762,20 @@ button.primary:hover, .btn-primary:hover {
   border-radius: 0;
   cursor: pointer;
   white-space: nowrap;
+  transition: all var(--dur-quick) var(--ease-standard);
 }
 
 .drawer-tabs button:hover {
   color: var(--text-primary);
-  background-color: var(--bg-card-hover);
+  background-color: var(--bg-subtle);
+  transform: none;
 }
 
 .drawer-tabs button.on {
   color: var(--accent);
   border-bottom-color: var(--accent);
-  background-color: var(--accent-soft);
+  background: var(--accent-soft);
+  box-shadow: inset 0 -2px 0 var(--accent), 0 0 16px var(--accent-soft);
 }
 
 .panel {
@@ -603,21 +784,24 @@ button.primary:hover, .btn-primary:hover {
   overflow-y: auto;
   height: 100%;
   color: var(--text-primary);
+  scroll-behavior: smooth;
 }
 
 .panel.on {
   display: block;
+  animation: slideFadeUp var(--dur-base) var(--ease-standard);
 }
 
 .panel h2, .panel h3, .panel h4 {
   color: var(--text-primary);
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   font-weight: 700;
+  letter-spacing: -0.015em;
 }
 
 .panel h4 {
   font-size: 13px;
-  margin-top: 10px;
+  margin-top: 14px;
 }
 
 .mut {
@@ -625,19 +809,26 @@ button.primary:hover, .btn-primary:hover {
   font-size: 11.5px;
 }
 
-/* Cards & Containers */
+/* ==========================================================================
+   Cards, Tiles & Interactive Lists
+   ========================================================================== */
 .card, .metric-card, .solution-card {
   background-color: var(--bg-card);
   border: 1px solid var(--border-default);
-  border-radius: 8px;
-  padding: 12px;
+  border-radius: 9px;
+  padding: 13px;
   margin-bottom: 12px;
   color: var(--text-primary);
-  transition: background-color var(--dur-quick), border-color var(--dur-quick);
+  box-shadow: var(--shadow-card);
+  transition: all var(--dur-quick) var(--ease-standard);
+  position: relative;
 }
 
 .card:hover, .metric-card:hover {
   background-color: var(--bg-card-hover);
+  border-color: var(--border-active);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
 }
 
 .cards {
@@ -645,13 +836,13 @@ button.primary:hover, .btn-primary:hover {
   gap: 8px;
 }
 
-/* Scenario Builder Subnav & Steps */
+/* Scenario Builder Subnav */
 .builder-subnav {
   display: flex;
   gap: 4px;
   margin-bottom: 12px;
   flex-wrap: wrap;
-  background-color: var(--bg-subtle);
+  background-color: var(--bg-input);
   padding: 3px;
   border-radius: 8px;
   border: 1px solid var(--border-default);
@@ -659,7 +850,7 @@ button.primary:hover, .btn-primary:hover {
 
 .builder-subnav button {
   flex: 1;
-  min-width: 110px;
+  min-width: 100px;
   padding: 6px 8px;
   font-size: 11px;
   font-weight: 600;
@@ -674,22 +865,23 @@ button.primary:hover, .btn-primary:hover {
 
 .builder-subnav button:hover {
   color: var(--text-primary);
-  background-color: var(--bg-card-hover);
+  background-color: var(--bg-subtle);
 }
 
 .builder-subnav button.on {
   color: var(--accent);
   background-color: var(--bg-card);
   border-color: var(--border-default);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .builder-step-card {
   background-color: var(--bg-card);
   border: 1px solid var(--border-default);
   border-radius: 10px;
-  padding: 12px;
+  padding: 14px;
   margin-bottom: 12px;
+  box-shadow: var(--shadow-card);
 }
 
 .step-header {
@@ -711,42 +903,45 @@ button.primary:hover, .btn-primary:hover {
   padding: 2px 7px;
   border-radius: 9999px;
   letter-spacing: 0.04em;
+  box-shadow: 0 0 8px var(--accent-glow);
 }
 
 .step-title {
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 700;
   color: var(--text-primary);
   margin: 0;
 }
 
+/* Preset Event Buttons */
 .preset-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 6px;
+  gap: 7px;
   margin: 8px 0;
 }
 
 .preset-btn {
   display: flex;
   flex-direction: column;
-  padding: 8px 11px;
+  padding: 9px 12px;
   background-color: var(--bg-card);
   border: 1px solid var(--border-default);
   border-radius: 8px;
   cursor: pointer;
-  transition: all var(--dur-quick);
+  transition: all var(--dur-quick) var(--ease-standard);
 }
 
 .preset-btn:hover {
   background-color: var(--bg-card-hover);
   border-color: var(--border-active);
+  transform: translateY(-1px);
 }
 
 .preset-btn.active {
   background-color: var(--accent-soft);
   border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), 0 0 12px var(--accent-soft);
 }
 
 .preset-title {
@@ -769,7 +964,7 @@ button.primary:hover, .btn-primary:hover {
   border: 1px solid var(--border-default);
   border-left: 3px solid var(--accent);
   border-radius: 6px;
-  padding: 8px 12px;
+  padding: 9px 12px;
   margin: 10px 0;
   font-size: 11.5px;
   color: var(--text-secondary);
@@ -784,41 +979,170 @@ button.primary:hover, .btn-primary:hover {
   line-height: 1.4;
 }
 
-/* Day Stepper */
-.day-stepper {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background-color: var(--bg-card);
-  border: 1.5px solid var(--border-default);
-  border-radius: 8px;
-  padding: 8px 12px;
-  margin-bottom: 8px;
+/* ==========================================================================
+   Interactive Horizon Calendar & Date Planner
+   ========================================================================== */
+.horizon-calendar {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  padding: 12px;
+  margin: 10px 0;
+  box-shadow: var(--shadow-card);
 }
 
-.stepper-btn {
-  background-color: var(--bg-subtle);
-  border: 1px solid var(--border-default);
-  color: var(--text-primary);
-  font-weight: 800;
-  font-size: 14px;
-  width: 30px;
-  height: 30px;
-  border-radius: 6px;
-  display: inline-flex;
+.cal-month-nav {
+  display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.cal-month-tabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+}
+
+.cal-month-tab {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
   cursor: pointer;
+  white-space: nowrap;
   transition: all var(--dur-quick);
 }
 
-.stepper-btn:hover {
-  background-color: var(--accent-soft);
-  color: var(--accent);
-  border-color: var(--accent);
+.cal-month-tab:hover {
+  color: var(--text-primary);
+  border-color: var(--border-active);
 }
 
-/* Quick Jump Day Buttons */
+.cal-month-tab.active {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.cal-th {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  padding: 4px 0;
+  letter-spacing: 0.04em;
+}
+
+.cal-day-cell {
+  position: relative;
+  aspect-ratio: 1.1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all var(--dur-quick) var(--ease-standard);
+  user-select: none;
+  padding: 2px;
+}
+
+.cal-day-cell:hover {
+  border-color: var(--accent);
+  background: var(--bg-card-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 2;
+}
+
+.cal-day-cell.selected {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%) !important;
+  color: #ffffff !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 14px var(--accent-glow-strong) !important;
+  transform: scale(1.04);
+  z-index: 3;
+}
+
+.cal-day-cell.selected * {
+  color: #ffffff !important;
+}
+
+.cal-day-cell.sunday {
+  background: var(--bg-subtle);
+  opacity: 0.65;
+}
+
+.cal-day-cell.empty {
+  background: transparent;
+  border-color: transparent;
+  cursor: default;
+  pointer-events: none;
+}
+
+.cal-day-num {
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.cal-day-idx {
+  font-size: 8.5px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  margin-top: 2px;
+}
+
+.cal-day-badge {
+  font-size: 7.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 1px 3px;
+  border-radius: 3px;
+  margin-top: 2px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.cal-day-badge.reopen {
+  background: #f59e0b;
+  color: #000;
+}
+
+.cal-day-badge.break {
+  background: rgba(139, 92, 246, 0.3);
+  color: #c4b5fd;
+}
+
+.cal-selection-hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 7px;
+}
+
+/* Quick Jump Buttons */
 .quick-days-row {
   display: flex;
   flex-wrap: wrap;
@@ -832,7 +1156,7 @@ button.primary:hover, .btn-primary:hover {
   color: var(--text-secondary);
   font-size: 10.5px;
   font-weight: 600;
-  padding: 3px 8px;
+  padding: 4px 9px;
   border-radius: 6px;
   cursor: pointer;
   transition: all var(--dur-quick);
@@ -841,32 +1165,38 @@ button.primary:hover, .btn-primary:hover {
 .quick-day-btn:hover {
   color: var(--text-primary);
   border-color: var(--border-active);
+  transform: translateY(-1px);
 }
 
 .quick-day-btn.active {
   background-color: var(--accent-soft);
   color: var(--accent);
   border-color: var(--accent);
+  box-shadow: 0 0 8px var(--accent-soft);
 }
 
-/* Hero Simulation Buttons */
+/* Hero Run Buttons */
 .btn-hero-run {
   width: 100%;
-  padding: 10px 16px;
+  padding: 11px 18px;
   font-size: 13px;
   font-weight: 700;
   color: #ffffff !important;
-  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
   border: 1px solid var(--accent);
   border-radius: 8px;
   cursor: pointer;
-  box-shadow: 0 2px 8px var(--accent-glow);
-  transition: all var(--dur-quick);
+  box-shadow: var(--shadow-button-glow);
+  transition: all var(--dur-quick) var(--ease-standard);
 }
 
 .btn-hero-run:hover {
-  filter: brightness(1.1);
-  box-shadow: 0 4px 14px var(--accent-glow);
+  box-shadow: var(--shadow-button-glow-hover);
+  transform: translateY(-2px);
+}
+
+.btn-hero-run:active {
+  transform: scale(0.98);
 }
 
 .hero-status-pill {
@@ -907,8 +1237,15 @@ button.primary:hover, .btn-primary:hover {
   background-color: var(--bg-card);
   border: 1px solid var(--border-default);
   border-radius: 8px;
-  padding: 10px;
+  padding: 10px 12px;
   margin-bottom: 8px;
+  box-shadow: var(--shadow-card);
+  transition: all var(--dur-quick);
+}
+
+.event-card:hover {
+  border-color: var(--border-active);
+  transform: translateY(-1px);
 }
 
 .event-card-header {
@@ -949,20 +1286,23 @@ button.primary:hover, .btn-primary:hover {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 8px;
-  border-radius: 6px;
+  padding: 7px 10px;
+  border-radius: 7px;
   cursor: pointer;
-  transition: background-color var(--dur-quick);
+  transition: all var(--dur-quick) var(--ease-standard);
   border: 1px solid transparent;
 }
 
 .row:hover {
   background-color: var(--bg-card-hover);
+  border-color: var(--border-subtle);
+  transform: translateX(2px);
 }
 
 .row.active-flag-spotlight {
   background-color: var(--origin-soft);
   border-color: var(--origin-vermilion);
+  box-shadow: 0 0 12px var(--origin-glow);
 }
 
 .row .grow {
@@ -988,9 +1328,9 @@ button.primary:hover, .btn-primary:hover {
   flex-shrink: 0;
 }
 
-.row .dot.s1 { background-color: var(--control-sky); }
-.row .dot.s2 { background-color: var(--affected-amber); }
-.row .dot.s3 { background-color: var(--origin-vermilion); }
+.row .dot.s1 { background-color: var(--control-sky); box-shadow: 0 0 6px var(--control-sky); }
+.row .dot.s2 { background-color: var(--affected-amber); box-shadow: 0 0 6px var(--affected-amber); }
+.row .dot.s3 { background-color: var(--origin-vermilion); box-shadow: 0 0 6px var(--origin-vermilion); }
 
 .row .t {
   font-size: 10.5px;
@@ -1015,6 +1355,7 @@ button.primary:hover, .btn-primary:hover {
   display: block;
   height: 100%;
   border-radius: 9999px;
+  transition: width var(--dur-base) var(--ease-standard);
 }
 
 .legend {
@@ -1039,46 +1380,52 @@ button.primary:hover, .btn-primary:hover {
   border-radius: 50%;
 }
 
-/* Badges for Classification & Status */
+/* ==========================================================================
+   Badges & Classification Tokens
+   ========================================================================== */
 .badge {
   display: inline-block;
-  padding: 2px 6px;
+  padding: 2px 7px;
   font-size: 9.5px;
   font-weight: 700;
   text-transform: uppercase;
-  border-radius: 4px;
+  border-radius: 5px;
   letter-spacing: 0.03em;
 }
 
 .badge.computed, .badge-computed {
   background-color: rgba(16, 185, 129, 0.15);
   color: var(--ok);
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.15);
 }
 
 .badge.configured, .badge-configured {
   background-color: rgba(56, 189, 248, 0.15);
   color: #0284c7;
-  border: 1px solid rgba(56, 189, 248, 0.3);
+  border: 1px solid rgba(56, 189, 248, 0.35);
 }
 
 [data-theme="dark"] .badge-configured {
   color: #38bdf8;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.15);
 }
 
 .badge.assumed, .badge-unmodeled, .badge-assumed {
   background-color: rgba(245, 158, 11, 0.15);
   color: var(--warn);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  border: 1px solid rgba(245, 158, 11, 0.35);
 }
 
 .badge.unavailable, .badge.not_modeled, .badge-unavailable {
   background-color: rgba(100, 116, 139, 0.15);
   color: var(--text-muted);
-  border: 1px solid rgba(100, 116, 139, 0.3);
+  border: 1px solid rgba(100, 116, 139, 0.35);
 }
 
-/* Comparison Tables & Differences */
+/* ==========================================================================
+   Comparison Tables & Causal Audit Trees
+   ========================================================================== */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -1087,7 +1434,7 @@ table {
 }
 
 th, td {
-  padding: 6px 8px;
+  padding: 7px 9px;
   text-align: left;
   border-bottom: 1px solid var(--border-default);
 }
@@ -1095,35 +1442,42 @@ th, td {
 th {
   font-weight: 600;
   color: var(--text-muted);
-  font-size: 10.5px;
+  font-size: 10px;
   text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .diff-pos { color: var(--ok); font-weight: 600; }
 .diff-neg { color: var(--bad); font-weight: 600; }
 .diff-zero { color: var(--text-muted); }
 
-/* Causal Chain Nodes */
+/* Causal Nodes */
 .causal-toggle-btn {
   background-color: var(--bg-subtle);
   border: 1px solid var(--border-default);
   color: var(--control-sky);
-  padding: 2px 7px;
-  border-radius: 4px;
+  padding: 3px 8px;
+  border-radius: 5px;
   font-size: 10px;
   font-weight: 600;
   cursor: pointer;
   margin-top: 4px;
   display: inline-block;
   user-select: none;
+  transition: all var(--dur-quick);
+}
+
+.causal-toggle-btn:hover {
+  background-color: var(--control-sky-soft);
+  border-color: var(--control-sky);
 }
 
 .causal-chain-container {
   margin-top: 6px;
-  padding: 8px 10px;
+  padding: 9px 12px;
   background-color: var(--bg-card);
   border: 1px solid var(--border-default);
-  border-radius: 6px;
+  border-radius: 7px;
   font-size: 11px;
 }
 
@@ -1151,6 +1505,7 @@ th {
 
 .causal-node:last-child .causal-node-dot {
   background-color: var(--control-sky);
+  box-shadow: 0 0 8px var(--control-sky);
 }
 
 .causal-node-hdr {
@@ -1188,13 +1543,14 @@ th {
   line-height: 1.35;
 }
 
-/* Incident Drawer Card */
+/* Incident Progression Drawer */
 .incident-drawer-card {
   background-color: var(--bg-card);
   border: 1px solid var(--origin-vermilion);
-  border-radius: 8px;
+  border-radius: 9px;
   padding: 14px;
   margin-bottom: 14px;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.15);
 }
 
 .inc-badge {
@@ -1206,16 +1562,16 @@ th {
   margin-bottom: 6px;
 }
 
-.inc-badge.high { background-color: var(--origin-vermilion); color: #fff; }
-.inc-badge.medium { background-color: var(--affected-amber); color: #fff; }
+.inc-badge.high { background-color: var(--origin-vermilion); color: #fff; box-shadow: 0 0 8px rgba(239, 68, 68, 0.4); }
+.inc-badge.medium { background-color: var(--affected-amber); color: #fff; box-shadow: 0 0 8px rgba(245, 158, 11, 0.4); }
 .inc-badge.low { background-color: var(--text-muted); color: #fff; }
 
 .warning-banner {
   background-color: rgba(245, 158, 11, 0.12);
   border: 1px solid var(--affected-amber);
   color: var(--warn);
-  padding: 8px 10px;
-  border-radius: 6px;
+  padding: 8px 12px;
+  border-radius: 7px;
   font-size: 11.5px;
   margin: 10px 0;
 }
@@ -1232,15 +1588,16 @@ th {
   grid-template-columns: 44px 14px 1fr;
   align-items: center;
   gap: 8px;
-  padding: 6px 8px;
+  padding: 7px 9px;
   background-color: var(--bg-subtle);
-  border-radius: 6px;
+  border-radius: 7px;
   cursor: pointer;
-  transition: background-color var(--dur-quick);
+  transition: all var(--dur-quick);
 }
 
 .phase-item:hover {
   background-color: var(--bg-card-hover);
+  transform: translateX(2px);
 }
 
 .phase-time {
@@ -1253,6 +1610,7 @@ th {
   height: 8px;
   border-radius: 50%;
   background-color: var(--origin-vermilion);
+  box-shadow: 0 0 6px var(--origin-vermilion);
 }
 
 .phase-info {
@@ -1264,16 +1622,20 @@ th {
   color: var(--text-primary);
 }
 
-/* Timeline Dock */
+/* ==========================================================================
+   Timeline Dock & Dual Timeline Synchronization
+   ========================================================================== */
 #dock {
-  background-color: var(--bg-surface);
+  background: linear-gradient(180deg, rgba(15, 19, 28, 0.95) 0%, var(--bg-surface) 100%);
+  backdrop-filter: blur(12px);
   border-top: 1px solid var(--border-default);
   padding: 10px 18px;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  z-index: 20;
-  transition: background-color var(--dur-quick), border-color var(--dur-quick);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.35);
+  z-index: 25;
+  transition: background-color var(--dur-base), border-color var(--dur-base);
 }
 
 #transport {
@@ -1284,38 +1646,54 @@ th {
 }
 
 #transport button {
-  padding: 6px 11px;
+  padding: 6px 12px;
   font-size: 12px;
   color: var(--text-primary);
   background-color: var(--bg-card);
   border: 1px solid var(--border-default);
-  border-radius: 6px;
+  border-radius: 7px;
   cursor: pointer;
 }
 
+#transport button:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-active);
+}
+
 #transport button.primary {
-  background-color: var(--accent);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
   color: #ffffff;
   border-color: var(--accent);
   font-weight: 700;
+  box-shadow: var(--shadow-button-glow);
+}
+
+#transport button.primary:hover {
+  box-shadow: var(--shadow-button-glow-hover);
 }
 
 .timeline-canvases {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
 }
 
 #dayStrip, #minStrip {
   width: 100%;
   display: block;
-  border-radius: 6px;
+  border-radius: 7px;
   background-color: var(--bg-card);
   border: 1px solid var(--border-default);
   cursor: pointer;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: border-color var(--dur-quick);
 }
 
-/* Evidence Chips in Report */
+#dayStrip:hover, #minStrip:hover {
+  border-color: var(--border-active);
+}
+
+/* Evidence Chips */
 .evidence-chip-group {
   display: flex;
   flex-wrap: wrap;
@@ -1340,21 +1718,25 @@ th {
 
 .evidence-chip:hover {
   background-color: rgba(56, 189, 248, 0.22);
+  transform: translateY(-1px);
 }
 
-/* Modal Dialog */
+/* ==========================================================================
+   Modal Dialog & Toast Overlays
+   ========================================================================== */
 .modal-backdrop {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 100;
+  animation: popIn var(--dur-base) var(--ease-spring);
 }
 
 .modal-box {
@@ -1362,19 +1744,19 @@ th {
   border-radius: 12px;
   width: 90%;
   max-width: 680px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5), 0 0 30px rgba(16, 185, 129, 0.15);
   overflow: hidden;
   border: 1px solid var(--border-default);
   color: var(--text-primary);
 }
 
 .modal-header {
-  padding: 16px 20px;
+  padding: 16px 22px;
   border-bottom: 1px solid var(--border-default);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: var(--bg-card);
+  background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-surface) 100%);
 }
 
 .modal-header h2 {
@@ -1382,6 +1764,7 @@ th {
   font-size: 18px;
   font-weight: 700;
   color: var(--text-primary);
+  letter-spacing: -0.02em;
 }
 
 .modal-close {
@@ -1391,6 +1774,7 @@ th {
   cursor: pointer;
   color: var(--text-muted);
   padding: 4px;
+  transition: color var(--dur-quick);
 }
 
 .modal-close:hover {
@@ -1398,44 +1782,47 @@ th {
 }
 
 .modal-body {
-  padding: 20px;
+  padding: 22px;
 }
 
 .modal-body p {
   color: var(--text-secondary);
-  line-height: 1.5;
+  line-height: 1.55;
   margin-top: 0;
 }
 
 .entry-cards {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  margin: 16px 0;
+  gap: 16px;
+  margin: 18px 0;
 }
 
 .entry-card {
-  border: 1.5px solid var(--border-default);
+  border: 1px solid var(--border-default);
   border-radius: 10px;
-  padding: 16px;
+  padding: 18px;
   background-color: var(--bg-card);
   cursor: pointer;
-  transition: all var(--dur-quick);
+  transition: all var(--dur-quick) var(--ease-standard);
   display: flex;
   flex-direction: column;
+  box-shadow: var(--shadow-card);
 }
 
 .entry-card:hover {
   border-color: var(--accent);
-  box-shadow: 0 4px 14px var(--accent-soft);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-3px);
 }
 
 .card-badge {
-  font-size: 10.5px;
-  font-weight: 700;
+  font-size: 10px;
+  font-weight: 800;
   text-transform: uppercase;
   color: var(--accent);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+  letter-spacing: 0.05em;
 }
 
 .entry-card h3 {
@@ -1449,7 +1836,7 @@ th {
   font-size: 12px;
   color: var(--text-muted);
   flex: 1;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .btn-block {
@@ -1460,9 +1847,9 @@ th {
 .modal-foot-note {
   font-size: 11px;
   color: var(--text-muted);
-  background-color: var(--bg-card);
+  background-color: var(--bg-input);
   padding: 10px 14px;
-  border-radius: 6px;
+  border-radius: 7px;
   border: 1px solid var(--border-default);
 }
 
@@ -1473,53 +1860,58 @@ th {
   left: 50%;
   transform: translateX(-50%);
   background-color: var(--bg-elevated);
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--accent);
   color: var(--text-primary);
-  padding: 8px 18px;
+  padding: 9px 20px;
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5), 0 0 20px var(--accent-glow);
   font-size: 12.5px;
-  font-weight: 500;
+  font-weight: 600;
   display: none;
   z-index: 100;
+  animation: slideFadeUp var(--dur-quick) var(--ease-standard);
 }
 
 #tip {
   position: absolute;
   pointer-events: none;
-  background-color: var(--bg-elevated);
-  border: 1px solid var(--border-default);
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-glass);
   color: var(--text-primary);
-  padding: 4px 8px;
-  border-radius: 5px;
+  padding: 5px 10px;
+  border-radius: 6px;
   font-size: 11px;
   display: none;
   z-index: 90;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 }
 
-/* Scenario Banner */
+/* Active Scenario Banner */
 .scen-banner {
   position: absolute;
   top: 14px;
   right: 14px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 14px;
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  gap: 12px;
+  padding: 7px 16px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-glass);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), 0 0 16px var(--accent-glow);
   z-index: 10;
+  animation: slideFadeUp var(--dur-quick) var(--ease-standard);
 }
 
 .scen-banner-pulse {
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background-color: var(--accent);
-  box-shadow: 0 0 8px var(--accent);
+  box-shadow: 0 0 10px var(--accent);
+  animation: beaconPulse 2s infinite var(--ease-standard);
 }
 
 .scen-banner-info b {
@@ -1540,7 +1932,7 @@ th {
 
 .scen-banner-btn {
   font-size: 11px;
-  padding: 3px 8px;
+  padding: 4px 9px;
 }
 
 .scen-banner-close {
@@ -1552,7 +1944,13 @@ th {
   padding: 2px 4px;
 }
 
-/* Responsive Overlays */
+.scen-banner-close:hover {
+  color: var(--text-primary);
+}
+
+/* ==========================================================================
+   Responsive Overlays & Layout Adaptations
+   ========================================================================= */
 @media (max-width: 1279px) {
   main {
     grid-template-columns: 1fr;
@@ -1562,8 +1960,8 @@ th {
     top: 0;
     right: 0;
     bottom: 0;
-    width: 380px;
-    box-shadow: -8px 0 24px rgba(0, 0, 0, 0.4);
+    width: 390px;
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
     z-index: 30;
   }
   .entry-cards {
@@ -1571,7 +1969,9 @@ th {
   }
 }
 
-/* Reduced Motion Setting Support */
+/* ==========================================================================
+   Accessibility & Reduced Motion Enforcement
+   ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

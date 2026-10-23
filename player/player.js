@@ -97,7 +97,13 @@
     if (!d) return null;
     let D = null;
     try {
-      const raw = await getJSON(S.base + S.run + '/days/d' + String(i).padStart(4, '0') + '.json');
+      let raw;
+      try {
+        raw = await getJSON(S.base + S.run + '/days/d' + String(i).padStart(4, '0') + '.json');
+      } catch (err) {
+        // Fallback to immutable baseline day file for pre-branch days
+        raw = await getJSON(S.base + 'story_baseline/days/d' + String(i).padStart(4, '0') + '.json');
+      }
       D = prepDay(raw);
     } catch (e) { D = null; }
     S.days.set(i, D);
@@ -200,6 +206,9 @@
   }
   async function goTo(day, minute, opt) {
     day = clamp(Math.round(day), 0, S.nDays - 1);
+    if (S.activeFlag && (S.activeFlag.day !== day || (minute != null && Math.abs(S.activeFlag.minute - minute) > 35))) {
+      S.activeFlag = null;
+    }
     S.busy = true;
     try {
       await ensureDay(day);
@@ -214,7 +223,12 @@
   }
   function nextOpen(from, dir) {
     let d = from + dir;
-    while (d >= 0 && d < S.nDays) { if (S.meta.days[d].open || !$('#chkSkip').checked) return d; d += dir; }
+    while (d >= 0 && d < S.nDays) {
+      const dm = S.meta.days[d];
+      const hasEv = dm && ((dm.events && dm.events.length) || (dm.incidents && dm.incidents.length) || flagsOn(d).some(f => f.kind !== 'calendar'));
+      if (!dm || dm.open || hasEv || !$('#chkSkip').checked) return d;
+      d += dir;
+    }
     return clamp(d, 0, S.nDays - 1);
   }
   async function advance(dt) {
@@ -342,12 +356,14 @@
     });
 
     // Determine Active Incident, Origin Zone, Affected Zones & Responder
-    let activeIncident = S.activeFlag || null;
-    if (!activeIncident) {
-      const todayFlags = flagsOn(S.day).filter(f => f.kind !== 'calendar');
-      activeIncident = todayFlags.find(f => Math.abs(f.minute - t) <= 25 && f.zone) || null;
+    let activeIncident = null;
+    if (S.activeFlag && S.activeFlag.day === S.day && Math.abs(S.activeFlag.minute - t) <= 30 && S.activeFlag.zone) {
+      activeIncident = S.activeFlag;
+    } else {
+      const todayFlags = flagsOn(S.day).filter(f => f.kind !== 'calendar' && f.zone);
+      activeIncident = todayFlags.find(f => Math.abs(f.minute - t) <= 25) || null;
     }
-    const originZoneId = activeIncident ? activeIncident.zone : (S.sel && S.sel.type === 'zone' ? S.sel.id : null);
+    const originZoneId = (activeIncident && activeIncident.zone) ? activeIncident.zone : null;
 
     const affectedZoneIds = new Set();
     let responderZoneId = null;
@@ -661,11 +677,13 @@
       const z = S.zones[zi], o = L.org[z.floor]; if (!o) continue;
       const [x, y, w, h] = z.rect, X = o.x + x * L.scale, Y = o.y + y * L.scale;
       if (mx >= X && mx <= X + w * L.scale && my >= Y && my <= Y + h * L.scale) {
-        const matchFlag = flagsOn(S.day).find(f => f.zone === z.id);
+        const matchFlag = flagsOn(S.day).find(f => f.zone === z.id && Math.abs(f.minute - S.minute) <= 30);
         if (matchFlag) {
           S.activeFlag = matchFlag;
           toast(`⚑ Focused Incident: ${matchFlag.title} (${z.label})`);
           if (S.tab === 'flags') renderFlags();
+        } else {
+          S.activeFlag = null;
         }
         return { type: 'zone', id: z.id };
       }
@@ -728,6 +746,13 @@
       c.fillStyle = isLight ? '#059669' : '#10b981';
       c.font = 'bold 9px system-ui,sans-serif';
       c.fillText('SEAM · DAY 151', seamX + 4, 11);
+      c.fillStyle = isLight ? '#64748b' : '#34d399';
+      c.font = '8px system-ui,sans-serif';
+      c.fillText('ALTERED SIMULATION →', seamX + 4, 21);
+      c.textAlign = 'right';
+      c.fillStyle = isLight ? '#64748b' : '#94a3b8';
+      c.fillText('← LEGACY BASELINE', seamX - 4, 11);
+      c.textAlign = 'left';
     }
     // minute strip
     [c, W] = sizeCanvas($('#minStrip'), 34);
@@ -1122,15 +1147,15 @@
   S.form = {
     name: '', mode: 'generate', seed: 20261014, intensity: 1, rnd: 0, fork: true,
     teachers: 0, support: 0, bus: 0, fee: 0, feeOk: false, transportFee: 0, maintBudget: 0,
-    evalDuration: 30, extendPostBaseline: false,
+    evalDuration: 30, extendPostBaseline: true, calMonth: '2026-06',
     autonomy: 'low_risk_auto', instructEff: 1.0, assessDiff: 1.0,
-    story: true, disabled: [], add: [], bTab: 'events', ckpt: 'CKPT-DAY-90-APRIL-PROMOTIONS',
-    curEvType: 'serious_student_fight', curEvDay: 14, curEvDate: '', curEvSev: 'high',
+    story: true, disabled: [], add: [], bTab: 'events', ckpt: 'CKPT-DAY-150-TERM-CLOSE',
+    curEvType: 'water_cooler_breakdown', curEvDay: 155, curEvDate: '2026-06-05', curEvSev: 'medium',
     fightStudents: 'STU-0012, STU-0015, STU-0021', fightLocation: 'playground',
     bizStudent: 'STU-0044', bizStatus: 'under_review', bizLocation: 'admin_lobby',
     resigTeacher: 'Ritu Kapoor', busRoute: 3, busDelay: 20,
     feeCategory: 'tuition', feeDelta: 10, hiredTeacher: 'Pooja Sharma', hiredRole: 'Social Science',
-    nlPrompt: 'Starting on Day 7, there is a serious fight involving three students. On Day 15, one school bus breaks down. Compare this scenario with the saved baseline.',
+    nlPrompt: 'On June 5 during summer maintenance, water cooler breakdown in corridor_1. Increase summer maintenance budget by ₹50,000.',
     nlParsed: null, nlStatus: ''
   };
 
@@ -1144,11 +1169,18 @@
     base.events.add = (base.events.add || []).concat(F.add);
     base.events.random.per_month = +F.rnd;
 
-    // Academic year continuation & evaluation duration
+    // Academic year continuation & evaluation duration (Default: Day 151 onward)
     if (F.extendPostBaseline) {
-      const parentEnd = (S.meta && S.meta.run && S.meta.run.end_day != null) ? S.meta.run.end_day : 150;
-      base.start_day = parentEnd + 1;
+      base.start_day = 151;
       base.end_day = Math.min(364, base.start_day + (+F.evalDuration || 30) - 1);
+      base.checkpoint_id = 'CKPT-DAY-150-TERM-CLOSE';
+      base.branch = {
+        checkpoint_id: 'CKPT-DAY-150-TERM-CLOSE',
+        start_day: 151,
+        duration_days: +F.evalDuration || 30,
+        end_day: base.end_day,
+        reopening_date: '2026-07-01'
+      };
     }
 
     const lev = {
@@ -1219,6 +1251,99 @@
     `;
   }
 
+  function renderHorizonCalendar(F) {
+    const MONTHS = [
+      { key: '2026-06', label: 'June 2026', num: 6, desc: 'Month 6: Summer Break & Facility Maintenance' },
+      { key: '2026-07', label: 'July 2026', num: 7, desc: 'Month 7: Monsoon Resumption & School Reopening' },
+      { key: '2026-08', label: 'August 2026', num: 8, desc: 'Month 8: Regular Academics & Cover Management' },
+      { key: '2026-09', label: 'September 2026', num: 9, desc: 'Month 9: Examination Cycle & Assessments' }
+    ];
+
+    const selDate = F.curEvDate || '2026-06-05';
+    let curMonthKey = F.calMonth || selDate.slice(0, 7);
+    if (!MONTHS.some(m => m.key === curMonthKey)) {
+      curMonthKey = '2026-06';
+      F.calMonth = curMonthKey;
+    }
+    const curMonthMeta = MONTHS.find(m => m.key === curMonthKey) || MONTHS[0];
+
+    const [yStr, mStr] = curMonthKey.split('-');
+    const year = +yStr, month = +mStr - 1;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const firstDow = (new Date(year, month, 1).getDay() + 6) % 7; // 0=Monday..6=Sunday
+
+    const d0 = new Date(2026, 0, 1);
+    const curDateObj = new Date(selDate + 'T00:00:00');
+    const selDayIdx = Math.round((curDateObj - d0) / 86400000);
+    const selDowStr = curDateObj.toLocaleDateString('en-US', { weekday: 'long' });
+
+    let cells = [];
+    for (let e = 0; e < firstDow; e++) {
+      cells.push('<div class="cal-day-cell empty"></div>');
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const dt = new Date(year, month, d);
+      const dayOfYear = Math.round((dt - d0) / 86400000);
+      const isSelected = iso === selDate;
+      const isSunday = dt.getDay() === 0;
+      const isReopening = iso === '2026-07-01';
+      const isBreak = iso < '2026-07-01';
+
+      let badgeHtml = '';
+      if (isReopening) badgeHtml = '<span class="cal-day-badge reopen">Reopen</span>';
+      else if (isBreak && d === 1) badgeHtml = '<span class="cal-day-badge break">Break</span>';
+
+      cells.push(`
+        <div class="cal-day-cell ${isSelected ? 'selected' : ''} ${isSunday ? 'sunday' : ''}" data-act="pickCalDate" data-iso="${iso}" data-day="${dayOfYear}" title="${iso} (Day ${dayOfYear + 1} · Month ${curMonthMeta.num})">
+          <span class="cal-day-num">${d}</span>
+          <span class="cal-day-idx">D${dayOfYear + 1}</span>
+          ${badgeHtml}
+        </div>
+      `);
+    }
+
+    return `
+      <div class="horizon-calendar">
+        <div class="cal-month-nav">
+          <div class="cal-month-tabs">
+            ${MONTHS.map(m => `
+              <button type="button" class="cal-month-tab ${m.key === curMonthKey ? 'active' : ''}" data-act="setCalMonth" data-month="${m.key}">
+                ${m.label} (M${m.num})
+              </button>
+            `).join('')}
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">
+          ${curMonthMeta.desc}
+        </div>
+        <div class="cal-grid">
+          <div class="cal-th">Mo</div>
+          <div class="cal-th">Tu</div>
+          <div class="cal-th">We</div>
+          <div class="cal-th">Th</div>
+          <div class="cal-th">Fr</div>
+          <div class="cal-th">Sa</div>
+          <div class="cal-th">Su</div>
+          ${cells.join('')}
+        </div>
+        <div class="cal-selection-hud">
+          <div>
+            <div style="font-size:9.5px;text-transform:uppercase;color:var(--text-muted);font-weight:700">Selected Incident Date</div>
+            <div style="font-size:12.5px;font-weight:700;color:var(--accent)">
+              ${selDowStr}, ${selDate} · <span style="font-family:var(--font-mono);font-size:11px">Day ${selDayIdx + 1} (Month ${curMonthMeta.num})</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <label style="font-size:11px;color:var(--text-secondary)">Date Picker:</label>
+            <input type="date" id="evDateInput" value="${selDate}" min="2026-06-01" max="2026-10-31" style="padding:3px 6px;font-size:11px;border-radius:5px" data-act="changeEvDateInput">
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   function renderBuilderTab(tab, M, F, storyEvents) {
     if (tab === 'setup') {
       const dur = +F.evalDuration || 30;
@@ -1265,16 +1390,29 @@
     }
     if (tab === 'events') {
       const activePreset = PRESET_EVENTS.find(p => p.id === F.curEvType) || PRESET_EVENTS[0];
-      const curDay = clamp(F.curEvDay != null ? F.curEvDay : 14, 0, S.nDays - 1);
-      const dayMeta = (M.days && M.days[curDay]) ? M.days[curDay] : curMeta();
-      const dayDateStr = dayMeta ? dayMeta.date : '2026-01-15';
-      const dayDowStr = dayMeta ? dayMeta.dow : '';
+      const dur = +F.evalDuration || 30;
+      const startDay = 151;
+      const endDay = startDay + dur - 1;
+      const startDate = new Date(2026, 0, 1 + startDay).toISOString().slice(0, 10);
+      const endDate = new Date(2026, 0, 1 + endDay).toISOString().slice(0, 10);
 
       return `
         <div class="card builder-step-card" style="border-radius:10px;padding:14px;margin-bottom:12px">
+          <div style="margin-bottom:12px;padding:10px 12px;background:var(--bg-subtle);border-radius:8px;border:1px solid var(--border-default)">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <b style="color:var(--text-primary);font-size:12px">Dual Timeline Architecture</b>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:2px">
+                  Months 1–5 (Days 0–150 / Jan 1 – May 31): <b>Frozen Legacy Baseline</b> (Protected)
+                </div>
+              </div>
+              <span class="badge badge-computed" style="font-size:9.5px">Branch Point: Month 6</span>
+            </div>
+          </div>
+
           <div class="step-header" style="margin-top:0">
             <span class="step-badge">STEP 1</span>
-            <h4 class="step-title">Choose What Happens</h4>
+            <h4 class="step-title">Choose What to Simulate</h4>
           </div>
           <div class="preset-grid">
             ${PRESET_EVENTS.map(p => `
@@ -1292,32 +1430,34 @@
 
           <div class="step-header">
             <span class="step-badge">STEP 2</span>
-            <h4 class="step-title">When Does It Happen?</h4>
+            <h4 class="step-title">How Long to Simulate? (Simulation Horizon)</h4>
           </div>
-          <div class="day-stepper">
-            <button type="button" class="stepper-btn" data-act="stepDay" data-delta="-1" title="Previous Day">−</button>
-            <div style="flex:1;text-align:center">
-              <span style="font-size:15px;font-weight:800;color:var(--text-primary)">Day ${curDay + 1} of ${S.nDays}</span>
-              <span style="font-size:11.5px;color:var(--text-secondary);display:block;margin-top:1px">${esc(dayDowStr)} · ${esc(dayDateStr)}</span>
-            </div>
-            <button type="button" class="stepper-btn" data-act="stepDay" data-delta="1" title="Next Day">+</button>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0">
+            <button type="button" class="quick-day-btn ${dur === 30 ? 'active' : ''}" data-act="setHorizonDuration" data-dur="30">30 Days (Month 6: Summer Break)</button>
+            <button type="button" class="quick-day-btn ${dur === 60 ? 'active' : ''}" data-act="setHorizonDuration" data-dur="60">60 Days (Months 6–7: Monsoon Reopening)</button>
+            <button type="button" class="quick-day-btn ${dur === 90 ? 'active' : ''}" data-act="setHorizonDuration" data-dur="90">90 Days (Months 6–8: Full Quarter)</button>
+            <button type="button" class="quick-day-btn ${dur === 150 ? 'active' : ''}" data-act="setHorizonDuration" data-dur="150">150 Days (Extended Semester)</button>
           </div>
-          <div class="quick-days-row">
-            <span style="font-size:10px;color:var(--text-muted);align-self:center;margin-right:2px">Quick jump:</span>
-            <button type="button" class="quick-day-btn ${curDay === 6 ? 'active' : ''}" data-act="setEvDay" data-day="6">Day 7 (Week 1)</button>
-            <button type="button" class="quick-day-btn ${curDay === 14 ? 'active' : ''}" data-act="setEvDay" data-day="14">Day 15 (Mid-Month)</button>
-            <button type="button" class="quick-day-btn ${curDay === 29 ? 'active' : ''}" data-act="setEvDay" data-day="29">Day 30 (Month 1)</button>
-            <button type="button" class="quick-day-btn ${curDay === 59 ? 'active' : ''}" data-act="setEvDay" data-day="59">Day 60 (Mid-Term)</button>
-            <button type="button" class="quick-day-btn ${curDay === 89 ? 'active' : ''}" data-act="setEvDay" data-day="89">Day 90 (Promotions)</button>
-            <button type="button" class="quick-day-btn ${curDay === S.day ? 'active' : ''}" data-act="setEvDay" data-day="${S.day}">Current Day (${S.day + 1})</button>
+          <div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px">
+            Simulated Range: <b style="color:var(--accent)">Day ${startDay} → Day ${endDay} (${startDate} to ${endDate})</b>
           </div>
 
-          <div class="step-header" style="margin-top:14px">
+          <div class="step-header">
             <span class="step-badge">STEP 3</span>
-            <h4 class="step-title">Simulate & Watch on Campus Map</h4>
+            <h4 class="step-title">When Does It Happen? (Calendar Picker)</h4>
           </div>
-          <button class="primary btn-hero-run" data-act="addAndRunTimeLapse" ${S.api ? '' : 'disabled'}>⚡ Simulate Event & Watch Time-lapse</button>
-          <div id="heroRunStatus" class="hero-status-pill">Ready to simulate. Click above to run and watch on campus.</div>
+          <div class="mut" style="font-size:11px;margin-bottom:6px">
+            Pick any day on the calendar below or use the direct date selector. The simulation starts on Month 6 (June 1, 2026).
+          </div>
+
+          ${renderHorizonCalendar(F)}
+
+          <div class="step-header" style="margin-top:14px">
+            <span class="step-badge">STEP 4</span>
+            <h4 class="step-title">Simulate Horizon & Watch on Campus Map</h4>
+          </div>
+          <button class="primary btn-hero-run" data-act="addAndRunTimeLapse" ${S.api ? '' : 'disabled'}>⚡ Simulate Horizon & Watch Time-lapse</button>
+          <div id="heroRunStatus" class="hero-status-pill">Ready to simulate. Preloads Months 1–5 baseline and simulates Month 6 onward.</div>
 
           <details class="builder-accordion" style="margin-top:12px">
             <summary>⚙ Customize Event Details (Optional)</summary>
@@ -1407,23 +1547,104 @@
       `;
     }
     if (tab === 'nlp') {
+      const dur = +F.evalDuration || 30;
+      const startDay = 151;
+      const endDay = Math.min(364, startDay + dur - 1);
+      const startDate = new Date(2026, 0, 1 + startDay).toISOString().slice(0, 10);
+      const endDate = new Date(2026, 0, 1 + endDay).toISOString().slice(0, 10);
+
       return `
-        <h4>Natural Language Scenario Assistant</h4>
-        <div class="mut" style="margin-bottom:8px">Type a natural-language description. Uses local Ollama (if running) or smart rule extraction.</div>
-        <textarea id="nlPromptText" style="height:70px">${esc(F.nlPrompt)}</textarea>
-        <div style="display:flex;gap:6px;margin:6px 0">
-          <button data-act="nlExample1">Example 1: Fight & Bus</button>
-          <button data-act="nlExample2">Example 2: Resignation & Fee</button>
-          <button class="primary" style="margin-left:auto" data-act="parsePrompt">Interpret Prompt</button>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div>
+            <h4 style="margin:0 0 2px;display:flex;align-items:center;gap:6px">
+              <span>✍️ AI Assistant Writer</span>
+              <span class="badge badge-computed" style="font-size:9.5px;letter-spacing:0.04em">Day 151+ Branch Engine</span>
+            </h4>
+            <div class="mut" style="font-size:11px">Autonomous scenario authoring. Preloads 151-day legacy baseline and simulates altered continuation.</div>
+          </div>
         </div>
-        ${F.nlStatus ? `<div class="mut" style="margin:4px 0;font-weight:600">${esc(F.nlStatus)}</div>` : ''}
+
+        <div class="card" style="padding:12px;margin-bottom:12px;background:linear-gradient(180deg, var(--bg-card-hover) 0%, var(--bg-card) 100%);border:1px solid var(--border-active);border-left:3px solid var(--accent);box-shadow:var(--shadow-card)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span class="dot-live" style="width:6px;height:6px"></span>
+              <b style="font-size:11.5px;color:var(--text-primary)">Horizon: Day ${startDay} → Day ${endDay} (${startDate} to ${endDate})</b>
+            </div>
+            <span class="badge badge-configured" style="font-size:9px">Frozen Baseline Preloaded</span>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <span style="font-size:11px;color:var(--text-muted);font-weight:600">Preset Window:</span>
+            <button type="button" class="quick-day-btn ${dur === 30 ? 'active' : ''}" data-act="setNlDuration" data-dur="30">30d (Summer Break)</button>
+            <button type="button" class="quick-day-btn ${dur === 60 ? 'active' : ''}" data-act="setNlDuration" data-dur="60">60d (Monsoon Resumption)</button>
+            <button type="button" class="quick-day-btn ${dur === 90 ? 'active' : ''}" data-act="setNlDuration" data-dur="90">90d (Autumn Quarter)</button>
+          </div>
+        </div>
+
+        <div class="field" style="margin-bottom:8px">
+          <label style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-weight:700">Scenario Prompt</span>
+            <span class="mut" style="font-size:10px;text-transform:uppercase;letter-spacing:0.04em">Translates to Canonical Schema</span>
+          </label>
+          <textarea id="nlPromptText" style="height:92px;font-family:var(--font-mono);font-size:11.5px;line-height:1.45;border-radius:8px;padding:9px;background:var(--bg-input);border:1px solid var(--border-default)">${esc(F.nlPrompt)}</textarea>
+        </div>
+
+        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px">
+          <span style="font-size:10.5px;color:var(--text-muted);align-self:center;margin-right:2px;font-weight:600">Quick Prompts:</span>
+          <button type="button" class="quick-day-btn" data-act="nlExample1" title="Facility incident during summer maintenance">🛠️ Summer Facility</button>
+          <button type="button" class="quick-day-btn" data-act="nlExample2" title="School reopening transport delay on Route 3">🚌 July Reopening</button>
+          <button type="button" class="quick-day-btn" data-act="nlExample3" title="Faculty recruitment and fee revision for new term">📚 Monsoon Staffing</button>
+          <button type="button" class="quick-day-btn" data-act="nlExample4" title="Physical altercation requiring safety protocol">⚡ Student Altercation</button>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
+          <button class="primary" data-act="parsePrompt" style="padding:7px 14px">🔍 Interpret Prompt</button>
+          <button class="primary" data-act="applyAndSimulateNL" style="padding:7px 16px;background:linear-gradient(135deg, var(--ok) 0%, #059669 100%);border-color:var(--ok);box-shadow:var(--shadow-button-glow)" ${S.api ? '' : 'disabled'}>⚡ Simulate Immediately & Watch</button>
+        </div>
+
+        ${F.nlStatus ? `<div class="card" style="margin:6px 0 10px;font-weight:600;font-size:11.5px;padding:8px 12px;background:var(--bg-subtle);border-color:var(--accent)">${esc(F.nlStatus)}</div>` : ''}
+
         ${F.nlParsed ? `
-          <div class="card" style="border-left:3px solid var(--accent);padding:10px;margin-top:8px">
-            <b style="color:var(--accent)">Interpreted Configuration (${esc(F.nlParsed.parser_used || 'rule_based')})</b>
-            <div>Events parsed: <b>${(F.nlParsed.events || []).length}</b> · Policy overrides: <b>${Object.keys(F.nlParsed.policy_overrides || {}).length}</b></div>
-            ${(F.nlParsed.ambiguities || []).map(a => `<div class="mut" style="font-size:11px">• ${esc(a)}</div>`).join('')}
-            <div style="margin-top:8px">
-              <button class="primary" data-act="applyNL">✓ Apply to Builder</button>
+          <div class="card" style="border:1px solid var(--accent);border-left:4px solid var(--accent);padding:14px;margin-top:10px;border-radius:10px;box-shadow:var(--shadow-card-hover)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <b style="color:var(--accent);font-size:12.5px;display:flex;align-items:center;gap:6px">
+                <span>✓ Interpreted Specification</span>
+              </b>
+              <span class="badge badge-computed" style="font-size:9.5px">${esc(F.nlParsed.parser_used || 'rule_based')}</span>
+            </div>
+
+            <div style="font-size:11.5px;margin-bottom:10px;color:var(--text-secondary)">
+              Scenario: <b style="color:var(--text-primary)">${esc(F.nlParsed.name || 'Altered Simulation')}</b> · 
+              <b style="color:var(--text-primary)">${(F.nlParsed.events || []).length} events</b> · 
+              <b style="color:var(--text-primary)">${Object.keys(F.nlParsed.policy_overrides || {}).length} policy overrides</b>
+            </div>
+
+            ${(F.nlParsed.events || []).map(ev => `
+              <div class="card" style="margin:5px 0;padding:8px 10px;background:var(--bg-surface);font-size:11px;display:flex;justify-content:space-between;align-items:center;border-radius:6px">
+                <div>
+                  <b style="color:var(--text-primary);text-transform:capitalize">${esc(ev.type.replace(/_/g, ' '))}</b> 
+                  <span class="mut">on ${esc(ev.date)}</span>
+                  ${ev.location ? `<span class="mut">@ ${esc(ev.location)}</span>` : ''}
+                </div>
+                <span class="badge ${ev.severity === 'high' ? 'badge-unavailable' : 'badge-configured'}">${esc(ev.severity || 'medium')}</span>
+              </div>
+            `).join('')}
+
+            ${Object.keys(F.nlParsed.policy_overrides || {}).length ? `
+              <div style="margin-top:8px;font-size:11px;color:var(--text-secondary)">
+                <b style="color:var(--text-primary)">Policy Overrides:</b>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">
+                  ${Object.entries(F.nlParsed.policy_overrides).map(([k, v]) => `
+                    <span class="badge badge-configured">${esc(k)}: ${esc(String(v))}</span>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+
+            ${(F.nlParsed.ambiguities || []).map(a => `<div class="mut" style="font-size:10.5px;margin-top:5px;line-height:1.4">• ${esc(a)}</div>`).join('')}
+
+            <div style="margin-top:12px;display:flex;gap:8px">
+              <button class="primary" data-act="applyNL" style="padding:6px 12px">✓ Apply to Event Builder</button>
+              <button data-act="applyAndSimulateNL" style="padding:6px 12px" ${S.api ? '' : 'disabled'}>⚡ Apply & Run Time-lapse</button>
             </div>
           </div>
         ` : ''}
@@ -1764,13 +1985,42 @@
 
   function extractCurrentEvent() {
     const F = S.form;
-    const etype = F.curEvType || 'serious_student_fight';
-    const dayIdx = clamp(F.curEvDay != null ? F.curEvDay : 14, 0, S.nDays - 1);
-    const edate = (S.meta && S.meta.days && S.meta.days[dayIdx]) ? S.meta.days[dayIdx].date : (F.curEvDate || curMeta().date);
-    const esev = ($('#evSev') && $('#evSev').value) || F.curEvSev || 'high';
+    const etype = F.curEvType || 'water_cooler_breakdown';
+    let edate = F.curEvDate;
+    const d0 = new Date(2026, 0, 1);
+    if (!edate) {
+      if (F.curEvDay != null) {
+        const dt = new Date(2026, 0, 1 + F.curEvDay);
+        edate = dt.toISOString().slice(0, 10);
+      } else {
+        edate = '2026-06-05';
+      }
+    }
+    const curDateObj = new Date(edate + 'T00:00:00');
+    const dayIdx = Math.max(0, Math.round((curDateObj - d0) / 86400000));
+    const esev = ($('#evSev') && $('#evSev').value) || F.curEvSev || 'medium';
     const evObj = { date: edate, type: etype, severity: esev, day: dayIdx, params: {} };
 
-    if (etype === 'serious_student_fight') {
+    if (etype === 'water_cooler_breakdown') {
+      const loc = ($('#evCoolerLoc') && $('#evCoolerLoc').value) || F.coolerLoc || 'corridor_1';
+      evObj.location = loc;
+      evObj.params = { location: loc };
+      evObj.title = '🚰 Water cooler breakdown (' + loc + ')';
+    } else if (etype === 'classroom_fan_failure') {
+      const loc = ($('#evFanLoc') && $('#evFanLoc').value) || F.fanLoc || 'class_9a';
+      evObj.location = loc;
+      evObj.params = { location: loc };
+      evObj.title = '🌬️ Classroom fan failure (' + loc + ')';
+    } else if (etype === 'computer_lab_circuit_trip') {
+      const loc = ($('#evLabLoc') && $('#evLabLoc').value) || F.labLoc || 'comp_lab_1';
+      evObj.location = loc;
+      evObj.params = { location: loc };
+      evObj.title = '⚡ Computer lab circuit trip (' + loc + ')';
+    } else if (etype === 'weather_attendance_dip') {
+      const dip = +($('#evWeatherDip') && $('#evWeatherDip').value) || F.weatherDip || 15;
+      evObj.params = { attendance_dip_pct: dip };
+      evObj.title = '🌧️ Weather & heat attendance disruption (-' + dip + '%)';
+    } else if (etype === 'serious_student_fight') {
       const sVal = ($('#evFightStudents') && $('#evFightStudents').value) || F.fightStudents || 'STU-0012, STU-0015, STU-0021';
       const sids = sVal.split(',').map(s => s.trim()).filter(Boolean);
       const loc = ($('#evFightLoc') && $('#evFightLoc').value) || F.fightLocation || 'playground';
@@ -1834,7 +2084,7 @@
       S.dayF = S.day;
     }
     toast('⚡ Compiling & starting time-lapse simulation...');
-    await runScenario({ watchTimeLapse: true, eventDay: ev.day });
+    await runScenario({ watchTimeLapse: true, eventDay: ev.day, eventTitle: ev.title });
   }
 
   async function runScenario(opts) {
@@ -1892,7 +2142,7 @@
           await loadRun(ov.name);
           toast('Loaded scenario run: ' + ov.name);
 
-          const shouldWatch = opts.watchTimeLapse !== false;
+            const shouldWatch = opts.watchTimeLapse !== false;
           if (shouldWatch) {
             setTab('now');
             S.mode = 'term';
@@ -1904,7 +2154,11 @@
             if (speedSel) speedSel.value = 3;
             const chkPause = $('#chkPause');
             if (chkPause) chkPause.checked = false;
-            const targetDay = opts.eventDay != null ? Math.max(0, opts.eventDay - 2) : 0;
+            const chkSkip = $('#chkSkip');
+            if (chkSkip) chkSkip.checked = false; // Do not skip days in scenario time-lapse!
+
+            const startDay = (S.meta.run && S.meta.run.start_day != null && S.meta.run.start_day >= 151) ? S.meta.run.start_day : 151;
+            const targetDay = opts.eventDay != null ? Math.max(startDay, opts.eventDay - 2) : startDay;
             await goTo(targetDay, S.snapMinute || 630);
             play();
             showScenarioBanner(ov.name, opts.eventTitle || 'Custom Scenario', targetDay, opts.eventDay);
@@ -2071,7 +2325,12 @@
     const cv = $('#map'), tip = $('#tip');
     cv.onclick = e => {
       const r = cv.getBoundingClientRect(), hit = pickAt(e.clientX - r.left, e.clientY - r.top);
-      S.sel = hit; S.dirty = true; if (hit) setTab('inspect'); else renderPanels(true);
+      S.sel = hit;
+      if (!hit) {
+        S.activeFlag = null;
+      }
+      S.dirty = true;
+      if (hit) setTab('inspect'); else renderPanels(true);
     };
     cv.onmousemove = e => {
       const r = cv.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top, hit = S.meta && pickAt(mx, my);
@@ -2102,11 +2361,26 @@
       else if (act === 'filter') { S.flt[a.dataset.k] = S.flt[a.dataset.k] === false; renderFlags(); }
       else if (act === 'approve') { S.approvals[a.dataset.id] = a.dataset.v === '1'; renderFlags(); }
       else if (act === 'bTab') { S.form.bTab = a.dataset.tab; renderRun(); }
+      else if (act === 'setCalMonth') {
+        S.form.calMonth = a.dataset.month;
+        renderRun();
+      }
+      else if (act === 'pickCalDate') {
+        S.form.curEvDate = a.dataset.iso;
+        S.form.curEvDay = +a.dataset.day;
+        renderRun();
+      }
+      else if (act === 'setHorizonDuration') {
+        S.form.evalDuration = +a.dataset.dur;
+        renderRun();
+      }
       else if (act === 'stepDay') {
-        const cur = clamp(S.form.curEvDay != null ? S.form.curEvDay : 14, 0, S.nDays - 1);
-        const next = clamp(cur + (+a.dataset.delta || 0), 0, S.nDays - 1);
+        const cur = S.form.curEvDay != null ? S.form.curEvDay : 155;
+        const next = Math.max(151, cur + (+a.dataset.delta || 0));
         S.form.curEvDay = next;
-        if (S.meta && S.meta.days && S.meta.days[next]) S.form.curEvDate = S.meta.days[next].date;
+        const dt = new Date(2026, 0, 1 + next);
+        S.form.curEvDate = dt.toISOString().slice(0, 10);
+        S.form.calMonth = S.form.curEvDate.slice(0, 7);
         renderRun();
       }
       else if (act === 'pickEvPreset') {
@@ -2117,9 +2391,11 @@
         renderRun();
       }
       else if (act === 'setEvDay') {
-        const d = clamp(+a.dataset.day, 0, S.nDays - 1);
+        const d = +a.dataset.day;
         S.form.curEvDay = d;
-        if (S.meta && S.meta.days && S.meta.days[d]) S.form.curEvDate = S.meta.days[d].date;
+        const dt = new Date(2026, 0, 1 + d);
+        S.form.curEvDate = dt.toISOString().slice(0, 10);
+        S.form.calMonth = S.form.curEvDate.slice(0, 7);
         renderRun();
       }
       else if (act === 'addAndRunTimeLapse') {
@@ -2151,43 +2427,85 @@
         const b = new Blob([JSON.stringify(buildOverview(), null, 2)], { type: 'application/json' }), l = document.createElement('a');
         l.href = URL.createObjectURL(b); l.download = (S.form.name || 'overview') + '.json'; l.click();
       }
+      else if (act === 'setNlDuration') {
+        S.form.evalDuration = +a.dataset.dur;
+        renderRun();
+      }
       else if (act === 'nlExample1') {
-        $('#nlPromptText').value = 'Starting on Day 7, there is a serious fight involving three students. On Day 15, one school bus breaks down. Compare this scenario with the saved baseline.';
+        const val = 'On Day 153 (June 3), water cooler breakdown in corridor_1 during summer maintenance. Increase summer maintenance budget by ₹500,000.';
+        S.form.nlPrompt = val;
+        if ($('#nlPromptText')) $('#nlPromptText').value = val;
       }
       else if (act === 'nlExample2') {
-        $('#nlPromptText').value = 'On Day 30, teacher Ritu Kapoor resigns. From Day 60, hire 2 additional teachers and announce a 10% fee increase.';
+        const val = 'On school reopening Day 181 (July 1), Route 3 bus breaks down with 20-minute delay. Station 2 backup buses.';
+        S.form.nlPrompt = val;
+        if ($('#nlPromptText')) $('#nlPromptText').value = val;
+      }
+      else if (act === 'nlExample3') {
+        const val = 'From school reopening Day 181 (July 1), hire 2 additional teachers and approve a 10% tuition fee increase for academic expansion.';
+        S.form.nlPrompt = val;
+        if ($('#nlPromptText')) $('#nlPromptText').value = val;
+      }
+      else if (act === 'nlExample4') {
+        const val = 'On Day 185 (first week of July), a serious physical altercation occurs in the playground involving STU-0012, STU-0015, STU-0021.';
+        S.form.nlPrompt = val;
+        if ($('#nlPromptText')) $('#nlPromptText').value = val;
       }
       else if (act === 'parsePrompt') {
-        const txt = $('#nlPromptText').value;
+        const txt = $('#nlPromptText') ? $('#nlPromptText').value : S.form.nlPrompt;
+        S.form.nlPrompt = txt;
         S.form.nlStatus = 'Parsing scenario prompt…'; renderRun();
         try {
-          const res = await fetch('api/parse_prompt', { method: 'POST', body: JSON.stringify({ prompt: txt }) });
+          const res = await fetch('api/parse_prompt', {
+            method: 'POST',
+            body: JSON.stringify({
+              prompt: txt,
+              start_day: 151,
+              duration_days: +S.form.evalDuration || 30,
+              reopening_date: '2026-07-01'
+            })
+          });
           const j = await res.json();
           if (j.ok && j.parsed) {
             S.form.nlParsed = j.parsed;
             S.form.nlStatus = 'Parsed successfully with ' + (j.parsed.parser_used || 'engine');
           } else {
-            S.form.nlStatus = 'Could not parse prompt';
+            S.form.nlStatus = 'Could not parse prompt: ' + (j.error || (j.parsed && j.parsed.error) || 'schema rejection');
           }
         } catch (e) {
           S.form.nlStatus = 'Server offline; parsed using local rules.';
         }
         renderRun();
       }
-      else if (act === 'applyNL') {
+      else if (act === 'applyNL' || act === 'applyAndSimulateNL') {
         const p = S.form.nlParsed;
         if (p) {
           if (p.name) S.form.name = p.name;
+          S.form.extendPostBaseline = true;
+          S.form.ckpt = 'CKPT-DAY-150-TERM-CLOSE';
           if (p.events && p.events.length) S.form.add = S.form.add.concat(p.events);
           if (p.policy_overrides) {
             const po = p.policy_overrides;
             if (po.additional_teachers != null) S.form.teachers = po.additional_teachers;
             if (po.tuition_fee_delta_pct != null) S.form.fee = po.tuition_fee_delta_pct;
             if (po.fee_change_approved != null) S.form.feeOk = po.fee_change_approved;
+            if (po.bus_backup_capacity != null) S.form.bus = po.bus_backup_capacity;
+            if (po.summer_maintenance_budget_inr != null) S.form.maintBudget = po.summer_maintenance_budget_inr;
+            if (po.attendance_support_budget_inr_per_month != null) S.form.support = po.attendance_support_budget_inr_per_month;
+            if (po.transport_fee_delta_pct != null) S.form.transportFee = po.transport_fee_delta_pct;
           }
-          toast('Applied natural language scenario configuration');
-          S.form.bTab = 'events';
-          renderRun();
+          if (act === 'applyAndSimulateNL') {
+            toast('⚡ Simulating altered scenario from Day 151...');
+            const earliestDay = S.form.add.reduce((min, e) => {
+              const idx = (S.meta.days || []).findIndex(d => d.date === e.date);
+              return idx >= 0 ? Math.min(min, idx) : min;
+            }, 151);
+            await runScenario({ watchTimeLapse: true, eventDay: earliestDay });
+          } else {
+            toast('Applied scenario configuration (Day 151+)');
+            S.form.bTab = 'events';
+            renderRun();
+          }
         }
       }
       else if (act === 'loadRunId') {
@@ -2215,17 +2533,16 @@
           toast('Moved to Checkpoint: ' + ck.title);
         }
       }
-      if (e.target.id === 'evDayNum') {
-        const d = clamp((+e.target.value || 1) - 1, 0, S.nDays - 1);
-        S.form.curEvDay = d;
-        if (S.meta && S.meta.days && S.meta.days[d]) S.form.curEvDate = S.meta.days[d].date;
-        renderRun();
-      }
-      if (e.target.id === 'evDate') {
-        S.form.curEvDate = e.target.value;
-        const found = S.meta.days.findIndex(d => d.date === e.target.value);
-        if (found >= 0) S.form.curEvDay = found;
-        renderRun();
+      if (e.target.id === 'evDate' || e.target.id === 'evDateInput') {
+        const iso = e.target.value;
+        if (iso) {
+          S.form.curEvDate = iso;
+          const d0 = new Date(2026, 0, 1);
+          const cur = new Date(iso + 'T00:00:00');
+          S.form.curEvDay = Math.max(0, Math.round((cur - d0) / 86400000));
+          S.form.calMonth = iso.slice(0, 7);
+          renderRun();
+        }
       }
       if (e.target.id === 'evSev') {
         S.form.curEvSev = e.target.value;
