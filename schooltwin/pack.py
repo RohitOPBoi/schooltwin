@@ -28,6 +28,15 @@ class Packer:
         self.hist_mood, self.hist_att = {}, {}
         self.n_days = max(engine.ov.get("end_day", 150) + 1, len(engine.story.days))
         self.zi = engine.world.index
+        if engine.ov.get("start_day", 0) >= 151:
+            base_hist_path = self.dir.parent / "story_baseline" / "history.json"
+            if base_hist_path.exists():
+                try:
+                    b_hist = json.loads(base_hist_path.read_text(encoding="utf-8"))
+                    self.hist_mood = {int(k): list(v) for k, v in b_hist.get("mood", {}).items()}
+                    self.hist_att = {int(k): list(v) for k, v in b_hist.get("att", {}).items()}
+                except Exception:
+                    pass
 
     def _hist(self, res, ids_in_roll):
         m = res["_micro"]["mood_end"]

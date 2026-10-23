@@ -54,8 +54,10 @@ def lever(ov, i, name):
 
 def mode_at(ov, i):
     """anchor or generate on day i. A patch may switch a run from anchor to generate from some day on."""
-    m = ov["mode"]
-    for p in sorted(ov["patches"], key=lambda p: p["from_day"]):
-        if p["from_day"] <= i and "mode" in p:
+    if i >= 151:
+        return "generate"
+    m = ov.get("mode", "anchor")
+    for p in sorted(ov.get("patches", []), key=lambda p: p.get("from_day", 0)):
+        if p.get("from_day", 0) <= i and "mode" in p:
             m = p["mode"]
     return m

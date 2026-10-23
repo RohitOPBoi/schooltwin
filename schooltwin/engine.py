@@ -131,6 +131,8 @@ class Engine:
 
         snapshot_path = self.ov.get("snapshot_path")
         ckpt_id = self.ov.get("checkpoint_id") or branch_cfg.get("checkpoint_id")
+        if not snapshot_path and not ckpt_id and self.ov.get("start_day", 0) >= 151:
+            ckpt_id = "CKPT-DAY-150-TERM-CLOSE"
         if not snapshot_path and ckpt_id:
             from .snapshots import SNAPSHOTS_DIR
             cand = SNAPSHOTS_DIR / f"{ckpt_id}.json.gz"
@@ -344,10 +346,10 @@ class Engine:
     def _plan_students(self, day, row, roll, rng, anchor, K):
         g, st = self.bh["generate"], self.story
         riders = [a for a in self.students if a.id in roll and a.route]
-        if anchor:
+        if anchor and isinstance(row.get("student_enrollment"), dict) and "present_student_ids" in row["student_enrollment"]:
             ids = set(row["student_enrollment"]["present_student_ids"])
             present = {a.id for a in self.students if a.sid in ids}
-            n_late = row["student_enrollment"]["late_arrivals"]
+            n_late = row["student_enrollment"].get("late_arrivals", 0)
         else:
             fee = (self.lever(day["i"], "tuition_fee_delta_pct") or 0) / 100.0 if self.lever(day["i"], "fee_change_approved") else 0.0
             support = (self.lever(day["i"], "attendance_support_budget_inr_per_month") or 0) / 300000.0
