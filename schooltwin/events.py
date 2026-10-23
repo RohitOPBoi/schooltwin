@@ -47,6 +47,18 @@ ALIASES = {
     "strike": "collective_strike",
     "staff_strike": "collective_strike",
     "teacher_strike": "collective_strike",
+    "lock_failure": "door_lock_failure",
+    "door_failure": "door_frame_damage",
+    "furniture_broken": "broken_classroom_furniture",
+    "power_outage": "campus_power_outage",
+    "water_disruption": "water_service_disruption",
+    "urgent_cover": "urgent_cover_requirement",
+    "maintenance_overload": "maintenance_team_overload",
+    "it_bottleneck": "it_support_bottleneck",
+    "student_complaint": "student_group_complaint",
+    "backup_bus": "backup_vehicle_requirement",
+    "schedule_conflict": "timetable_conflict",
+    "unplanned_expense": "unplanned_repair_expense",
 }
 
 TITLES = {
@@ -74,6 +86,19 @@ TITLES = {
     "additional_teacher_hired": "Additional faculty member onboarded",
     "water_cooler_breakdown": "Water cooler unit breakdown",
     "collective_strike": "Staff collective strike action",
+    "door_lock_failure": "Classroom / facility door lock failure",
+    "door_frame_damage": "Door frame structural damage",
+    "broken_classroom_furniture": "Classroom furniture damage",
+    "room_closure": "Precautionary facility room closure",
+    "campus_power_outage": "Campus-wide electrical outage",
+    "water_service_disruption": "Municipal water service disruption",
+    "urgent_cover_requirement": "Urgent same-day cover requirement",
+    "maintenance_team_overload": "Maintenance team ticket overload",
+    "it_support_bottleneck": "IT infrastructure bottleneck",
+    "student_group_complaint": "Student council / cohort complaint",
+    "backup_vehicle_requirement": "Emergency backup bus requirement",
+    "timetable_conflict": "Room and timetable scheduling conflict",
+    "unplanned_repair_expense": "Unplanned campus repair expenditure",
 }
 
 
@@ -273,4 +298,103 @@ def effects_for(ev, sig_lib, rng):
             Effect("visitors", {"n": 30, "zone": "admin_lobby", "from": 540, "to": 750}),
         ]
         inc(t, f"Staff collective strike underway at {loc}; classes evacuated to grounds and supervision protocols initiated.", loc, 520)
+    elif t == "door_lock_failure":
+        loc = p.get("location") or ev.get("location") or "library"
+        fx += [
+            Effect("staff_visit", {"roles": ["maintenance_gardener", "security"], "zone": loc, "from": 540, "to": 630}),
+            Effect("finance", {"account": "maintenance", "amount": 2400, "desc": "Lock cylinder & latch replacement"}),
+        ]
+        inc(t, f"Door lock cylinder seized in {loc}; staff dispatched for latch replacement.", loc, 540)
+    elif t == "door_frame_damage":
+        loc = p.get("location") or ev.get("location") or "stair_A"
+        fx += [
+            Effect("staff_visit", {"roles": ["maintenance_gardener"], "zone": loc, "from": 550, "to": 660}),
+            Effect("finance", {"account": "maintenance", "amount": 4500, "desc": "Hinge plate remounting and welding"}),
+        ]
+        inc(t, f"Door frame hinge mount detached in {loc}; zone secured for repair.", loc, 550)
+    elif t == "broken_classroom_furniture":
+        loc = p.get("location") or ev.get("location") or "class_9a"
+        fx += [
+            Effect("staff_visit", {"roles": ["maintenance_gardener"], "zone": loc, "from": 610, "to": 670}),
+            Effect("finance", {"account": "maintenance", "amount": 3000, "desc": "Desk bench replacement assembly"}),
+            Effect("mood", {"room": loc, "delta": -4, "minute": 610}),
+        ]
+        inc(t, f"Bench seating fractured during changeover in {loc}; spare brought in.", loc, 610)
+    elif t == "room_closure":
+        loc = p.get("location") or ev.get("location") or "comp_lab_2"
+        fx += [
+            Effect("close_zone", {"zone": loc, "from": 560}),
+            Effect("relocate", {"room": loc, "from": 560, "to": "library"}),
+            Effect("staff_visit", {"roles": ["maintenance_gardener"], "zone": loc, "from": 560, "to": 720}),
+        ]
+        inc(t, f"Precautionary closure of {loc} for ceiling inspection; class relocated.", loc, 560)
+    elif t == "campus_power_outage":
+        loc = p.get("location") or ev.get("location") or "admin_lobby"
+        fx += [
+            Effect("close_zone", {"zone": "comp_lab_1", "from": 540}),
+            Effect("close_zone", {"zone": "comp_lab_2", "from": 540}),
+            Effect("staff_visit", {"roles": ["IT", "maintenance_gardener"], "zone": "admin_lobby", "from": 540, "to": 780}),
+            Effect("finance", {"account": "utilities", "amount": 8500, "desc": "Diesel generator backup run and grid reset"}),
+            Effect("mood", {"all": "students", "delta": -8, "minute": 550}),
+        ]
+        inc(t, "Main incoming line tripped; computer labs secured, diesel generator engaged.", loc, 540)
+    elif t == "water_service_disruption":
+        loc = p.get("location") or ev.get("location") or "wash_1"
+        fx += [
+            Effect("queue_extra", {"zone": "wash_0", "n": 25, "from": 580, "to": 750}),
+            Effect("staff_visit", {"roles": ["housekeeping", "maintenance_gardener"], "zone": loc, "from": 540, "to": 720}),
+            Effect("finance", {"account": "sanitation_and_water", "amount": 14000, "desc": "Emergency water tanker and valve repair"}),
+        ]
+        inc(t, f"Municipal water pressure fault at {loc}; auxiliary tank activated.", loc, 540)
+    elif t == "urgent_cover_requirement":
+        loc = p.get("location") or ev.get("location") or "staffroom"
+        fx += [
+            Effect("teacher_absent", {"count": 1, "days": 1}),
+            Effect("mood", {"all": "teachers", "delta": -4, "minute": 520}),
+            Effect("staff_visit", {"roles": ["teacher"], "zone": "staffroom", "from": 500, "to": 540}),
+        ]
+        inc(t, "Sudden morning teacher illness triggers emergency cover reassignment.", loc, 510)
+    elif t == "maintenance_team_overload":
+        loc = p.get("location") or ev.get("location") or "pump_house"
+        fx += [
+            Effect("staff_visit", {"roles": ["maintenance_gardener"], "zone": loc, "from": 540, "to": 800}),
+            Effect("finance", {"account": "maintenance", "amount": 4500, "desc": "External emergency contractor callout"}),
+        ]
+        inc(t, "Concurrent maintenance work orders exceed staff capacity; external callout required.", loc, 550)
+    elif t == "it_support_bottleneck":
+        loc = p.get("location") or ev.get("location") or "comp_lab_1"
+        fx += [
+            Effect("staff_visit", {"roles": ["IT"], "zone": loc, "from": 540, "to": 760}),
+            Effect("mood", {"room": "C10A", "delta": -3, "minute": 580}),
+        ]
+        inc(t, f"Local network switch reset required in {loc}; delays digital lesson logging.", loc, 540)
+    elif t == "student_group_complaint":
+        loc = p.get("location") or ev.get("location") or "admin_lobby"
+        fx += [
+            Effect("visitors", {"n": 16, "zone": loc, "from": 620, "to": 720}),
+            Effect("parent_queries", {"n": 14, "topics": ["exam schedule", "facility ventilation"]}),
+            Effect("staff_visit", {"roles": ["principal"], "zone": loc, "from": 630, "to": 690}),
+        ]
+        inc(t, f"Cohort delegation submits petition regarding timetable spacing at {loc}.", loc, 620)
+    elif t == "backup_vehicle_requirement":
+        loc = p.get("location") or ev.get("location") or "bus_bay"
+        fx += [
+            Effect("late_riders", {"n": 35, "routes": 1, "delay": [12, 28]}),
+            Effect("finance", {"account": "transport_operations", "amount": 5000, "desc": "Reserve bus deployment charter fee"}),
+        ]
+        inc(t, "Bus mechanical warning light prompts reserve vehicle dispatch.", loc, 490)
+    elif t == "timetable_conflict":
+        loc = p.get("location") or ev.get("location") or "staffroom"
+        fx += [
+            Effect("mood", {"all": "teachers", "delta": -3, "minute": 515}),
+            Effect("staff_visit", {"roles": ["teacher"], "zone": "staffroom", "from": 500, "to": 540}),
+        ]
+        inc(t, "Overlapping lab booking resolved by academic coordinator during morning briefing.", loc, 515)
+    elif t == "unplanned_repair_expense":
+        loc = p.get("location") or ev.get("location") or "admin_lobby"
+        amt = int(p.get("amount", 12500))
+        fx += [
+            Effect("finance", {"account": "maintenance", "amount": amt, "desc": "Emergency drainage clearance & masonry repair"}),
+        ]
+        inc(t, f"Emergency maintenance repair invoice of INR {amt:,} approved.", loc, 600)
     return fx

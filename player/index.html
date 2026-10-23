@@ -52,6 +52,7 @@
     <!-- Top Action Toolbar -->
     <div class="header-right">
       <div class="entry-actions">
+        <button id="btnExitComparison" class="btn-entry btn-exit-cmp" style="display:none" title="Exit comparison and return to baseline playback">⏮ Exit Comparison</button>
         <button id="btnReplayBaseline" class="btn-entry primary" title="Replay the pre-generated 151-day historical baseline">⏮ Replay Baseline</button>
         <button id="btnNewScenario" class="btn-entry" title="Open the Scenario Builder to customize events and policies">+ Create Scenario</button>
       </div>
@@ -98,6 +99,38 @@
       </div>
 
       <canvas id="map"></canvas>
+
+      <!-- Synchronized Dual Comparison Canvas Viewport -->
+      <div id="mapDualContainer" class="map-dual-container" style="display:none">
+        <div class="map-half map-half-ctrl">
+          <div class="map-half-header">
+            <div class="map-half-title">
+              <span class="badge-branch badge-branch-ctrl">Simulation A · Control</span>
+              <span id="ctrlRunTitle" class="map-run-sub">No Custom Event · Shared Background</span>
+            </div>
+            <div class="map-half-metrics" id="ctrlQuickMetrics">
+              <span class="qmetric"><small>Att:</small> <b id="ctrlAttVal">—</b></span>
+              <span class="qmetric"><small>Mood:</small> <b id="ctrlMoodVal">—</b></span>
+              <span class="qmetric"><small>Incidents:</small> <b id="ctrlIncVal">0</b></span>
+            </div>
+          </div>
+          <canvas id="mapCtrl"></canvas>
+        </div>
+        <div class="map-half map-half-trt">
+          <div class="map-half-header">
+            <div class="map-half-title">
+              <span class="badge-branch badge-branch-trt">Simulation B · Treatment</span>
+              <span id="trtRunTitle" class="map-run-sub">With Custom Event</span>
+            </div>
+            <div class="map-half-metrics" id="trtQuickMetrics">
+              <span class="qmetric"><small>Att:</small> <b id="trtAttVal">—</b></span>
+              <span class="qmetric"><small>Mood:</small> <b id="trtMoodVal">—</b></span>
+              <span class="qmetric"><small>Incidents:</small> <b id="trtIncVal">0</b></span>
+            </div>
+          </div>
+          <canvas id="mapTrt"></canvas>
+        </div>
+      </div>
       <div id="banner"></div>
 
       <!-- Active Scenario Banner -->

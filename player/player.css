@@ -1984,3 +1984,155 @@ body.reduced-motion *, body.motion-off * {
   animation: none !important;
   transition: none !important;
 }
+
+/* ==========================================================================
+   Paired Simulation Comparison Workspace Styles
+   ========================================================================== */
+.map-dual-container {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  gap: 10px;
+  padding: 10px;
+  box-sizing: border-box;
+  background: var(--bg-base);
+}
+
+.map-half {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: var(--shadow-card);
+  transition: border-color var(--transition-fast);
+}
+
+.map-half:hover {
+  border-color: var(--border-active);
+}
+
+.map-half-ctrl {
+  border-top: 3px solid var(--control-sky);
+}
+
+.map-half-trt {
+  border-top: 3px solid var(--accent);
+}
+
+.map-half-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg-surface-elevated);
+  border-bottom: 1px solid var(--border-subtle);
+  z-index: 10;
+}
+
+.map-half-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.badge-branch {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.badge-branch-ctrl {
+  background: var(--control-sky-soft);
+  color: var(--control-sky);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+}
+
+.badge-branch-trt {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.map-run-sub {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.map-half-metrics {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.qmetric {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  background: var(--bg-subtle);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.qmetric b {
+  color: var(--text-primary);
+}
+
+.map-half canvas {
+  flex: 1;
+  width: 100%;
+  height: calc(100% - 38px);
+  display: block;
+}
+
+.btn-exit-cmp {
+  background: var(--bg-card);
+  border: 1px solid var(--border-active);
+  color: var(--text-primary);
+}
+
+.btn-exit-cmp:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--accent);
+}
+
+.profile-selector-box {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.profile-card-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.profile-badge-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.profile-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+}
+
