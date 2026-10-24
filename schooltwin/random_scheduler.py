@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional, Set
 import numpy as np
 
 from .events import make_event
-from .schema import get_valid_zones
+from .schema import EVENT_CATALOG, get_valid_zones
 
 # ----------------------------------------------------------------------
 # Profile Definitions
@@ -241,10 +241,14 @@ def generate_paired_background_schedule(
                 continue
 
             # Select event candidate respecting openness constraints
-            # Closed days generally only accept facility/utility/maintenance faults
+            # Closed days generally only accept facility/utility/maintenance faults —
+            # and only those the schema catalog confirms do not require students.
             eligible_events = [
                 c for c in candidate_catalog
-                if (is_open or c["category"] in ("facility", "utilities", "finance_environment"))
+                if (is_open or (
+                    c["category"] in ("facility", "utilities", "finance_environment")
+                    and not EVENT_CATALOG.get(c["type"], {}).get("requires_students", True)
+                ))
                 and (d_idx - type_last_day.get(c["type"], -999) >= cooldown_days)
             ]
             if not eligible_events:

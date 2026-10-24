@@ -35,6 +35,25 @@ STATE = {"running": False, "day": 0, "total": 0, "error": None, "name": None}
 LOCK = threading.Lock()
 GZ = {}
 
+# /api/scenario_timing builds an ExtensionCalendar per request (~100 ms); the
+# calendar is immutable, so one shared instance serves every request.
+_EXT_CAL = None
+_EXT_CAL_LOCK = threading.Lock()
+
+
+def _extension_calendar():
+    global _EXT_CAL
+    with _EXT_CAL_LOCK:
+        if _EXT_CAL is None:
+            from schooltwin.extension_calendar import ExtensionCalendar
+            _EXT_CAL = ExtensionCalendar()
+        return _EXT_CAL
+
+
+def _clean_run_id(raw):
+    """Strips everything except safe run-id characters (path-traversal guard)."""
+    return re.sub(r"[^A-Za-z0-9_-]", "", str(raw or ""))
+
 
 def run_job(ov, redact):
     from schooltwin.baseline_manifest import assert_baseline_intact, check_write_allowed
@@ -119,7 +138,12 @@ class H(BaseHTTPRequestHandler):
 
         if u.path == "/api/flags":
             run = re.sub(r"[^A-Za-z0-9_-]", "", parse_qs(u.query).get("run", [""])[0])
-            f = ROOT / "pack" / run / "user_flags.json"
+            # Server-saved baseline flags live in pack/user_flags_baseline.json
+            # (same alias the static route serves); read them back from there.
+            if run == "story_baseline":
+                f = ROOT / "pack" / "user_flags_baseline.json"
+            else:
+                f = ROOT / "pack" / run / "user_flags.json"
             return self._json(200, json.loads(f.read_text(encoding="utf-8")) if f.exists() else [])
 
         if u.path == "/api/checkpoints":
@@ -151,17 +175,41 @@ class H(BaseHTTPRequestHandler):
                 duration = 30
             from schooltwin.schema import calculate_scenario_start_from_baseline
             timing = calculate_scenario_start_from_baseline(parent, duration)
+            # Open-day truth from the engine's extension calendar (single source);
+            # the player uses this to warn about closed-day student events.
+            try:
+                cal = _extension_calendar()
+                open_info = []
+                for d in range(timing["start_day"], timing["end_day"] + 1):
+                    info = cal.info(d)
+                    open_info.append({"day": d, "date": info["date"], "open": bool(info["open"]), "type": info["type"]})
+                timing["day_calendar"] = open_info
+                timing["open_days"] = sum(1 for x in open_info if x["open"])
+                first_open = next((x for x in open_info if x["open"]), None)
+                if first_open:
+                    timing["first_open_day"] = first_open["day"]
+                    timing["first_open_date"] = first_open["date"]
+            except Exception:
+                pass
             return self._json(200, {"ok": True, "timing": timing})
 
         if u.path == "/api/compare":
             params = parse_qs(u.query)
-            base_id = params.get("base", ["story_baseline"])[0]
-            scen_id = params.get("scen", [""])[0]
+            base_id = _clean_run_id(params.get("base", ["story_baseline"])[0])
+            scen_id = _clean_run_id(params.get("scen", [""])[0])
             if not scen_id:
                 return self._json(400, {"ok": False, "error": "Query param 'scen' is required"})
+            window = None
+            try:
+                from_day = params.get("from_day", [None])[0]
+                to_day = params.get("to_day", [None])[0]
+                if from_day is not None:
+                    window = (int(from_day), int(to_day) if to_day is not None else 10**6)
+            except (TypeError, ValueError):
+                window = None
             try:
                 from schooltwin.compare import compare_runs
-                report = compare_runs(base_id, scen_id)
+                report = compare_runs(base_id, scen_id, window=window)
                 return self._json(200, {"ok": True, "report": report})
             except Exception as e:
                 return self._json(400, {"ok": False, "error": str(e)})
@@ -176,12 +224,16 @@ class H(BaseHTTPRequestHandler):
 
         if u.path == "/api/pair/meta":
             params = parse_qs(u.query)
-            run_id = params.get("run", [""])[0]
+            run_id = _clean_run_id(params.get("run", [""])[0])
             if not run_id:
                 return self._json(400, {"ok": False, "error": "Query param 'run' is required"})
             pair_f = ROOT / "pack" / run_id / "pair_meta.json"
             if pair_f.is_file():
-                return self._json(200, {"ok": True, "pair_meta": json.loads(pair_f.read_text(encoding="utf-8"))})
+                try:
+                    pair_meta = json.loads(pair_f.read_text(encoding="utf-8"))
+                except ValueError:
+                    return self._json(500, {"ok": False, "error": f"pair_meta.json for '{run_id}' is not valid JSON"})
+                return self._json(200, {"ok": True, "pair_meta": pair_meta})
             return self._json(404, {"ok": False, "error": "pair_meta.json not found for run"})
 
         # Static file delivery
@@ -229,6 +281,8 @@ class H(BaseHTTPRequestHandler):
             body = json.loads(self.rfile.read(n) or b"{}")
         except ValueError:
             return self._json(400, {"ok": False, "error": "bad json"})
+        if not isinstance(body, dict):
+            return self._json(400, {"ok": False, "error": "request body must be a JSON object"})
 
         if self.path == "/api/run":
             from schooltwin.overview import load
@@ -250,6 +304,20 @@ class H(BaseHTTPRequestHandler):
             custom_event = body.get("custom_event")
             if not custom_event:
                 return self._json(400, {"ok": False, "error": "custom_event is required"})
+            # Validate synchronously so the player gets an immediate, actionable
+            # error (e.g. student event on a closed day) instead of a silently
+            # near-identical pair.
+            from schooltwin.schema import validate_paired_custom_event
+            try:
+                start_day_v = int(body.get("start_day", 151))
+                duration_v = max(1, int(body.get("duration_days", 30)))
+                v_ok, v_errors, v_warnings = validate_paired_custom_event(
+                    custom_event, start_day=start_day_v, end_day=start_day_v + duration_v - 1
+                )
+            except Exception as ve:
+                return self._json(400, {"ok": False, "error": f"validation failed: {ve}"})
+            if not v_ok:
+                return self._json(400, {"ok": False, "error": " | ".join(v_errors), "errors": v_errors})
             with LOCK:
                 if PAIR_STATE["running"]:
                     return self._json(409, {"ok": False, "error": "a paired simulation is already running"})
@@ -261,12 +329,15 @@ class H(BaseHTTPRequestHandler):
             run = re.sub(r"[^A-Za-z0-9_-]", "", str(body.get("run", "")))
             if not run or not (ROOT / "pack" / run).is_dir():
                 return self._json(404, {"ok": False})
+            flag = body.get("flag")
+            if not isinstance(flag, dict) or not flag.get("id"):
+                return self._json(400, {"ok": False, "error": "flag must be an object with an 'id'"})
             if run == "story_baseline":
                 f = ROOT / "pack" / "user_flags_baseline.json"
             else:
                 f = ROOT / "pack" / run / "user_flags.json"
             cur = json.loads(f.read_text(encoding="utf-8")) if f.exists() else []
-            cur = [x for x in cur if x.get("id") != body["flag"].get("id")] + [body["flag"]]
+            cur = [x for x in cur if x.get("id") != flag.get("id")] + [flag]
             f.write_text(json.dumps(cur), encoding="utf-8")
             return self._json(200, {"ok": True})
 
