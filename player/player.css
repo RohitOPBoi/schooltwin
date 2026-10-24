@@ -1,191 +1,198 @@
 /* ==========================================================================
-   SchoolTwin Operational Digital Twin Cockpit — Design System v6.0
-   Derived from Taste Analysis & Anti-Slop Frontend Directives
-   Aesthetic: Operational Digital Twin Cockpit
-   Surfaces: #090b10 base, #0f131c panels, #151b26 cards, #1c2436 hover
-   Primary Accent: Electric Emerald (#10b981 / #059669)
-   Typography: Geist & Geist Mono with font-variant-numeric: tabular-nums
-   Hardware-accelerated micro-motion, smooth scroll animations, glowing beacons
+   SchoolTwin Design System v8.0 "Ivory Editorial / Ink Midnight"
+   (2026-10-25 reconstruction; see docs/engineering/ ADR-003)
+   Default: warm ivory surfaces, deep-ink navigation chrome, muted cobalt
+   accent. Alternate (dark attribute): ink midnight with light cobalt.
+   Token NAMES are stable across themes; tests/test_design_tokens.py enforces
+   AA contrast and JS canvas parity against whatever values live here.
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600;700&family=Geist:wght@300;400;500;600;700;800&display=swap');
 
-:root, [data-theme="dark"] {
-  /* Surface Tokens (Calibrated Dark Slate) */
-  --bg-base: #090b10;
-  --bg-surface: #0f131c;
-  --bg-surface-elevated: #131924;
-  --bg-card: #151b26;
-  --bg-card-hover: #1c2436;
-  --bg-card-active: #222d42;
-  --bg-elevated: #182030;
-  --bg-input: #0c1017;
-  --bg-subtle: rgba(255, 255, 255, 0.04);
-  --bg-glass: rgba(15, 19, 28, 0.85);
 
-  /* Typography Colors */
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --text-disabled: #475569;
 
-  /* Borders & Dividers */
-  --border-subtle: rgba(255, 255, 255, 0.07);
-  --border-default: #1e2638;
-  --border-active: rgba(255, 255, 255, 0.24);
-  --border-focus: #10b981;
-  --border-glass: rgba(255, 255, 255, 0.1);
 
-  /* Primary Accent: Electric Emerald */
-  --accent: #10b981;
-  --accent-hover: #059669;
-  --accent-active: #047857;
-  --accent-soft: rgba(16, 185, 129, 0.14);
-  --accent-glow: rgba(16, 185, 129, 0.35);
-  --accent-glow-strong: rgba(16, 185, 129, 0.65);
+:root, [data-theme="light"] {
+  --bg-base: #F4F2EB;
+  --bg-surface: #FBFAF6;
+  --bg-surface-elevated: #F7F5EE;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #F3F1E9;
+  --bg-card-active: #ECE9DE;
+  --bg-elevated: #F7F5EE;
+  --bg-input: #FFFFFF;
+  --bg-subtle: rgba(30, 38, 52, 0.045);
+  --bg-glass: rgba(251, 250, 246, 0.92);
+  --veil: rgba(246, 244, 237, 0.95);
 
-  /* Semantic Incident Palette */
-  --origin-vermilion: #ef4444;
-  --origin-soft: rgba(239, 68, 68, 0.16);
-  --origin-glow: rgba(239, 68, 68, 0.4);
-  --affected-amber: #f59e0b;
-  --affected-soft: rgba(245, 158, 11, 0.14);
-  --secondary-pale-amber: #fbbf24;
-  --secondary-soft: rgba(251, 191, 36, 0.08);
-  --response-teal: #14b8a6;
-  --response-soft: rgba(20, 184, 166, 0.15);
+  --nav-bg: #1B2534;
+  --nav-bg-2: #26324A;
+  --nav-text: #EDF1F7;
+  --nav-muted: #A9B4C6;
+  --nav-card: #2C3850;
+  --nav-card-hover: #364362;
+  --nav-border: rgba(237, 241, 247, 0.14);
 
-  /* Run Timeline Segmentation */
-  --baseline-slate: #64748b;
-  --scenario-violet: #8b5cf6;
-  --scenario-violet-soft: rgba(139, 92, 246, 0.16);
-  --control-sky: #38bdf8;
-  --control-sky-soft: rgba(56, 189, 248, 0.15);
+  --text-primary: #1E2634;
+  --text-secondary: #475265;
+  --text-muted: #5C6778;
+  --text-disabled: #9AA1AD;
 
-  /* Status Colors */
-  --status-ok: #10b981;
-  --status-warn: #f59e0b;
-  --status-bad: #ef4444;
+  --border-subtle: rgba(30, 38, 52, 0.10);
+  --border-default: #DCD7C9;
+  --border-active: rgba(30, 38, 52, 0.32);
+  --border-focus: #3A57AE;
+  --border-glass: rgba(30, 38, 52, 0.08);
 
-  /* Canvas Drawing Tokens */
-  --canvas-bg: #090b10;
-  --canvas-floor: #0b0f17;
-  --canvas-floor-border: #1e2638;
-  --canvas-zone-default: #121724;
-  --canvas-zone-border: rgba(255, 255, 255, 0.08);
-  --canvas-text: #94a3b8;
-  --canvas-playhead: #10b981;
+  --accent: #3A57AE;
+  --accent-hover: #32489A;
+  --accent-active: #2B4082;
+  --accent-soft: rgba(58, 87, 174, 0.12);
+  --accent-glow: rgba(58, 87, 174, 0.22);
+  --accent-glow-strong: rgba(58, 87, 174, 0.40);
 
-  /* Component Shadows & Glows */
-  --shadow-card: 0 4px 16px -2px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  --shadow-card-hover: 0 8px 24px -4px rgba(0, 0, 0, 0.65), 0 0 16px rgba(16, 185, 129, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  --shadow-button-glow: 0 0 16px rgba(16, 185, 129, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-  --shadow-button-glow-hover: 0 0 24px rgba(16, 185, 129, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  --origin-vermilion: #B04A2E;
+  --origin-soft: rgba(176, 74, 46, 0.12);
+  --origin-glow: rgba(176, 74, 46, 0.26);
+  --affected-amber: #8F6612;
+  --affected-soft: rgba(143, 102, 18, 0.12);
+  --secondary-pale-amber: #A9821D;
+  --secondary-soft: rgba(169, 130, 29, 0.10);
+  --response-teal: #17635E;
+  --response-soft: rgba(23, 99, 94, 0.12);
 
-  /* Backward Compatibility Aliases */
-  --ink: #f8fafc;
-  --ink-light: #94a3b8;
-  --mut: #64748b;
-  --line: #1e2638;
-  --card: #151b26;
-  --canvas: #0f131c;
-  --acc: #10b981;
-  --acc-soft: rgba(16, 185, 129, 0.14);
-  --ok: #10b981;
-  --warn: #f59e0b;
-  --bad: #ef4444;
+  --baseline-slate: #6E7A8C;
+  --scenario-violet: #6455B8;
+  --scenario-violet-soft: rgba(100, 85, 184, 0.12);
+  --control-sky: #4C7093;
+  --control-sky-soft: rgba(76, 112, 147, 0.12);
+
+  --status-ok: #2E7444;
+  --status-warn: #8F6612;
+  --status-bad: #A83B31;
+
+  --canvas-bg: #F4F2EB;
+  --canvas-floor: #FBFAF6;
+  --canvas-floor-border: #DCD7C9;
+  --canvas-zone-default: #FFFFFF;
+  --canvas-zone-border: rgba(30, 38, 52, 0.10);
+  --canvas-text: #475265;
+  --canvas-playhead: #3A57AE;
+
+  --shadow-card: 0 2px 10px rgba(30, 38, 52, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --shadow-card-hover: 0 8px 22px rgba(30, 38, 52, 0.13), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  --shadow-button-glow: 0 2px 10px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  --shadow-button-glow-hover: 0 4px 16px var(--accent-glow-strong), inset 0 1px 0 rgba(255, 255, 255, 0.32);
+
+  --ink: #1E2634;
+  --ink-light: #475265;
+  --mut: #626D7E;
+  --line: #DCD7C9;
+  --card: #FFFFFF;
+  --canvas: #FBFAF6;
+  --acc: #3A57AE;
+  --acc-soft: rgba(58, 87, 174, 0.12);
+  --ok: #2E7444;
+  --warn: #8F6612;
+  --bad: #A83B31;
 }
 
-[data-theme="light"] {
-  /* Surfaces & Base Palette */
-  --bg-base: #f8fafc;
-  --bg-surface: #ffffff;
-  --bg-surface-elevated: #f1f5f9;
-  --bg-card: #ffffff;
-  --bg-card-hover: #f1f5f9;
-  --bg-card-active: #e2e8f0;
-  --bg-elevated: #f1f5f9;
-  --bg-input: #ffffff;
-  --bg-subtle: rgba(0, 0, 0, 0.04);
-  --bg-glass: rgba(255, 255, 255, 0.9);
+[data-theme="dark"] {
+  /* Theme "Ink Midnight" — the alternate: deep ink surfaces, light cobalt accent.
+     A value swap of the ivory set — same names, contrast held (see token tests). */
+  --bg-base: #141B27;
+  --bg-surface: #18202D;
+  --bg-surface-elevated: #222C3C;
+  --bg-card: #1C2534;
+  --bg-card-hover: #242F40;
+  --bg-card-active: #262E3C;
+  --bg-elevated: #222C3C;
+  --bg-input: #101722;
+  --bg-subtle: rgba(237, 241, 247, 0.05);
+  --bg-glass: rgba(20, 27, 39, 0.90);
+  --veil: rgba(20, 27, 39, 0.95);
 
-  /* Typography Colors */
-  --text-primary: #0f172a;
-  --text-secondary: #334155;
-  --text-muted: #64748b;
-  --text-disabled: #94a3b8;
+  --nav-bg: #1D2939;
+  --nav-bg-2: #27354A;
+  --nav-text: #EDF1F7;
+  --nav-muted: #A9B4C6;
+  --nav-card: #273349;
+  --nav-card-hover: #313F58;
+  --nav-border: rgba(237, 241, 247, 0.12);
 
-  /* Borders & Dividers */
-  --border-subtle: rgba(0, 0, 0, 0.06);
-  --border-default: #cbd5e1;
-  --border-active: rgba(0, 0, 0, 0.25);
-  --border-focus: #059669;
-  --border-glass: rgba(0, 0, 0, 0.08);
+  --text-primary: #E9EDF4;
+  --text-secondary: #B6C0D0;
+  --text-muted: #8C97A9;
+  --text-disabled: #64708A;
 
-  /* Primary Interactive Accent: Crisp Emerald */
-  --accent: #059669;
-  --accent-hover: #047857;
-  --accent-active: #065f46;
-  --accent-soft: rgba(5, 150, 105, 0.12);
-  --accent-glow: rgba(5, 150, 105, 0.25);
-  --accent-glow-strong: rgba(5, 150, 105, 0.45);
+  --border-subtle: rgba(237, 241, 247, 0.09);
+  --border-default: #2A3547;
+  --border-active: rgba(237, 241, 247, 0.28);
+  --border-focus: #8CA2E8;
+  --border-glass: rgba(237, 241, 247, 0.08);
 
-  /* Semantic Incident Palette */
-  --origin-vermilion: #dc2626;
-  --origin-soft: rgba(220, 38, 38, 0.12);
-  --origin-glow: rgba(220, 38, 38, 0.25);
-  --affected-amber: #d97706;
-  --affected-soft: rgba(217, 119, 6, 0.12);
-  --secondary-pale-amber: #b45309;
-  --secondary-soft: rgba(180, 83, 9, 0.08);
-  --response-teal: #0d9488;
-  --response-soft: rgba(13, 148, 136, 0.12);
+  --accent: #8CA2E8;
+  --accent-hover: #9FB2EC;
+  --accent-active: #7E93E0;
+  --accent-soft: rgba(140, 162, 232, 0.16);
+  --accent-glow: rgba(140, 162, 232, 0.30);
+  --accent-glow-strong: rgba(140, 162, 232, 0.55);
 
-  /* Run Timeline Segmentation */
-  --baseline-slate: #475569;
-  --scenario-violet: #7c3aed;
-  --scenario-violet-soft: rgba(124, 58, 237, 0.12);
-  --control-sky: #0284c7;
-  --control-sky-soft: rgba(2, 132, 199, 0.12);
+  --origin-vermilion: #E07A5F;
+  --origin-soft: rgba(224, 122, 95, 0.14);
+  --origin-glow: rgba(224, 122, 95, 0.30);
+  --affected-amber: #D9A441;
+  --affected-soft: rgba(217, 164, 65, 0.13);
+  --secondary-pale-amber: #E8C87E;
+  --secondary-soft: rgba(232, 200, 126, 0.10);
+  --response-teal: #5BC4B4;
+  --response-soft: rgba(91, 196, 180, 0.13);
 
-  /* Status Colors */
-  --status-ok: #15803d;
-  --status-warn: #b45309;
-  --status-bad: #dc2626;
+  --baseline-slate: #97A3B6;
+  --scenario-violet: #AF9FEE;
+  --scenario-violet-soft: rgba(175, 159, 238, 0.15);
+  --control-sky: #8FB4D4;
+  --control-sky-soft: rgba(143, 180, 212, 0.14);
 
-  /* Canvas Drawing Tokens */
-  --canvas-bg: #f8fafc;
-  --canvas-floor: #ffffff;
-  --canvas-floor-border: #cbd5e1;
-  --canvas-zone-default: #f8fafc;
-  --canvas-zone-border: rgba(0, 0, 0, 0.12);
-  --canvas-text: #475569;
-  --canvas-playhead: #059669;
+  --status-ok: #6FCB8B;
+  --status-warn: #D9A441;
+  --status-bad: #E5837A;
 
-  /* Component Shadows & Glows */
-  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  --shadow-card-hover: 0 6px 18px rgba(0, 0, 0, 0.1), 0 0 12px rgba(5, 150, 105, 0.15);
-  --shadow-button-glow: 0 2px 8px rgba(5, 150, 105, 0.3);
-  --shadow-button-glow-hover: 0 4px 14px rgba(5, 150, 105, 0.45);
+  --canvas-bg: #141B27;
+  --canvas-floor: #18202D;
+  --canvas-floor-border: #2A3547;
+  --canvas-zone-default: #1C2534;
+  --canvas-zone-border: rgba(237, 241, 247, 0.09);
+  --canvas-text: #B6C0D0;
+  --canvas-playhead: #8CA2E8;
 
-  /* Backward Compatibility Aliases */
-  --ink: #0f172a;
-  --ink-light: #334155;
-  --mut: #64748b;
-  --line: #cbd5e1;
-  --card: #ffffff;
-  --canvas: #ffffff;
-  --acc: #059669;
-  --acc-soft: rgba(5, 150, 105, 0.12);
-  --ok: #15803d;
-  --warn: #b45309;
-  --bad: #dc2626;
+  --shadow-card: 0 2px 10px -2px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(237, 241, 247, 0.05);
+  --shadow-card-hover: 0 6px 18px -4px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(237, 241, 247, 0.08);
+  --shadow-button-glow: 0 0 14px var(--accent-glow), inset 0 1px 0 rgba(237, 241, 247, 0.18);
+  --shadow-button-glow-hover: 0 0 22px var(--accent-glow-strong), inset 0 1px 0 rgba(237, 241, 247, 0.24);
+
+  --ink: #E9EDF4;
+  --ink-light: #B6C0D0;
+  --mut: #8C97A9;
+  --line: #2A3547;
+  --card: #1C2534;
+  --canvas: #18202D;
+  --acc: #8CA2E8;
+  --acc-soft: rgba(140, 162, 232, 0.16);
+  --ok: #6FCB8B;
+  --warn: #D9A441;
+  --bad: #E5837A;
 }
 
 :root {
-  /* Typography Families */
-  --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  /* Typography — system grotesk stack (offline-first, no remote fonts) */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Radius Family (§7.3): one consistent capsule vocabulary */
+  --radius-s: 8px;
+  --radius-m: 12px;
+  --radius-l: 16px;
+  --radius-xl: 22px;
 
   /* Hardware Motion Durations */
   --dur-instant: 90ms;
@@ -197,6 +204,14 @@
   --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
   --ease-decel: cubic-bezier(0, 0, 0.2, 1);
+
+  /* Texture as meaning (§7.2): hatch = not modeled / not configured / unknown */
+  --hatch: repeating-linear-gradient(
+    -45deg,
+    transparent 0 4px,
+    var(--bg-subtle) 4px 6px
+  );
+  --transition-fast: 160ms var(--ease-standard);
 }
 
 /* ==========================================================================
@@ -256,14 +271,14 @@ code, pre, .tabular-nums, #clock, #clkTime, #clkDate, .metric-val, .phase-time, 
    ========================================================================== */
 @keyframes beaconPulse {
   0% { transform: scale(0.9); opacity: 0.9; box-shadow: 0 0 0 0 var(--accent-glow-strong); }
-  70% { transform: scale(1.05); opacity: 1; box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-  100% { transform: scale(0.9); opacity: 0.9; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  70% { transform: scale(1.05); opacity: 1; box-shadow: 0 0 0 10px color-mix(in srgb, var(--status-ok) 0%, transparent); }
+  100% { transform: scale(0.9); opacity: 0.9; box-shadow: 0 0 0 0 color-mix(in srgb, var(--status-ok) 0%, transparent); }
 }
 
 @keyframes incidentPulse {
-  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
-  70% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--status-bad) 60%, transparent); }
+  70% { box-shadow: 0 0 0 12px color-mix(in srgb, var(--status-bad) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--status-bad) 0%, transparent); }
 }
 
 @keyframes shimmerGlow {
@@ -293,6 +308,19 @@ code, pre, .tabular-nums, #clock, #clkTime, #clkDate, .metric-val, .phase-time, 
   position: relative;
 }
 
+/* Canvas bitmaps are set to device-pixel widths by the render loop; without a
+   cap their intrinsic width props every grid track open at the first-render
+   pane width (layout then never shrinks on narrower viewports). */
+#app canvas {
+  max-width: 100%;
+}
+
+/* Grid/flex items must be allowed to shrink below their content's min-content
+   (the map canvas) or the 1fr tracks stop responding to the viewport. */
+#app > *, main > * {
+  min-width: 0;
+}
+
 /* ==========================================================================
    Header & Top Command Bar
    ========================================================================== */
@@ -302,12 +330,36 @@ code, pre, .tabular-nums, #clock, #clkTime, #clkDate, .metric-val, .phase-time, 
   justify-content: space-between;
   gap: 16px;
   padding: 8px 18px;
-  background: linear-gradient(180deg, var(--bg-surface) 0%, rgba(15, 19, 28, 0.95) 100%);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border-default);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  /* Deep-ink navigation chrome (the editorial frame around the ivory workspace) */
+  background: linear-gradient(180deg, var(--nav-bg-2) 0%, var(--nav-bg) 100%);
+  border-bottom: 1px solid var(--nav-border);
+  box-shadow: 0 6px 22px rgba(12, 18, 28, 0.35);
   z-index: 25;
   transition: background-color var(--dur-base), border-color var(--dur-base);
+  /* Scoped token inversion: descendants read light-on-ink values while the
+     rest of the page stays on the active theme's tokens. */
+  --text-primary: var(--nav-text);
+  --text-secondary: var(--nav-muted);
+  --text-muted: var(--nav-muted);
+  --text-disabled: #5E6B80;
+  --bg-card: var(--nav-card);
+  --bg-card-hover: var(--nav-card-hover);
+  --bg-card-active: var(--nav-card-hover);
+  --bg-input: var(--nav-card);
+  --bg-subtle: rgba(237, 241, 247, 0.07);
+  --border-default: var(--nav-border);
+  --border-subtle: var(--nav-border);
+  --border-active: rgba(237, 241, 247, 0.30);
+  /* Accent remap: cobalt-on-ivory is unreadable on ink chrome — the header
+     always uses the light cobalt family (council finding, AA 1.76:1 -> 5+). */
+  --accent: #9FB2EC;
+  --accent-hover: #A9BCF1;
+  --accent-active: #8CA2E8;
+  --accent-soft: rgba(159, 178, 236, 0.20);
+  --accent-glow: rgba(159, 178, 236, 0.32);
+  --accent-glow-strong: rgba(159, 178, 236, 0.55);
+  --border-focus: #9FB2EC;
+  --veil: var(--nav-bg);
 }
 
 .brand-group {
@@ -335,7 +387,7 @@ code, pre, .tabular-nums, #clock, #clkTime, #clkDate, .metric-val, .phase-time, 
 
 .brand-logo {
   font-size: 16px;
-  filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.4));
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--status-ok) 40%, transparent));
 }
 
 .brand small {
@@ -650,11 +702,11 @@ button.primary:active, .btn-primary:active {
   color: var(--accent);
   border-color: var(--accent);
   background: var(--accent-soft);
-  box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--status-ok) 20%, transparent);
 }
 
 .btn-entry.primary:hover {
-  background: rgba(16, 185, 129, 0.22);
+  background: var(--accent-hover);
   box-shadow: 0 0 16px var(--accent-glow);
 }
 
@@ -1078,6 +1130,11 @@ button.primary:active, .btn-primary:active {
   transform: scale(1.04);
   z-index: 3;
 }
+/* A selected closed day keeps its hatch: the selected `background` shorthand
+   above would otherwise erase the background-image pattern. */
+.cal-day-cell.selected.closed {
+  background-image: var(--hatch) !important;
+}
 
 .cal-day-cell.selected * {
   color: #ffffff !important;
@@ -1087,6 +1144,15 @@ button.primary:active, .btn-primary:active {
   background: var(--bg-subtle);
   opacity: 0.65;
 }
+
+/* Closed days carry the hatch texture (§7.2: hatch = not available) */
+.cal-day-cell.closed {
+  background-image: var(--hatch);
+  background-color: var(--bg-subtle);
+  opacity: 0.78;
+}
+
+.cal-day-cell.closed .cal-day-num { color: var(--text-muted); }
 
 .cal-day-cell.empty {
   background: transparent;
@@ -1122,13 +1188,14 @@ button.primary:active, .btn-primary:active {
 }
 
 .cal-day-badge.reopen {
-  background: #f59e0b;
-  color: #000;
+  background: var(--affected-soft);
+  color: var(--affected-amber);
+  border: 1px solid color-mix(in srgb, var(--status-warn) 35%, transparent);
 }
 
 .cal-day-badge.break {
-  background: rgba(139, 92, 246, 0.3);
-  color: #c4b5fd;
+  background: var(--scenario-violet-soft);
+  color: var(--scenario-violet);
 }
 
 .cal-selection-hud {
@@ -1383,6 +1450,9 @@ button.primary:active, .btn-primary:active {
 /* ==========================================================================
    Badges & Classification Tokens
    ========================================================================== */
+/* Status vocabulary (§7.2): every status is colour + shape, never colour alone.
+   Computed (solid dot) · Configured (tick) · Assumed (dashed outline)
+   · Not modeled (hatch, no marker) · Unavailable (grey) · AI-written (sparkle) */
 .badge {
   display: inline-block;
   padding: 2px 7px;
@@ -1391,36 +1461,66 @@ button.primary:active, .btn-primary:active {
   text-transform: uppercase;
   border-radius: 5px;
   letter-spacing: 0.03em;
+  white-space: nowrap;
 }
 
 .badge.computed, .badge-computed {
-  background-color: rgba(16, 185, 129, 0.15);
-  color: var(--ok);
-  border: 1px solid rgba(16, 185, 129, 0.35);
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.15);
+  background-color: var(--response-soft);
+  color: var(--response-teal);
+  border: 1px solid color-mix(in srgb, var(--response-teal) 35%, transparent);
+}
+
+.badge.computed::before, .badge-computed::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--response-teal);
+  margin-right: 4px;
+  vertical-align: 0.5px;
 }
 
 .badge.configured, .badge-configured {
-  background-color: rgba(56, 189, 248, 0.15);
-  color: #0284c7;
-  border: 1px solid rgba(56, 189, 248, 0.35);
+  background-color: var(--control-sky-soft);
+  color: var(--control-sky);
+  border: 1px solid color-mix(in srgb, var(--control-sky) 35%, transparent);
 }
 
-[data-theme="dark"] .badge-configured {
-  color: #38bdf8;
-  box-shadow: 0 0 8px rgba(56, 189, 248, 0.15);
+.badge.configured::before, .badge-configured::before {
+  content: "✓";
+  margin-right: 4px;
+  font-weight: 800;
 }
 
-.badge.assumed, .badge-unmodeled, .badge-assumed {
-  background-color: rgba(245, 158, 11, 0.15);
-  color: var(--warn);
-  border: 1px solid rgba(245, 158, 11, 0.35);
+.badge.ai, .badge-ai {
+  background-color: var(--scenario-violet-soft);
+  color: var(--scenario-violet);
+  border: 1px solid color-mix(in srgb, var(--scenario-violet) 35%, transparent);
+}
+
+.badge.ai::before, .badge-ai::before {
+  content: "✦";
+  margin-right: 4px;
+}
+
+.badge.assumed, .badge-assumed {
+  background-color: transparent;
+  color: var(--text-secondary);
+  border: 1px dashed var(--border-active);
+}
+
+.badge.unmodeled, .badge-not-modeled, .badge-unmodeled {
+  background-image: var(--hatch);
+  background-color: var(--bg-subtle);
+  color: var(--text-muted);
+  border: 1px solid var(--border-default);
 }
 
 .badge.unavailable, .badge.not_modeled, .badge-unavailable {
-  background-color: rgba(100, 116, 139, 0.15);
+  background-color: var(--bg-subtle);
   color: var(--text-muted);
-  border: 1px solid rgba(100, 116, 139, 0.35);
+  border: 1px solid var(--border-default);
 }
 
 /* ==========================================================================
@@ -1532,7 +1632,7 @@ th {
   padding: 1px 4px;
   border-radius: 3px;
   font-weight: 600;
-  background-color: rgba(56, 189, 248, 0.15);
+  background-color: color-mix(in srgb, var(--control-sky) 15%, transparent);
   color: var(--control-sky);
 }
 
@@ -1550,7 +1650,7 @@ th {
   border-radius: 9px;
   padding: 14px;
   margin-bottom: 14px;
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.15);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--status-bad) 15%, transparent);
 }
 
 .inc-badge {
@@ -1562,12 +1662,12 @@ th {
   margin-bottom: 6px;
 }
 
-.inc-badge.high { background-color: var(--origin-vermilion); color: #fff; box-shadow: 0 0 8px rgba(239, 68, 68, 0.4); }
-.inc-badge.medium { background-color: var(--affected-amber); color: #fff; box-shadow: 0 0 8px rgba(245, 158, 11, 0.4); }
+.inc-badge.high { background-color: var(--origin-vermilion); color: #fff; box-shadow: 0 0 8px color-mix(in srgb, var(--status-bad) 40%, transparent); }
+.inc-badge.medium { background-color: var(--affected-amber); color: #fff; box-shadow: 0 0 8px color-mix(in srgb, var(--status-warn) 40%, transparent); }
 .inc-badge.low { background-color: var(--text-muted); color: #fff; }
 
 .warning-banner {
-  background-color: rgba(245, 158, 11, 0.12);
+  background-color: color-mix(in srgb, var(--status-warn) 12%, transparent);
   border: 1px solid var(--affected-amber);
   color: var(--warn);
   padding: 8px 12px;
@@ -1626,7 +1726,7 @@ th {
    Timeline Dock & Dual Timeline Synchronization
    ========================================================================== */
 #dock {
-  background: linear-gradient(180deg, rgba(15, 19, 28, 0.95) 0%, var(--bg-surface) 100%);
+  background: linear-gradient(180deg, var(--veil) 0%, var(--bg-surface) 100%);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--border-default);
   padding: 10px 18px;
@@ -1708,8 +1808,8 @@ th {
   padding: 5px 10px;
   font-size: 11px;
   font-weight: 600;
-  background-color: rgba(56, 189, 248, 0.12);
-  border: 1px solid rgba(56, 189, 248, 0.3);
+  background-color: color-mix(in srgb, var(--control-sky) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--control-sky) 30%, transparent);
   color: var(--control-sky);
   border-radius: 6px;
   cursor: pointer;
@@ -1717,7 +1817,7 @@ th {
 }
 
 .evidence-chip:hover {
-  background-color: rgba(56, 189, 248, 0.22);
+  background-color: color-mix(in srgb, var(--control-sky) 22%, transparent);
   transform: translateY(-1px);
 }
 
@@ -1744,7 +1844,7 @@ th {
   border-radius: 12px;
   width: 90%;
   max-width: 680px;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5), 0 0 30px rgba(16, 185, 129, 0.15);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5), 0 0 30px color-mix(in srgb, var(--status-ok) 15%, transparent);
   overflow: hidden;
   border: 1px solid var(--border-default);
   color: var(--text-primary);
@@ -2052,13 +2152,13 @@ body.reduced-motion *, body.motion-off * {
 .badge-branch-ctrl {
   background: var(--control-sky-soft);
   color: var(--control-sky);
-  border: 1px solid rgba(56, 189, 248, 0.4);
+  border: 1px solid color-mix(in srgb, var(--control-sky) 40%, transparent);
 }
 
 .badge-branch-trt {
   background: var(--accent-soft);
   color: var(--accent);
-  border: 1px solid rgba(16, 185, 129, 0.4);
+  border: 1px solid color-mix(in srgb, var(--status-ok) 40%, transparent);
 }
 
 .map-run-sub {

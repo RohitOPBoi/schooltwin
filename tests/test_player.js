@@ -94,18 +94,66 @@ const ok = m => console.log('  ok  ', m);
   // Dual-Theme Switching (Dark / Light)
   const bTheme = doc.getElementById('btnThemeToggle');
   assert(bTheme !== null, 'Theme toggle button must exist in header');
+  assert(S.theme === 'light', 'Ivory Editorial light theme is the boot default');
   bTheme.click();
-  assert(S.theme === 'light', 'Theme should switch to light mode');
-  assert(doc.documentElement.getAttribute('data-theme') === 'light', 'Document element must have data-theme=light');
-  assert(doc.body.getAttribute('data-theme') === 'light', 'Body must have data-theme=light');
-  assert(bTheme.textContent.includes('Light'), 'Button label should reflect light mode');
-  shot('light_mode');
-  bTheme.click();
-  assert(S.theme === 'dark', 'Theme should switch back to dark mode');
+  assert(S.theme === 'dark', 'Theme should switch to the ink dark mode');
   assert(doc.documentElement.getAttribute('data-theme') === 'dark', 'Document element must have data-theme=dark');
   assert(doc.body.getAttribute('data-theme') === 'dark', 'Body must have data-theme=dark');
   assert(bTheme.textContent.includes('Dark'), 'Button label should reflect dark mode');
-  ok('theme switcher: switches between dark and light modes with adaptive canvas rendering');
+  shot('ink_mode');
+  bTheme.click();
+  assert(S.theme === 'light', 'Theme should switch back to the ivory light mode');
+  assert(doc.documentElement.getAttribute('data-theme') === 'light', 'Document element must have data-theme=light');
+  assert(doc.body.getAttribute('data-theme') === 'light', 'Body must have data-theme=light');
+  assert(bTheme.textContent.includes('Light'), 'Button label should reflect light mode');
+  shot('ivory_mode');
+  ok('theme switcher: ivory light default switches to ink dark and back with adaptive canvas rendering');
+
+  // Motion: Off must gate canvas animation state, not just CSS classes
+  bMot.click();   // full -> reduced
+  bMot.click();   // reduced -> off
+  assert(S.motionSetting === 'off' && S.motionOff === true, 'S.motionOff must track the Off setting');
+  assert(doc.body.className === 'motion-off', 'body must carry motion-off class');
+  bMot.click();   // off -> full
+  assert(S.motionSetting === 'full' && S.motionOff === false, 'S.motionOff must clear on Full');
+  ok('motion off gates canvas animation state (S.motionOff) alongside CSS');
+
+  // Keyboard: modifier combos belong to the browser (Ctrl+F = find, not a flag)
+  const flagsBefore = T.allFlags().length;
+  w.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'f', ctrlKey: true, bubbles: true }));
+  assert(T.allFlags().length === flagsBefore, 'Ctrl+F must not create a user flag');
+  // 'V' must respect operator-only (redacted) packs
+  S.redacted = true; S.view = 'operator';
+  w.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'v', bubbles: true }));
+  assert(S.view === 'operator', 'V shortcut must not enter author view on a redacted pack');
+  S.redacted = false;
+  ok('keyboard shortcuts respect browser modifiers and redacted packs');
+
+  // Regression: switching runs must exit paired comparison (no chimera UI)
+  S.pairedMode = true; S.pairMeta = { shared_background_events: [], custom_event: null };
+  S.ctrlMeta = S.meta; S.trtMeta = S.meta;
+  doc.getElementById('map').style.display = 'none';
+  const dual = doc.getElementById('mapDualContainer');
+  if (dual) dual.style.display = 'flex';
+  await T.loadRun('story_baseline'); await wait(200);
+  assert(S.pairedMode === false && S.pairMeta === null && S.ctrlMeta === null && S.trtMeta === null,
+    'loadRun must clear paired state');
+  assert(doc.getElementById('map').style.display !== 'none', 'single map must be restored');
+  if (dual) assert(dual.style.display === 'none', 'dual container must be hidden');
+  ok('run switch exits paired comparison and restores single-run surfaces');
+
+  // Regression: a student-dependent preset picked on a closed (summer-break)
+  // date must auto-move to the first open school day and extend the horizon
+  // so the run cannot be silently rejected.
+  T.setTab('run'); S.form.bTab = 'events'; T.renderPanels(true);
+  S.form.curEvDate = '2026-06-05'; S.form.evalDuration = 30;   // closed June day
+  const presetBtn = doc.querySelector('[data-act="pickEvPreset"][data-type="serious_student_fight"]');
+  assert(presetBtn !== null, 'student preset button must exist');
+  presetBtn.click(); await wait(300);
+  assert(S.form.curEvType === 'serious_student_fight', 'preset type selected');
+  assert(S.form.curEvDate === '2026-07-01', 'date must auto-move to first open day, got ' + S.form.curEvDate);
+  assert(+S.form.evalDuration === 60, 'horizon must extend to cover July, got ' + S.form.evalDuration);
+  ok('builder: student preset on closed day auto-moves date to 2026-07-01 and extends horizon to 60d');
 
   // Performance Budget Verification (frame work <= 8ms for 1,300 agents)
   await at('2026-01-20', 515); // Prayer assembly with peak density (900+ agents on ground)
