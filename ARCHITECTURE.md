@@ -130,7 +130,7 @@ pack/                        story_baseline/ · whatif_fee_up_apr/   (ready to p
 - Simulates counterfactual intervention branches for policy levers.
 
 ### 5. Cockpit & Player Controls
-- Operational Digital Twin Cockpit with calibrated dark slate theme (`#090b10`), Electric Emerald accent (`#10b981`), and tabular numerals (`font-variant-numeric: tabular-nums`).
+- Quiet-instrument digital twin cockpit (design system v7): tonal dark surfaces (`#0E1014` → `#171C23` → `#202630`), meaning colours with shape partners (see `docs/design-system.md`), and tabular numerals (`font-variant-numeric: tabular-nums`).
 - 6-step workflow rail: `Replay` · `Create` · `Run` · `Explore` · `Report` · `Compare`.
 - Signature motion engine: Linear interpolation agent gliding (eliminating teleportation), concentric origin reticle pulsing, animated spread ripple, and easing camera pans.
 - In-app Motion settings: `Full` / `Reduced` / `Off` respecting `prefers-reduced-motion` and persisting locally.

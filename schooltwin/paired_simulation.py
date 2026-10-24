@@ -29,16 +29,98 @@ from .evaluate import evaluate
 from .overview import DEFAULT, load
 from .pack import Packer
 from .random_scheduler import generate_paired_background_schedule, get_profile_config
+from .schema import validate_paired_custom_event
 from .story import Story
 
 
 def make_pair_id(custom_event: Dict[str, Any], profile_name: str, seed: int) -> str:
-    """Creates a deterministic, URL-safe identifier for a comparison pair."""
+    """Creates a deterministic, URL-safe identifier for a comparison pair.
+
+    The hash covers the event's full semantic content (type, date, severity,
+    params), so two different interventions on the same date cannot collide
+    into one pack directory and silently overwrite each other's results.
+    Identical content, profile, and seed still reproduce the same id
+    (deterministic replay).
+    """
     ev_type = str(custom_event.get("type", "custom"))[:12]
     ev_date = str(custom_event.get("date", "2026-06-01")).replace("-", "")
-    h = hashlib.sha256(f"{ev_type}:{ev_date}:{profile_name}:{seed}".encode("utf-8")).hexdigest()[:6]
+    content = json.dumps(
+        {
+            "type": custom_event.get("type"),
+            "date": custom_event.get("date"),
+            "severity": custom_event.get("severity", "medium"),
+            "params": custom_event.get("params", {}),
+        },
+        sort_keys=True, separators=(",", ":"), ensure_ascii=True,
+    )
+    h = hashlib.sha256(f"{content}:{profile_name}:{seed}".encode("utf-8")).hexdigest()[:6]
     clean_type = re.sub(r"[^a-zA-Z0-9_]", "_", ev_type).lower()
     return f"{clean_type}_{ev_date}_{h}"
+
+
+_VALID_STATUS_TAGS = ("Computed", "Configured", "Not modeled", "Unavailable")
+
+
+def build_event_day_impact(
+    ctrl_days: List[Dict[str, Any]],
+    trt_days: List[Dict[str, Any]],
+    custom_event: Dict[str, Any],
+) -> Optional[Dict[str, Any]]:
+    """Day-level control-vs-treatment comparison for the intervention date.
+
+    Window-aggregate metrics honestly round small interventions to zero
+    (three students over 1,309 agents x 60 days), which reads as "nothing
+    happened"; the intervention day itself carries the visible consequences
+    (infirmary visits, the incident record, parent queries, attendance).
+    """
+    ev_date = custom_event.get("date")
+    if not ev_date:
+        return None
+    b = next((d for d in ctrl_days if d.get("date") == ev_date), None)
+    s = next((d for d in trt_days if d.get("date") == ev_date), None)
+    if b is None or s is None:
+        return None
+
+    def val(day: Dict[str, Any], key: str) -> Optional[Any]:
+        v = day.get(key)
+        if key == "incidents":
+            return len(v) if isinstance(v, list) else v
+        return v
+
+    rows = []
+    for f in ("attendance_rate", "late", "mood_avg", "queries", "infirmary", "incidents"):
+        bv, sv = val(b, f), val(s, f)
+        if bv is None and sv is None:
+            continue
+        delta = None if (bv is None or sv is None) else round(float(sv) - float(bv), 4)
+        rows.append({"id": f, "control": bv, "treatment": sv, "delta": delta})
+    return {
+        "date": ev_date,
+        "event_type": custom_event.get("type"),
+        "event_title": custom_event.get("title") or custom_event.get("type"),
+        "metrics": rows,
+        "note": "Window aggregates dilute small interventions; this is the intervention day itself (control vs treatment).",
+    }
+
+
+def classify_metric_status(metric: Dict[str, Any]) -> str:
+    """Maps one comparison metric to its honest display status tag.
+
+    Metric entries carry ``status`` (e.g. "Computed"); anything unexpected is
+    reported as Unavailable rather than guessed.
+    """
+    status = metric.get("status")
+    return status if status in _VALID_STATUS_TAGS else "Unavailable"
+
+
+def classify_comparison_metrics(comp_report: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Returns a report's metrics, each annotated with an honest ``status_tag``."""
+    classified = []
+    for m in comp_report.get("metrics", []):
+        m_entry = dict(m)
+        m_entry["status_tag"] = classify_metric_status(m)
+        classified.append(m_entry)
+    return classified
 
 
 def run_paired_simulation(
@@ -59,6 +141,17 @@ def run_paired_simulation(
     assert_baseline_intact()
 
     story = Story()
+
+    # Honest-intervention gate: refuse to "simulate" an intervention the model
+    # cannot execute as requested (e.g. a student incident during summer break)
+    # instead of silently producing a near-identical pair.
+    end_day_probe = min(len(story.days) - 1, start_day + duration_days - 1)
+    v_ok, v_errors, v_warnings = validate_paired_custom_event(
+        custom_event, start_day=start_day, end_day=end_day_probe
+    )
+    if not v_ok:
+        raise ValueError("Custom event validation failed: " + " | ".join(v_errors))
+
     pair_id = make_pair_id(custom_event, profile_name, seed)
     ctrl_run_name = f"ctrl_{pair_id}"
     trt_run_name = (
@@ -192,25 +285,14 @@ def run_paired_simulation(
     trt_eval = evaluate(trt_eng)
     trt_pk.finalize(trt_eval)
 
-    # 6. Compute Paired Delta Report
-    comp_report = compare_runs(ctrl_run_name, trt_run_name)
+    # 6. Compute Paired Delta Report (restricted to the branch window: both
+    # branches replay identical history before the branch point, so including
+    # it would dilute divergence metrics)
+    comp_report = compare_runs(ctrl_run_name, trt_run_name, window=(start_day, end_day))
 
-    # Classify comparison metrics honestly
-    classified_metrics = []
-    for m in comp_report.get("metrics", []):
-        m_entry = dict(m)
-        m_id = m.get("id")
-        if m.get("label") == "Computed":
-            m_entry["status_tag"] = "Computed"
-        elif m.get("label") == "Configured":
-            m_entry["status_tag"] = "Configured"
-        elif m.get("label") == "Not modeled":
-            m_entry["status_tag"] = "Not modeled"
-        else:
-            m_entry["status_tag"] = m.get("label", "Unavailable")
-        classified_metrics.append(m_entry)
-
-    comp_report["metrics"] = classified_metrics
+    # Classify comparison metrics honestly (metric entries carry `status`,
+    # e.g. "Computed" / "Configured" / "Not modeled" / "Unavailable")
+    comp_report["metrics"] = classify_comparison_metrics(comp_report)
 
     # 7. Package Paired Manifest
     pair_manifest = {
@@ -226,6 +308,9 @@ def run_paired_simulation(
         "custom_event": trt_custom,
         "shared_background_events_count": len(tagged_bg),
         "shared_background_events": tagged_bg,
+        "branch_window": {"start_day": start_day, "end_day": end_day},
+        "event_day_impact": build_event_day_impact(ctrl_eng.days, trt_eng.days, trt_custom),
+        "warnings": v_warnings,
         "delta_summary": comp_report.get("delta_summary", {}),
         "narrative_summary": comp_report.get("narrative_summary", {}),
         "metrics": comp_report.get("metrics", []),

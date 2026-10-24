@@ -24,6 +24,7 @@ from .config import ROOT
 from .decide import Principal
 from .detect import Detector
 from .events import SEVERITY, effects_for, make_event, random_events, signature_library, story_events
+from .schema import EVENT_CATALOG as SCHEMA_EVENT_CATALOG
 from .finance import Finance
 from .mood import CODE, Mood, clamp
 from .story import Story, room_id
@@ -159,9 +160,14 @@ class Engine:
         for x in e["add"]:
             p = dict(x.get("params") or {})
             for k, v in x.items():
-                if k not in ("type", "date", "severity", "day", "id", "params"):
+                if k not in ("type", "date", "severity", "day", "id", "params", "source",
+                             "comparison_tag", "is_background", "category"):
                     p.setdefault(k, v)
-            evs.append(make_event(x["date"], x["type"], x.get("severity", "medium"), p, "user"))
+            built = make_event(x["date"], x["type"], x.get("severity", "medium"), p, x.get("source", "user"), eid=x.get("id"))
+            for mk in ("comparison_tag", "is_background", "category"):
+                if mk in x:
+                    built[mk] = x[mk]
+            evs.append(built)
         r = e["random"]
         if r["per_month"] > 0:
             open_dates = [
@@ -238,7 +244,32 @@ class Engine:
             self.causal_registry.evaluate_resignation_departure(tname, iso, [a for a in self.agents if a.role == "teacher"])
 
         # ---- events -> effects
+        day["skipped_events"] = []
         for ev in self._events_on(iso, i):
+            # Honest applicability gate: student-dependent events cannot occur when
+            # school is closed to students; record the skip instead of simulating
+            # students who are not on campus.
+            ev_catalog = SCHEMA_EVENT_CATALOG.get(ev["type"], {})
+            if ev_catalog.get("requires_students", True) and not info["open"]:
+                skip_rec = EventRecord(
+                    event_id=ev["id"],
+                    event_type=ev["type"],
+                    effective_date=iso,
+                    target_entities=list(ev.get("params", {}).get("student_ids", [])),
+                    params=dict(ev.get("params", {})),
+                    source=ev.get("source", "scenario"),
+                    title=ev.get("title", ""),
+                    description="Skipped: school closed to students on this date.",
+                )
+                skip_rec.execution_status = "skipped"
+                self.audit.register_event(skip_rec)
+                day["skipped_events"].append({
+                    "id": ev["id"], "type": ev["type"], "title": ev.get("title", ev["type"]),
+                    "date": iso, "reason": "school_closed_no_students",
+                    "detail": f"School is closed ({info['type']}); no students on campus, event not executed.",
+                    "comparison_tag": ev.get("comparison_tag"), "is_background": bool(ev.get("is_background")),
+                })
+                continue
             day["events"].append(ev)
             # Register versioned event in causal audit trail
             ev_rec = EventRecord(
@@ -323,6 +354,8 @@ class Engine:
 
             for fx in effects_for(ev, self.sig_lib, rng):
                 self._apply_effect(day, ev, fx, anchor, i)
+            # The event's handlers and effect verbs have now run for this date
+            ev_rec.execution_status = "executed"
         # ---- decisions from earlier days that are still active
         self.effects_active = [e for e in self.effects_active if e["until"] >= i]
         for e in self.effects_active:
@@ -546,7 +579,7 @@ class Engine:
             day["parent_queries"] += a["n"]
             day["topics"] += a.get("topics", [])
         elif v == "finance":
-            day["finance_items"].append((a["account"], a["amount"], a["desc"]))
+            day["finance_items"].append((a["account"], a["amount"], a["desc"], ev["id"]))
         elif v == "staff_notice":
             day["notices"].append(a["name"])
 
@@ -1195,7 +1228,21 @@ class Engine:
         if anchor:
             fin = self.fin.story_day(iso)
         else:
-            extra = [(a, m) for a, m, _ in day["finance_items"]]
+            extra = [(a, m) for a, m, *_ in day["finance_items"]]
+            # Event-driven costs are booked once into the reconciled ledger.
+            # When a causal handler already booked this source event, its
+            # param-driven amounts win and the generic effects are skipped
+            # entirely (no double-booking); otherwise EVERY distinct effect is
+            # booked — e.g. water_motor_failure legitimately books repair parts
+            # and an emergency tanker under the same event id. The daily macro
+            # series keeps its own payment-calendar shaping.
+            handler_booked: Dict[str, bool] = {}
+            for acct, amt, desc, ev_id in day["finance_items"]:
+                if ev_id not in handler_booked:
+                    handler_booked[ev_id] = self.ledger.has_source(ev_id)
+                if handler_booked[ev_id]:
+                    continue
+                self.ledger.book_event_expense(iso, amt, acct, str(desc), source_event_id=ev_id)
             support = (self.lever(i, "attendance_support_budget_inr_per_month") or 0) / 30.0
             backup = 14000 * min(int(self.lever(i, "bus_backup_capacity") or 0), 4) / 30.0
             summer = (self.lever(i, "summer_maintenance_budget_inr") or 0) / 16.0 if day["type"] == "summer_break_staff_only" else 0.0
@@ -1254,6 +1301,7 @@ class Engine:
             "canteen_peak_queue": max((r["observed_count"] for r in self.cctv if r["camera_id"] == "CAM-CANTEEN"), default=0),
             "finance": fin, "cctv": self.cctv, "incidents": incidents, "alerts": alerts, "decisions": decisions,
             "flags": flags, "events": [e["id"] for e in day["events"]],
+            "skipped_events": day.get("skipped_events", []),
             "teachers_absent_names": [self.agents[x].name for x in sorted(day["teachers_absent"])],
             "academics": acad_res,
             "transport": self.transport.get_transport_metrics(),
@@ -1280,7 +1328,13 @@ class Engine:
         for ev in day["events"]:
             add(minute=min([x["minute"] for x in day["incidents"] if x["event_id"] == ev["id"]] or [540]), kind="event",
                 sev=SEVERITY[ev["severity"]], vis="author", title=ev["title"],
-                text=f'Hidden cause: {ev.get("cause") or "scenario-defined"}', zone="", ref=ev["id"], source=ev["source"])
+                text=f'Hidden cause: {ev.get("cause") or "scenario-defined"}', zone="", ref=ev["id"], source=ev["source"],
+                comparison_tag=ev.get("comparison_tag"), is_background=bool(ev.get("is_background")))
+        for sk in day.get("skipped_events", []):
+            add(minute=480, kind="event", sev=1, vis="all", title=f'Skipped: {sk["title"]}',
+                text=sk["detail"], zone="", ref=sk["id"], source="engine",
+                skipped=True, skip_reason=sk["reason"],
+                comparison_tag=sk.get("comparison_tag"), is_background=bool(sk.get("is_background")))
         prev = self.calendar.info(day["i"] - 1)["type"] if day["i"] else ""
         if day["type"] != prev and day["type"] not in ("instructional_day", "limited_school_day", "weekly_closure"):
             add(minute=480, kind="calendar", sev=0, vis="all", title=day["type"].replace("_", " ").capitalize(),

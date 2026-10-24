@@ -8,6 +8,9 @@ Paths are stored as flat [minute, zoneIndex, minute, zoneIndex, ...] lists: a pe
 their next entry. The player rebuilds any minute from that, so scrubbing and rewinding are lookups, not
 simulation. 'redact' removes the hidden causes and traits for a blind (operator-only) demo."""
 import json
+import os
+import tempfile
+import threading
 from pathlib import Path
 
 import numpy as np
@@ -16,9 +19,30 @@ from .mood import CODE, DRIVERS
 
 HIDDEN_PERSON = ("att", "disc", "acad")
 
+# Serializes pack/index.json read-modify-write cycles across concurrently
+# finalizing runs (a regular run and a paired run can finalize in parallel).
+_IDX_LOCK = threading.Lock()
+
 
 def _dump(path, obj):
     Path(path).write_text(json.dumps(obj, separators=(",", ":"), ensure_ascii=False), encoding="utf-8")
+
+
+def _dump_atomic(path, obj):
+    """Writes via temp file + rename so a crash mid-write cannot leave a
+    truncated index (a corrupt index.json would break every future run)."""
+    path = Path(path)
+    fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=f".{path.name}-", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(json.dumps(obj, separators=(",", ":"), ensure_ascii=False))
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
 
 
 class Packer:
@@ -151,9 +175,10 @@ class Packer:
             hist_data["cognitive"] = {str(aid): e.cognitive.get_agent_summary(aid) for aid in list(e.cognitive.states.keys())[:150]}
         _dump(self.dir / "history.json", hist_data)
         idx_path = self.dir.parent / "index.json"
-        idx = json.loads(idx_path.read_text(encoding="utf-8")) if idx_path.exists() else {"runs": []}
-        idx["runs"] = [r for r in idx["runs"] if r["id"] != self.dir.name]
-        idx["runs"].append({"id": self.dir.name, "name": e.ov["name"], "mode": e.ov["mode"], "days": len(e.days),
-                            "school": e.story.name, "redacted": self.redact})
-        _dump(idx_path, idx)
+        with _IDX_LOCK:
+            idx = json.loads(idx_path.read_text(encoding="utf-8")) if idx_path.exists() else {"runs": []}
+            idx["runs"] = [r for r in idx["runs"] if r["id"] != self.dir.name]
+            idx["runs"].append({"id": self.dir.name, "name": e.ov["name"], "mode": e.ov["mode"], "days": len(e.days),
+                                "school": e.story.name, "redacted": self.redact})
+            _dump_atomic(idx_path, idx)
         return self.dir

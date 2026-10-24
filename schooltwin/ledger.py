@@ -156,7 +156,29 @@ class FinancialLedger:
         return txs
 
     def collect_fees(self, date_str: str, amount_inr: float, fee_category: str = "tuition", source_event_id: Optional[str] = None) -> Transaction:
-        """Collects fee payment: Debits Cash, Credits Accounts Receivable."""
+        """Collects a payment: Debits Cash, Credits Accounts Receivable.
+
+        A school cannot hold negative receivables: the daily macro inflow
+        includes non-fee income (other income accrual, arrears recovery beyond
+        billed dues), so any portion exceeding the outstanding receivable
+        balance is booked as other revenue received in cash instead of driving
+        Accounts Receivable below zero.
+        """
+        ar_balance = self.balance_of(self.ACCOUNTS_RECEIVABLE, as_of_date=date_str)
+        if amount_inr > ar_balance and ar_balance >= 0:
+            excess = amount_inr - ar_balance
+            other_tx = self.record_entry(
+                date_str=date_str,
+                debit_account=self.CASH,
+                credit_account=self.OTHER_REVENUE,
+                amount_inr=excess,
+                category="other_income",
+                description="Cash income in excess of billed receivables (other income)",
+                source_event_id=source_event_id,
+            )
+            if ar_balance == 0:
+                return other_tx
+            amount_inr = ar_balance
         return self.record_entry(
             date_str=date_str,
             debit_account=self.CASH,
@@ -200,6 +222,47 @@ class FinancialLedger:
             amount_inr=amount_inr,
             category="transport_operations",
             description=f"Emergency repair for {bus_id}",
+            source_event_id=source_event_id,
+        )
+
+    def has_source(self, source_event_id: str) -> bool:
+        """True when any transaction already carries this source event id.
+
+        Causal handlers book some event costs directly; the generic effect path
+        uses this to avoid double-booking the same source event.
+        """
+        return any(tx.source_event_id == source_event_id for tx in self.transactions)
+
+    _EVENT_EXPENSE_ACCOUNTS = {
+        "maintenance": MAINTENANCE_EXPENSE,
+        "transport_operations": TRANSPORT_EXPENSE,
+        "utilities": UTILITIES_EXPENSE,
+        "sanitation_and_water": UTILITIES_EXPENSE,
+        "attendance_support": ATTENDANCE_SUPPORT_EXPENSE,
+    }
+
+    def book_event_expense(
+        self,
+        date_str: str,
+        amount_inr: float,
+        category: str,
+        description: str,
+        source_event_id: Optional[str] = None,
+    ) -> Transaction:
+        """Books one event-driven operating expense: Debits the matching expense
+        account, Credits Cash. Double-booking prevention is the caller's
+        contract: the engine skips an event's generic effects entirely when a
+        causal handler has already booked that source event (see Engine._close),
+        so this method records exactly what it is given.
+        """
+        account = self._EVENT_EXPENSE_ACCOUNTS.get(category, self.GENERAL_EXPENSE)
+        return self.record_entry(
+            date_str=date_str,
+            debit_account=account,
+            credit_account=self.CASH,
+            amount_inr=amount_inr,
+            category=category,
+            description=description,
             source_event_id=source_event_id,
         )
 

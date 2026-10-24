@@ -35,12 +35,12 @@ def safe_abs_diff(val_scen: float, val_base: float) -> float:
     return round(val_scen - val_base, 2)
 
 
-def load_run_pack(run_id: str) -> Dict[str, Any]:
+def load_run_pack(run_id: str, pack_dir: Optional[Path] = None) -> Dict[str, Any]:
     """Loads meta.json for a given run ID from the pack directory."""
-    pack_dir = ROOT / "pack" / run_id
-    meta_file = pack_dir / "meta.json"
+    pack_dir = Path(pack_dir) if pack_dir else ROOT / "pack"
+    meta_file = pack_dir / run_id / "meta.json"
     if not meta_file.exists():
-        raise FileNotFoundError(f"Run pack not found for '{run_id}' at {pack_dir}")
+        raise FileNotFoundError(f"Run pack not found for '{run_id}' at {meta_file}")
     return json.loads(meta_file.read_text(encoding="utf-8"))
 
 
@@ -179,13 +179,23 @@ def _build_causal_chain(metric_id: str, scen_meta: Dict[str, Any], abs_diff: flo
     return chain
 
 
-def compare_runs(baseline_run_id: str, scenario_run_id: str) -> Dict[str, Any]:
-    """Compares baseline and scenario run outputs, returning a structured comparison report."""
-    base_meta = load_run_pack(baseline_run_id)
-    scen_meta = load_run_pack(scenario_run_id)
+def compare_runs(baseline_run_id: str, scenario_run_id: str, window: Optional[tuple] = None, pack_dir: Optional[Path] = None) -> Dict[str, Any]:
+    """Compares baseline and scenario run outputs, returning a structured comparison report.
+
+    `window` optionally restricts the comparison to (start_day, end_day) inclusive
+    day indices. Paired branches share identical replayed history before the branch
+    point; comparing only the branch window keeps divergence metrics meaningful.
+    """
+    base_meta = load_run_pack(baseline_run_id, pack_dir=pack_dir)
+    scen_meta = load_run_pack(scenario_run_id, pack_dir=pack_dir)
 
     b_all_days = base_meta.get("days", [])
     s_all_days = scen_meta.get("days", [])
+
+    if window is not None:
+        w_start, w_end = window
+        b_all_days = [d for d in b_all_days if w_start <= d.get("i", -1) <= w_end]
+        s_all_days = [d for d in s_all_days if w_start <= d.get("i", -1) <= w_end]
 
     b_by_date = {d["date"]: d for d in b_all_days if "date" in d}
     s_by_date = {d["date"]: d for d in s_all_days if "date" in d}
@@ -248,17 +258,38 @@ def compare_runs(baseline_run_id: str, scenario_run_id: str) -> Dict[str, Any]:
     # ------------------------------------------------------------------
     # 4. Financials & Exact Ledger (Computed from double-entry records)
     # ------------------------------------------------------------------
-    b_last_cash = b_common[-1].get("finance", {}).get("cash", 0) if b_common else 0
-    s_last_cash = s_common[-1].get("finance", {}).get("cash", 0) if s_common else 0
+    # Same-basis rule: the reconciled ledger and the macro daily series are two
+    # different accounting models; mixing them across sides produces artifact
+    # deltas (e.g. ledger cash vs macro cash differ by design). The ledger is
+    # used only when BOTH packs carry a reconciled summary — otherwise both
+    # sides read the macro daily series, window-scoped like every other metric.
+    # Note: ledger summaries are full-run totals; they coincide with the window
+    # exactly for paired branches (both packs cover only the branch window).
+    b_fin_sum = base_meta.get("financial_summary", {}) or {}
+    s_fin_sum = scen_meta.get("financial_summary", {}) or {}
+    b_ledger_cash = ((b_fin_sum.get("cash") or {}).get("closing_cash"))
+    s_ledger_cash = ((s_fin_sum.get("cash") or {}).get("closing_cash"))
+    b_ledger_ar = ((b_fin_sum.get("accounts_receivable") or {}).get("closing_ar"))
+    s_ledger_ar = ((s_fin_sum.get("accounts_receivable") or {}).get("closing_ar"))
+    use_ledger = b_ledger_cash is not None and s_ledger_cash is not None
 
-    b_tot_inflow = sum(d.get("finance", {}).get("inflow", 0) for d in b_common)
-    s_tot_inflow = sum(d.get("finance", {}).get("inflow", 0) for d in s_common)
+    b_last_cash = b_ledger_cash if use_ledger else (b_common[-1].get("finance", {}).get("cash", 0) if b_common else 0)
+    s_last_cash = s_ledger_cash if use_ledger else (s_common[-1].get("finance", {}).get("cash", 0) if s_common else 0)
 
-    b_tot_outflow = sum(d.get("finance", {}).get("outflow", 0) for d in b_common)
-    s_tot_outflow = sum(d.get("finance", {}).get("outflow", 0) for d in s_common)
+    if use_ledger:
+        b_tot_inflow = (b_fin_sum.get("cash") or {}).get("inflows", 0)
+        s_tot_inflow = (s_fin_sum.get("cash") or {}).get("inflows", 0)
+        b_tot_outflow = (b_fin_sum.get("cash") or {}).get("outflows", 0)
+        s_tot_outflow = (s_fin_sum.get("cash") or {}).get("outflows", 0)
+    else:
+        b_tot_inflow = sum(d.get("finance", {}).get("inflow", 0) for d in b_common)
+        s_tot_inflow = sum(d.get("finance", {}).get("inflow", 0) for d in s_common)
 
-    b_closing_ar = b_common[-1].get("finance", {}).get("ar") if b_common else None
-    s_closing_ar = s_common[-1].get("finance", {}).get("ar") if s_common else None
+        b_tot_outflow = sum(d.get("finance", {}).get("outflow", 0) for d in b_common)
+        s_tot_outflow = sum(d.get("finance", {}).get("outflow", 0) for d in s_common)
+
+    b_closing_ar = b_ledger_ar if use_ledger else (b_common[-1].get("finance", {}).get("ar") if b_common else None)
+    s_closing_ar = s_ledger_ar if use_ledger else (s_common[-1].get("finance", {}).get("ar") if s_common else None)
 
     # ------------------------------------------------------------------
     # 5. Transport Fleet Availability (Computed in Phase 3)
@@ -272,8 +303,6 @@ def compare_runs(baseline_run_id: str, scenario_run_id: str) -> Dict[str, Any]:
     # ------------------------------------------------------------------
     # 6. Incidents, Safety & Investigations (Computed)
     # ------------------------------------------------------------------
-    b_alerts_tot = len(base_meta.get("alerts", []))
-    s_alerts_tot = len(scen_meta.get("alerts", []))
 
     b_incidents_tot = sum(len(d.get("incidents", [])) for d in b_common)
     s_incidents_tot = sum(len(d.get("incidents", [])) for d in s_common)
@@ -442,8 +471,12 @@ def compare_runs(baseline_run_id: str, scenario_run_id: str) -> Dict[str, Any]:
             "units": "agents",
             "baseline": base_meta.get("cognitive_summary", {}).get("total_agents_tracked", len(base_meta.get("people", []))),
             "scenario": scen_meta.get("cognitive_summary", {}).get("total_agents_tracked", len(scen_meta.get("people", []))),
-            "abs_diff": 0,
-            "pct_diff": 0.0,
+            "abs_diff": safe_abs_diff(
+                float(scen_meta.get("cognitive_summary", {}).get("total_agents_tracked", len(scen_meta.get("people", [])))),
+                float(base_meta.get("cognitive_summary", {}).get("total_agents_tracked", len(base_meta.get("people", []))))),
+            "pct_diff": safe_pct_diff(
+                float(scen_meta.get("cognitive_summary", {}).get("total_agents_tracked", len(scen_meta.get("people", [])))),
+                float(base_meta.get("cognitive_summary", {}).get("total_agents_tracked", len(base_meta.get("people", []))))),
             "status": LABEL_COMPUTED,
             "explanation": "Level 1 individual persistent cognitive state maintained across all students and staff.",
         },
@@ -604,12 +637,14 @@ def _generate_feasible_solutions(metrics: List[Dict[str, Any]], scen_meta: Dict[
         })
 
     # 2. Transport Breakdown / Fleet Strain
-    late_routes = next((m for m in metrics if m["id"] == "late_routes_incident_count"), None)
-    if late_routes and isinstance(late_routes.get("scenario"), (int, float)) and late_routes["scenario"] > 0:
+    late_routes = next((m for m in metrics if m["id"] == "late_arrivals_mean"), None)
+    if (late_routes and isinstance(late_routes.get("scenario"), (int, float))
+            and isinstance(late_routes.get("baseline"), (int, float))
+            and late_routes["scenario"] > late_routes["baseline"]):
         solutions.append({
             "domain": "Transport Operations",
             "title": "Staggered Morning Arrival Windows & Route Split Standby",
-            "trigger_evidence": f"{late_routes['scenario']} route lateness/breakdown incidents encountered.",
+            "trigger_evidence": f"Late arrivals rose to {late_routes['scenario']:g}/day (baseline {late_routes['baseline']:g}, delta {late_routes['abs_diff']:+g}).",
             "recommended_action": "Deploy 1 dedicated standby 32-seater bus stationed at the Sector 4 junction; split congested northern arterial route into two parallel runs.",
             "feasibility": "Medium — Requires standby charter agreement with approved transport vendor.",
             "projected_cost_inr": 22000,
@@ -617,7 +652,7 @@ def _generate_feasible_solutions(metrics: List[Dict[str, Any]], scen_meta: Dict[
         })
 
     # 3. Attendance Support / Heat Index / Seasonal Strain
-    att = next((m for m in metrics if m["id"] == "attendance_mean_pct"), None)
+    att = next((m for m in metrics if m["id"] == "attendance_rate"), None)
     if att and isinstance(att.get("abs_diff"), (int, float)) and att["abs_diff"] < 0:
         solutions.append({
             "domain": "Student Welfare & Attendance",
@@ -630,7 +665,7 @@ def _generate_feasible_solutions(metrics: List[Dict[str, Any]], scen_meta: Dict[
         })
 
     # 4. Financial Solvency / Accounts Receivable
-    ar = next((m for m in metrics if m["id"] == "accounts_receivable_inr"), None)
+    ar = next((m for m in metrics if m["id"] == "accounts_receivable_closing"), None)
     if ar and isinstance(ar.get("scenario"), (int, float)) and ar["scenario"] > 1000000:
         solutions.append({
             "domain": "Financial Administration",

@@ -380,6 +380,127 @@ EVENT_CATALOG: Dict[str, Dict[str, Any]] = {
         "requires_students": False,
         "modeled": True,
     },
+    # Facility faults eligible during closures (scheduler closed-day categories);
+    # previously missing from this catalog, which made the engine's applicability
+    # gate treat them as student-dependent and skip them on closed days.
+    "door_lock_failure": {
+        "title": "Door Lock Failure",
+        "description": "Lock cylinder seizure requiring latch replacement by maintenance staff.",
+        "required_fields": ["date"],
+        "default_severity": "low",
+        "allowed_origin_zone_types": ["library", "lab", "store"],
+        "requires_students": False,
+        "modeled": True,
+    },
+    "door_frame_damage": {
+        "title": "Door Frame Damage",
+        "description": "Hinge mount detachment requiring welding and zone securing during repair.",
+        "required_fields": ["date"],
+        "default_severity": "medium",
+        "allowed_origin_zone_types": ["stair", "gate"],
+        "requires_students": False,
+        "modeled": True,
+    },
+    "broken_classroom_furniture": {
+        "title": "Broken Classroom Furniture",
+        "description": "Fractured bench seating requiring replacement assembly.",
+        "required_fields": ["date"],
+        "default_severity": "medium",
+        "allowed_origin_zone_types": ["classroom"],
+        "requires_students": False,
+        "modeled": True,
+    },
+    "room_closure": {
+        "title": "Precautionary Room Closure",
+        "description": "Zone closed for inspection with class relocation to a reserve room.",
+        "required_fields": ["date"],
+        "default_severity": "medium",
+        "allowed_origin_zone_types": ["lab", "canteen"],
+        "requires_students": False,
+        "modeled": True,
+    },
+    "campus_power_outage": {
+        "title": "Campus Power Outage",
+        "description": "Main incoming line trip requiring diesel generator backup and lab securing.",
+        "required_fields": ["date"],
+        "default_severity": "high",
+        "allowed_origin_zone_types": ["ground", "office"],
+        "requires_students": False,
+        "modeled": True,
+    },
+    "water_service_disruption": {
+        "title": "Water Service Disruption",
+        "description": "Municipal supply pressure fault requiring emergency tanker and valve repair.",
+        "required_fields": ["date"],
+        "default_severity": "high",
+        "allowed_origin_zone_types": ["washroom"],
+        "requires_students": False,
+        "modeled": True,
+    },
+    "unplanned_repair_expense": {
+        "title": "Unplanned Repair Expense",
+        "description": "Emergency maintenance invoice approved outside the planned budget.",
+        "required_fields": ["date"],
+        "default_severity": "medium",
+        "allowed_origin_zone_types": ["office"],
+        "requires_students": False,
+        "modeled": True,
+    },
+    "maintenance_team_overload": {
+        "title": "Maintenance Team Overload",
+        "description": "Concurrent work orders exceeding staff capacity; external contractor callout.",
+        "required_fields": ["date"],
+        "default_severity": "medium",
+        "allowed_origin_zone_types": ["blind_spot", "store"],
+        "requires_students": False,
+        "modeled": True,
+    },
+    # Teaching-day operational events (only scheduled on open days).
+    "urgent_cover_requirement": {
+        "title": "Urgent Cover Requirement",
+        "description": "Sudden teacher illness triggering emergency cover reassignment.",
+        "required_fields": ["date"],
+        "default_severity": "medium",
+        "allowed_origin_zone_types": ["staffroom"],
+        "requires_students": True,
+        "modeled": True,
+    },
+    "it_support_bottleneck": {
+        "title": "IT Support Bottleneck",
+        "description": "Network switch reset delaying digital lesson logging.",
+        "required_fields": ["date"],
+        "default_severity": "low",
+        "allowed_origin_zone_types": ["lab", "office"],
+        "requires_students": True,
+        "modeled": True,
+    },
+    "student_group_complaint": {
+        "title": "Student Group Complaint",
+        "description": "Cohort delegation petitioning administration on timetable or facilities.",
+        "required_fields": ["date"],
+        "default_severity": "medium",
+        "allowed_origin_zone_types": ["office"],
+        "requires_students": True,
+        "modeled": True,
+    },
+    "backup_vehicle_requirement": {
+        "title": "Backup Vehicle Requirement",
+        "description": "Bus mechanical warning prompting reserve vehicle dispatch.",
+        "required_fields": ["date"],
+        "default_severity": "medium",
+        "allowed_origin_zone_types": ["bus"],
+        "requires_students": True,
+        "modeled": True,
+    },
+    "timetable_conflict": {
+        "title": "Timetable Conflict",
+        "description": "Overlapping resource booking resolved during morning briefing.",
+        "required_fields": ["date"],
+        "default_severity": "low",
+        "allowed_origin_zone_types": ["staffroom"],
+        "requires_students": True,
+        "modeled": True,
+    },
 }
 
 # ----------------------------------------------------------------------
@@ -850,6 +971,130 @@ def validate_scenario(data: Dict[str, Any]) -> Tuple[bool, List[str]]:
                     errors.append(f"Event #{idx + 1} (additional_teacher_hired) requires 'teacher_name'")
 
     return len(errors) == 0, errors
+
+
+def validate_paired_custom_event(
+    custom_event: Dict[str, Any],
+    start_day: int = 151,
+    end_day: Optional[int] = None,
+    reopening_date: str = "2026-07-01",
+) -> Tuple[bool, List[str], List[str]]:
+    """Validates a paired-simulation custom event against the school calendar.
+
+    Returns (ok, errors, warnings). Errors block the run (the simulation could
+    not honestly execute the requested intervention); warnings describe
+    degraded-but-valid configurations the user should know about.
+    """
+    from .extension_calendar import ExtensionCalendar
+    from .events import TITLES
+
+    errors: List[str] = []
+    warnings: List[str] = []
+    cal = ExtensionCalendar(reopening_date=reopening_date)
+
+    if end_day is None:
+        end_day = start_day + 30 - 1
+
+    etype = custom_event.get("type")
+    if not etype or etype not in EVENT_CATALOG:
+        return False, [f"Unsupported event type '{etype}'"], []
+
+    edate = custom_event.get("date")
+    is_valid_dt, dt_err = validate_date(edate)
+    if not is_valid_dt:
+        return False, [f"Custom event: {dt_err}"], []
+
+    eday = cal.day_for_date(edate)
+    if eday < start_day:
+        errors.append(
+            f"Custom event date '{edate}' (Day {eday}) is before the branch start Day {start_day} "
+            f"({cal.date_for_day(start_day)})."
+        )
+    elif end_day is not None and eday > end_day:
+        errors.append(
+            f"Custom event date '{edate}' (Day {eday}) is after the branch end Day {end_day} "
+            f"({cal.date_for_day(end_day)})."
+        )
+    else:
+        cat_info = EVENT_CATALOG.get(etype, {})
+        req_students = cat_info.get("requires_students", True)
+        day_inf = cal.info(eday)
+        if req_students and not day_inf["open"]:
+            nearest = None
+            min_diff = 9999
+            for cand_d in range(start_day, end_day + 1):
+                if cal.info(cand_d)["open"]:
+                    diff = abs(cand_d - eday)
+                    if diff < min_diff:
+                        min_diff, nearest = diff, cand_d
+            sug = cal.date_for_day(nearest) if nearest is not None else cal.date_for_day(start_day)
+            errors.append(
+                f"'{TITLES.get(etype, etype)}' needs students on campus, but '{edate}' (Day {eday}) is a "
+                f"closed day ({day_inf['type']}). School reopens {reopening_date}. "
+                f"Nearest open day in this window: '{sug}' (Day {nearest})."
+                if nearest is not None else
+                f"'{TITLES.get(etype, etype)}' needs students on campus, but '{edate}' (Day {eday}) is a "
+                f"closed day and the window contains no open school days."
+            )
+
+    # Window-level honesty: how many open school days does the comparison cover?
+    open_days = [d for d in range(start_day, end_day + 1) if cal.info(d)["open"]]
+    if not open_days:
+        first_open = None
+        for d in range(start_day, min(start_day + 400, TOTAL_DAYS)):
+            if cal.info(d)["open"]:
+                first_open = d
+                break
+        warnings.append(
+            "The evaluation window contains no open school days (summer break); a paired comparison "
+            "would show almost no divergence. School reopens "
+            f"{reopening_date} (Day {first_open})." if first_open is not None else
+            "The evaluation window contains no open school days."
+        )
+    elif len(open_days) < 5:
+        warnings.append(
+            f"The evaluation window contains only {len(open_days)} open school day(s); "
+            "metrics over so few days are noisy."
+        )
+
+    # Severity must be one the engine's dispatch understands — an invalid value
+    # would otherwise raise KeyError mid-run, after compute has been spent.
+    sev = custom_event.get("severity", "medium")
+    if sev not in ("low", "medium", "high"):
+        errors.append(f"severity must be 'low', 'medium', or 'high' (got {sev!r})")
+
+    # Type-specific parameter checks (mirror validate_scenario)
+    params = custom_event.get("params") or {}
+    if etype == "serious_student_fight":
+        sids = custom_event.get("student_ids") or params.get("student_ids") or []
+        if not isinstance(sids, list) or len(sids) != 3:
+            errors.append("serious_student_fight requires exactly 3 student IDs in params.student_ids")
+    elif etype in ("teacher_resignation", "teacher_resignation_notice"):
+        tname = (
+            custom_event.get("teacher_name") or params.get("teacher_name")
+            or params.get("name") or custom_event.get("name") or custom_event.get("teacher")
+        )
+        if not tname or not isinstance(tname, str) or not tname.strip():
+            errors.append(f"{etype} requires a teacher name (teacher_name / params.name / teacher)")
+    elif etype == "school_fee_increase":
+        pct = custom_event.get("delta_pct") or params.get("delta_pct") or params.get("tuition_fee_delta_pct")
+        if pct is None or not isinstance(pct, (int, float)):
+            errors.append("school_fee_increase requires a numeric 'delta_pct'")
+    elif etype == "additional_teacher_hired":
+        tname = (
+            custom_event.get("teacher_name") or params.get("teacher_name")
+            or params.get("name") or custom_event.get("name")
+        )
+        if not tname or not isinstance(tname, str) or not tname.strip():
+            errors.append("additional_teacher_hired requires a teacher name (teacher_name / params.name)")
+
+    loc = custom_event.get("location") or params.get("location") or custom_event.get("room") or params.get("room")
+    if loc:
+        is_loc_valid, loc_status, loc_err, _origin = validate_location(loc, etype)
+        if not is_loc_valid and loc_status != "not_configured":
+            errors.append(f"Custom event location: {loc_err}")
+
+    return len(errors) == 0, errors, warnings
 
 
 def calculate_scenario_start_from_baseline(

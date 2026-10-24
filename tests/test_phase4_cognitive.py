@@ -357,7 +357,7 @@ class TestPhase4CognitiveArchitecture(unittest.TestCase):
         ov = {
             "name": "test_phase4_sim",
             "seed": 20261014,
-            "end_day": 3,
+            "end_day": 13,
             "mode": "generate",
             "events": {
                 "use_story_events": True,
@@ -365,8 +365,8 @@ class TestPhase4CognitiveArchitecture(unittest.TestCase):
                 "add": [
                     {
                         "type": "serious_student_fight",
-                        "day": 2,
-                        "date": "2026-01-02",
+                        "day": 12,
+                        "date": "2026-01-12",
                         "student_ids": ["STU-0012", "STU-0015", "STU-0021"],
                         "location": "playground",
                         "severity": "high",
