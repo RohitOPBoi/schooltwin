@@ -14,6 +14,43 @@
   const gradeOn = (pr, iso) => (pr.grades ? (iso >= '2026-04-01' ? pr.grades[1] : pr.grades[0]) : pr.grade);
   const bandOf = g => { const i = GRADES.indexOf(g); return i < 4 ? 0 : i < 8 ? 1 : i < 11 ? 2 : 3; };
   const moodColor = m => `hsl(${clamp((m - 25) / 50, 0, 1) * 120},78%,${m < 45 ? 42 : 46}%)`;
+  /* Canvas token set mirroring the CSS custom properties (design system v7).
+   * Canvas 2D cannot resolve CSS vars, so both themes are declared here and
+   * CT() picks one — the design-token test asserts parity with player.css. */
+  const CANVAS_THEMES = {
+    dark: {
+      // Ink Midnight canvas map — parity with [data-theme="dark"] CSS tokens
+      canvasBg: '#141B27', floor: '#18202D', floorBorder: '#2A3547', zoneBorder: 'rgba(237,241,247,0.09)',
+      zoneText: '#B6C0D0', floorName: '#8C97A9', playhead: '#8CA2E8',
+      origin: '#E07A5F', affected: '#D9A441', secondary: '#E8C87E', response: '#5BC4B4',
+      scenario: '#AF9FEE', control: '#8FB4D4', baseline: '#97A3B6', accent: '#8CA2E8',
+      better: '#6FCB8B', worse: '#E5837A', warn: '#D9A441',
+      personUnknown: '#8C97A9', zoneDefault: '#1C2534', panel: '#1C2534', legendText: '#B6C0D0',
+      teacher: '#F59E5D', principal: '#E8C87E', visitor: '#AF9FEE', staff: '#8C97A9', student: '#8FB4D4',
+      flagUser: '#AF9FEE', flagEvent: '#E07A5F', flagSev3: '#E07A5F', flagSev2: '#D9A441', flagSev1: '#8FB4D4',
+      attGood: '#6FCB8B', attSteady: '#D9A441', attLate: '#E8C87E', attBad: '#E5837A', attNone: '#242F40',
+      moodLow: '#E5837A', moodSteady: '#D9A441', moodGood: '#6FCB8B',
+    },
+    light: {
+      // Ivory Editorial canvas map — parity with the default (:root light) CSS tokens
+      canvasBg: '#F4F2EB', floor: '#FBFAF6', floorBorder: '#DCD7C9', zoneBorder: 'rgba(30,38,52,0.10)',
+      zoneText: '#475265', floorName: '#626D7E', playhead: '#3A57AE',
+      origin: '#B04A2E', affected: '#8F6612', secondary: '#A9821D', response: '#17635E',
+      scenario: '#6455B8', control: '#4C7093', baseline: '#6E7A8C', accent: '#3A57AE',
+      better: '#2E7444', worse: '#A83B31', warn: '#8F6612',
+      personUnknown: '#626D7E', zoneDefault: '#FFFFFF', panel: '#FFFFFF', legendText: '#475265',
+      teacher: '#B45309', principal: '#8F6612', visitor: '#6455B8', staff: '#626D7E', student: '#4C7093',
+      flagUser: '#6455B8', flagEvent: '#B04A2E', flagSev3: '#B04A2E', flagSev2: '#8F6612', flagSev1: '#4C7093',
+      attGood: '#2E7444', attSteady: '#8F6612', attLate: '#A9821D', attBad: '#A83B31', attNone: '#ECE9DE',
+      moodLow: '#A83B31', moodSteady: '#8F6612', moodGood: '#2E7444',
+    }
+  };
+  const CT = () => CANVAS_THEMES[S.theme === 'light' ? 'light' : 'dark'];
+  const hexA = (hex, a) => {
+    const h = hex.replace('#', '');
+    const n = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
+    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+  };
   const FLOOR_GAP = 112, FW = 100, FH = 60;
   const SPEEDS = { day: [['1 min / s', 1], ['5 min / s', 5], ['15 min / s', 15], ['30 min / s', 30], ['60 min / s', 60]],
                    term: [['1 day / s', 1], ['3 days / s', 3], ['7 days / s', 7], ['14 days / s', 14]] };
@@ -22,10 +59,16 @@
     base: new URLSearchParams(location.search).get('pack') || 'pack/', index: null, run: null, meta: null, hist: null,
     days: new Map(), day: 0, minute: 525, dayF: 0, playing: false, busy: false, mode: 'day', speed: 15, view: 'operator',
     layer: 'reality', color: 'grade', floor: 'all', sel: null, tab: 'now', userFlags: [], api: false, cmp: null,
-    dirty: true, last: 0, hits: [], lastPanel: 0, snapMinute: 630, approvals: {}, theme: 'dark',
+    dirty: true, last: 0, hits: [], lastPanel: 0, snapMinute: 630, approvals: {}, theme: 'light', motionSetting: 'full',
     pairedMode: false, pairMeta: null, ctrlMeta: null, trtMeta: null,
     ctrlDays: new Map(), trtDays: new Map(), randomProfile: 'balanced', pairSeed: 20261014,
   };
+  // Canvas animation phase — static when Motion: Off so the map never animates
+  // against the user's explicit preference (CSS alone cannot gate canvas draws).
+  function animPhase(nowMs, fullMs, reducedMs) {
+    const cycle = S.motionSetting === 'reduced' ? reducedMs : fullMs;
+    return S.motionOff ? 0.35 : (nowMs % cycle) / cycle;
+  }
   window.ST = S;                                    // handy for tests and for poking around in the console
 
   const RANDOM_PROFILES = {
@@ -53,11 +96,92 @@
     custom: {
       id: 'custom',
       name: 'Custom',
-      desc: 'User-configured event frequencies, categories, cooldowns, and random seed.',
+      desc: 'User-configured event frequencies, categories, and random seed.',
       rate: 'Custom', maxDay: 2, maxWk: 3, cooldown: '6d',
       allowed: 'User specified'
     }
   };
+
+  /* Event types that need students on campus (mirrors schema.EVENT_CATALOG
+   * requires_students=true). The engine skips these on closed days and the
+   * server rejects them for paired runs; this mirror only drives UI warnings. */
+  const STUDENT_EVENT_TYPES = new Set([
+    'serious_student_fight', 'suspected_prohibited_business', 'collective_strike', 'first_aid_visit',
+    'student_teacher_conflict', 'weather_attendance_dip', 'transport_lateness_spike', 'bus_breakdown',
+    'annual_day_crowd_buildup', 'teacher_absence_and_cover_pressure',
+    // teaching-day operational events (server catalog marks them requires_students)
+    'urgent_cover_requirement', 'it_support_bottleneck', 'student_group_complaint',
+    'backup_vehicle_requirement', 'timetable_conflict'
+  ]);
+  const REOPEN_DATE = '2026-07-01';
+  const isStudentEvent = t => STUDENT_EVENT_TYPES.has(t);
+  /* Closed-day truth comes from the server's extension calendar when the API
+   * is up (S.timing.day_calendar); offline falls back to reopen + Sundays. */
+  const extDayClosed = iso => {
+    if (S.timing && S.timing.day_calendar) {
+      const rec = S.timing.day_calendar.find(x => x.date === iso);
+      if (rec) return !rec.open;
+    }
+    const d = new Date(iso + 'T00:00:00');
+    return iso < REOPEN_DATE || d.getDay() === 0;
+  };
+  const firstOpenHint = () => (S.timing && S.timing.first_open_date) || REOPEN_DATE;
+  // Nearest open school day on or after the given date (uses the server's
+  // calendar truth; falls back to reopen-date-or-next-Monday offline).
+  const nearestOpenFrom = iso => {
+    if (S.timing && S.timing.day_calendar) {
+      const rec = S.timing.day_calendar.find(x => x.date >= iso && x.open);
+      if (rec) return rec.date;
+    }
+    if (iso < REOPEN_DATE) return REOPEN_DATE;
+    const d = new Date(iso + 'T00:00:00');
+    if (d.getDay() !== 0) return iso;
+    d.setDate(d.getDate() + 1);
+    return isoOfDate(d);
+  };
+  // Branch day index for an ISO date (the paired branch starts Day 151 = 2026-06-01).
+  const branchDayOf = iso => Math.round((new Date(iso + 'T00:00:00') - new Date('2026-06-01T00:00:00')) / 86400000) + 151;
+  // Shortest standard horizon that still contains the given event date.
+  const durationCovering = iso => {
+    const need = branchDayOf(iso) - 151 + 1;
+    return [30, 60, 90, 150].find(d => d >= need) || need;
+  };
+  // If the selected event date falls outside the simulated horizon, extend the
+  // horizon to the shortest preset covering it — the run would otherwise be
+  // rejected server-side only after the user clicks Run.
+  const ensureHorizonCoversDate = () => {
+    const cur = +S.form.evalDuration || 30;
+    const need = durationCovering(S.form.curEvDate);
+    if (need > cur) {
+      S.form.evalDuration = need;
+      toast(`Horizon extended to ${need} days so it includes ${S.form.curEvDate}`);
+      return true;
+    }
+    return false;
+  };
+  async function ensureTiming(durationDays) {
+    if (!S.api) return;
+    const dur = +durationDays || 30;
+    if (S.timing && S.timingDuration === dur) return;
+    S._timingReq = dur;   // supersede any in-flight fetch for another duration
+    try {
+      const res = await getJSON('api/scenario_timing?parent=story_baseline&duration=' + dur);
+      if (res && res.ok && res.timing && S._timingReq === dur) {
+        S.timing = res.timing;
+        S.timingDuration = dur;
+        // Patch just the status line when present: a full panel re-render here
+        // would destroy focus and uncommitted input in the open builder form.
+        const line = typeof document !== 'undefined' ? document.getElementById('openDayLine') : null;
+        if (line) {
+          const tmp = document.createElement('span');
+          tmp.innerHTML = openDayLineHtml(dur);
+          line.replaceWith(tmp.firstElementChild || tmp);
+        } else {
+          renderPanels(true);
+        }
+      }
+    } catch (e) { /* static fallback in extDayClosed */ }
+  }
 
   function applyTheme(theme) {
     S.theme = theme;
@@ -91,7 +215,7 @@
   }
   async function boot() {
     bindUI();
-    const savedTheme = (typeof localStorage !== 'undefined' && localStorage.getItem('st-theme')) || 'dark';
+    const savedTheme = (typeof localStorage !== 'undefined' && localStorage.getItem('st-theme')) || 'light';
     applyTheme(savedTheme);
     try { S.index = await getJSON(S.base + 'index.json'); } catch (e) { toast('No packs found. Run scripts/run_story.py first.'); return; }
     const sel = $('#runSel');
@@ -104,9 +228,27 @@
   }
   async function loadRun(id) {
     pause();
-    S.run = id; S.days.clear(); S.sel = null; S.cmp = null;
+    // Leaving a paired comparison must restore single-run surfaces, or the
+    // dual map keeps rendering stale ctrl/trt state over the new run (chimera).
+    if (S.pairedMode) {
+      S.pairedMode = false; S.pairMeta = null; S.ctrlMeta = null; S.trtMeta = null;
+      S.ctrlDays.clear(); S.trtDays.clear();
+      const singleMap = $('#map'); if (singleMap) singleMap.style.display = 'block';
+      const dualContainer = $('#mapDualContainer'); if (dualContainer) dualContainer.style.display = 'none';
+      const btnExit = $('#btnExitComparison'); if (btnExit) btnExit.style.display = 'none';
+    }
+    S.run = id; S.days.clear(); S.sel = null; S.cmp = null; S.activeFlag = null;
     const b = S.base + id + '/';
-    [S.meta, S.hist] = await Promise.all([getJSON(b + 'meta.json'), getJSON(b + 'history.json')]);
+    let metas;
+    try {
+      metas = await Promise.all([getJSON(b + 'meta.json'), getJSON(b + 'history.json')]);
+    } catch (e) {
+      toast(`Could not load run '${id}' (${e.message || e}). Falling back to the first available run.`);
+      const fallback = S.index && S.index.runs[0] && S.index.runs[0].id;
+      if (fallback && fallback !== id) return loadRun(fallback);
+      return;
+    }
+    [S.meta, S.hist] = metas;
     const M = S.meta;
     S.zones = M.zones; S.zoneIdx = {}; M.zones.forEach((z, i) => { S.zoneIdx[z.id] = i; });
     S.people = M.people; S.trk = {}; M.tracked.forEach((id, k) => { S.trk[id] = k; });
@@ -115,8 +257,6 @@
     if (S.redacted) { S.view = 'operator'; $$('#viewSeg button').forEach(b => { b.disabled = b.dataset.v === 'author'; }); }
     try { S.userFlags = JSON.parse(localStorage.getItem('st-flags-' + id) || '[]'); } catch (e) { S.userFlags = []; }
     if (S.api) { try { const sv = await getJSON('api/flags?run=' + encodeURIComponent(id)); sv.forEach(f => { if (!S.userFlags.find(x => x.id === f.id)) S.userFlags.push(f); }); } catch (e) { /* none saved */ } }
-    try { S.incidents = await getJSON(b + 'incidents.json'); } catch (e) { S.incidents = []; }
-    try { S.reportData = await getJSON(b + 'report.json'); } catch (e) { S.reportData = null; }
     $('#schoolName').textContent = M.run.school + ' · ' + M.run.mode + ' mode';
     const first = M.days.findIndex(d => d.open && d.i >= M.run.start_day);
     S.dayF = Math.max(first, 0);
@@ -378,6 +518,11 @@
     lab: '#171224', gate: '#111520', bus: '#161814', office: '#131824', staffroom: '#131824', infirmary: '#241416',
     washroom: '#0f1822', store: '#141822', blind_spot: '#181a24', sports: '#0c1815', parking: '#111520', room: '#121722'
   };
+  const TINT_LIGHT = {
+    classroom: '#F2F4F8', corridor: '#E9EDF3', stair: '#EDF0F5', ground: '#E7F0EA', canteen: '#F6F0E4', library: '#EDF1F7',
+    lab: '#EFEBF5', gate: '#E9EDF3', bus: '#EFF0E9', office: '#EDF0F6', staffroom: '#EDF0F6', infirmary: '#F7E9E7',
+    washroom: '#EBEFF4', store: '#EFF1F5', blind_spot: '#F0F1F5', sports: '#E7F0EA', parking: '#E9EDF3', room: '#F2F4F8'
+  };
   function renderDualCanvas(cv, D, meta, isCtrl, isTrt) {
     if (!cv || !meta) return;
     const dpr = window.devicePixelRatio || 1;
@@ -409,12 +554,12 @@
     // Floors
     L.floors.forEach(f => {
       const o = L.org[f];
-      ctx.fillStyle = isLight ? '#ffffff' : '#0a0d14';
-      ctx.strokeStyle = isLight ? '#cbd5e1' : '#1e2638';
+      ctx.fillStyle = CT().floor;
+      ctx.strokeStyle = CT().floorBorder;
       ctx.lineWidth = 1;
       ctx.fillRect(o.x, o.y, FW * sc, FH * sc);
       ctx.strokeRect(o.x, o.y, FW * sc, FH * sc);
-      ctx.fillStyle = isLight ? '#475569' : '#9ca3af';
+      ctx.fillStyle = CT().floorName;
       ctx.font = `600 ${Math.max(10, sc * 2.6)}px system-ui,sans-serif`;
       ctx.textAlign = 'left';
       ctx.fillText(meta.floors[f], o.x + 2, o.y - 5);
@@ -434,25 +579,26 @@
       const [x, y, w, h] = z.rect, X = o.x + x * sc, Y = o.y + y * sc, WW = w * sc, HH = h * sc, c = counts[zi];
       const isOrigin = (z.id === originZoneId);
 
-      ctx.fillStyle = (typeof TINT !== 'undefined' && TINT[z.type]) ? TINT[z.type] : (isLight ? '#f8fafc' : '#121722');
+      const tint = isLight ? TINT_LIGHT : TINT;
+      ctx.fillStyle = (tint && tint[z.type]) ? tint[z.type] : CT().zoneDefault;
       ctx.fillRect(X, Y, WW, HH);
 
       if (isOrigin) {
-        ctx.fillStyle = isCustomEvent ? 'rgba(16, 185, 129, 0.25)' : isSharedBg ? 'rgba(56, 189, 248, 0.25)' : 'rgba(239, 68, 68, 0.25)';
+        ctx.fillStyle = hexA(isCustomEvent ? CT().scenario : isSharedBg ? CT().control : CT().origin, 0.25);
         ctx.fillRect(X, Y, WW, HH);
-        ctx.strokeStyle = isCustomEvent ? '#10b981' : isSharedBg ? '#38bdf8' : '#ef4444';
+        ctx.strokeStyle = isCustomEvent ? CT().scenario : isSharedBg ? CT().control : CT().origin;
         ctx.lineWidth = 2.5;
         ctx.setLineDash([4, 2]);
         ctx.strokeRect(X, Y, WW, HH);
         ctx.setLineDash([]);
       } else {
-        ctx.strokeStyle = isLight ? '#e2e8f0' : '#1a2233';
+        ctx.strokeStyle = CT().zoneBorder;
         ctx.lineWidth = 1;
         ctx.strokeRect(X, Y, WW, HH);
       }
 
       if (sc >= 2.0) {
-        ctx.fillStyle = isLight ? '#475569' : '#94a3b8';
+        ctx.fillStyle = CT().zoneText;
         ctx.font = `${Math.max(8, sc * 1.5)}px system-ui,sans-serif`;
         ctx.textAlign = 'left';
         ctx.fillText(z.label, X + 2, Y + Math.max(9, sc * 1.7));
@@ -466,9 +612,9 @@
         const [px, py] = posIn(z, id), x = o.x + px * sc, y = o.y + py * sc;
         const p = S.people[id], r = p.role;
         let col;
-        if (S.color === 'mood') { const m = moodAt(D, id, t); col = m == null ? '#94a3b8' : moodColor(m); }
-        else if (S.color === 'grade') { col = r === 'student' ? BANDS[bandOf(gradeOn(p, md.date))][1] : '#f97316'; }
-        else { col = r === 'student' ? '#38bdf8' : r === 'teacher' ? '#f59e0b' : r === 'principal' ? '#8b5cf6' : '#10b981'; }
+        if (S.color === 'mood') { const m = moodAt(D, id, t); col = m == null ? CT().personUnknown : moodColor(m); }
+        else if (S.color === 'grade') { col = r === 'student' ? BANDS[bandOf(gradeOn(p, md.date))][1] : CT().teacher; }
+        else { col = r === 'student' ? CT().student : r === 'teacher' ? CT().teacher : r === 'principal' ? CT().principal : CT().response; }
 
         ctx.fillStyle = col;
         if (r === 'student') {
@@ -492,10 +638,10 @@
         const cx = o.x + (ox + ow / 2) * sc;
         const cy = o.y + (oy + oh / 2) * sc;
         const nowMs = performance.now();
-        const phase = (nowMs % 1800) / 1800;
+        const phase = animPhase(nowMs, 1800, 3600);
 
-        const reticleColor = isCustomEvent ? '#10b981' : isSharedBg ? '#38bdf8' : '#ef4444';
-        const reticleAura = isCustomEvent ? `rgba(16, 185, 129, ${1 - phase})` : isSharedBg ? `rgba(56, 189, 248, ${1 - phase})` : `rgba(239, 68, 68, ${1 - phase})`;
+        const reticleColor = isCustomEvent ? CT().scenario : isSharedBg ? CT().control : CT().origin;
+        const reticleAura = hexA(reticleColor, 1 - phase);
 
         const maxR = Math.max(16, Math.min(ow, oh) * sc * 0.75);
         const pulseR = 8 + phase * (maxR - 8);
@@ -510,9 +656,9 @@
         ctx.fillStyle = reticleColor; ctx.fill();
 
         const badgeTxt = isCustomEvent ? `★ TREATMENT: ${activeInc.title.slice(0, 20)}` : isSharedBg ? `⚑ SHARED BG: ${activeInc.title.slice(0, 20)}` : `⚑ ${activeInc.title.slice(0, 20)}`;
-        ctx.font = '700 9.5px var(--font-mono), monospace';
+        ctx.font = '700 9.5px ui-monospace, Menlo, Consolas, monospace';
         const bw = ctx.measureText(badgeTxt).width + 12;
-        ctx.fillStyle = isLight ? '#ffffff' : '#090b10';
+        ctx.fillStyle = CT().panel;
         ctx.strokeStyle = reticleColor; ctx.lineWidth = 1;
         roundRect(ctx, cx - bw / 2, cy - 24, bw, 16, 4);
         ctx.fill(); ctx.stroke();
@@ -577,12 +723,12 @@
     // Floors
     L.floors.forEach(f => {
       const o = L.org[f];
-      ctx.fillStyle = isLight ? '#ffffff' : '#0a0d14';
-      ctx.strokeStyle = isLight ? '#cbd5e1' : '#1e2638';
+      ctx.fillStyle = CT().floor;
+      ctx.strokeStyle = CT().floorBorder;
       ctx.lineWidth = 1;
       ctx.fillRect(o.x, o.y, FW * sc, FH * sc);
       ctx.strokeRect(o.x, o.y, FW * sc, FH * sc);
-      ctx.fillStyle = isLight ? '#475569' : '#9ca3af';
+      ctx.fillStyle = CT().floorName;
       ctx.font = `600 ${Math.max(10, sc * 2.6)}px system-ui,sans-serif`;
       ctx.textAlign = 'left';
       ctx.fillText(S.meta.floors[f], o.x + 2, o.y - 5);
@@ -637,46 +783,47 @@
       const isOrigin = (z.id === originZoneId);
       const isAffected = affectedZoneIds.has(z.id);
 
-      ctx.fillStyle = (typeof TINT !== 'undefined' && TINT[z.type]) ? TINT[z.type] : (isLight ? '#f8fafc' : '#121722');
+      const tintMap = isLight ? TINT_LIGHT : TINT;
+      ctx.fillStyle = (tintMap && tintMap[z.type]) ? tintMap[z.type] : CT().zoneDefault;
       ctx.fillRect(X, Y, WW, HH);
 
       // Crowding heat
       const heat = z.type === 'classroom' ? (ratio - 0.95) / 0.5 : (ratio - 0.55) / 0.6;
       if (c.n > 0 && heat > 0 && (!camMode || z.cam)) {
-        ctx.fillStyle = `rgba(239,68,68,${Math.min(heat, 1) * 0.45})`;
+        ctx.fillStyle = hexA(CT().worse, Math.min(heat, 1) * 0.45);
         ctx.fillRect(X, Y, WW, HH);
       }
 
-      // Affected zone hazard wash
+      // Affected zone hazard wash (amber tint, §8.5)
       if (isAffected) {
-        ctx.fillStyle = 'rgba(249, 115, 22, 0.16)';
+        ctx.fillStyle = hexA(CT().affected, 0.18);
         ctx.fillRect(X, Y, WW, HH);
       }
-      // Origin zone focal wash
+      // Origin zone focal wash (vermilion, the brightest thing on screen, §8.4)
       if (isOrigin) {
-        ctx.fillStyle = 'rgba(239, 68, 68, 0.22)';
+        ctx.fillStyle = hexA(CT().origin, 0.22);
         ctx.fillRect(X, Y, WW, HH);
       }
 
-      // Borders
+      // Borders: origin solid vermilion · affected dashed amber · selection accent
       if (isOrigin) {
-        ctx.strokeStyle = '#ef4444';
+        ctx.strokeStyle = CT().origin;
         ctx.lineWidth = 2.5;
         ctx.setLineDash([]);
       } else if (isAffected) {
-        ctx.strokeStyle = '#f97316';
+        ctx.strokeStyle = CT().affected;
         ctx.lineWidth = 2.0;
         ctx.setLineDash([6, 4]);
       } else if (S.sel && S.sel.type === 'zone' && S.sel.id === z.id) {
-        ctx.strokeStyle = '#3b82f6';
+        ctx.strokeStyle = CT().accent;
         ctx.lineWidth = 2.4;
         ctx.setLineDash([]);
       } else if (z.blind) {
-        ctx.strokeStyle = (S.view === 'author' && !camMode) ? '#ef4444' : (isLight ? '#94a3b8' : '#4b5563');
+        ctx.strokeStyle = (S.view === 'author' && !camMode) ? CT().origin : (isLight ? '#94a3b8' : '#4b5563');
         ctx.lineWidth = 1.4;
         ctx.setLineDash([4, 3]);
       } else {
-        ctx.strokeStyle = isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.08)';
+        ctx.strokeStyle = CT().zoneBorder;
         ctx.lineWidth = 0.8;
         ctx.setLineDash([]);
       }
@@ -685,7 +832,7 @@
 
       // Affected zone tag badge
       if (isAffected && WW > 30) {
-        ctx.fillStyle = '#ea580c';
+        ctx.fillStyle = CT().affected;
         ctx.font = `700 ${Math.max(7, sc * 1.5)}px system-ui,sans-serif`;
         ctx.textAlign = 'right';
         ctx.fillText('AFFECTED', X + WW - 3, Y + 10);
@@ -693,22 +840,22 @@
 
       // Labels
       if (z.type === 'classroom') {
-        ctx.fillStyle = isOrigin ? '#ef4444' : (isLight ? '#334155' : '#9ca3af');
+        ctx.fillStyle = isOrigin ? CT().origin : CT().zoneText;
         ctx.textAlign = 'center';
         ctx.font = `600 ${Math.max(7, Math.min(sc * 1.9, 11))}px system-ui,sans-serif`;
         ctx.fillText(z.label, X + WW / 2, Y + HH + Math.max(8, sc * 2.1));
         if (!camMode && c.n) {
           ctx.font = `${Math.max(7, Math.min(sc * 1.7, 10))}px system-ui,sans-serif`;
-          ctx.fillStyle = isLight ? '#64748b' : '#6b7280';
+          ctx.fillStyle = CT().floorName;
           ctx.fillText(c.n, X + WW / 2, Y + HH + Math.max(8, sc * 2.1) * 2);
         }
       } else if (WW > 34) {
-        ctx.fillStyle = isOrigin ? (isLight ? '#dc2626' : '#ffffff') : (isLight ? '#0f172a' : '#9ca3af');
+        ctx.fillStyle = isOrigin ? CT().origin : CT().zoneText;
         ctx.textAlign = 'center';
         ctx.font = `600 ${Math.max(8, Math.min(sc * 2.1, 12))}px system-ui,sans-serif`;
         ctx.fillText(z.label + (c.n && !camMode ? ' · ' + c.n : ''), X + WW / 2, camMode ? Y + 11 : Y + HH / 2 + 3, WW - 4);
       } else if (!camMode && c.n >= 6) {
-        ctx.fillStyle = isLight ? '#dc2626' : '#ef4444';
+        ctx.fillStyle = CT().origin;
         ctx.textAlign = 'center';
         ctx.font = `700 ${Math.max(9, sc * 2.2)}px system-ui,sans-serif`;
         ctx.fillText(c.n, X + WW / 2, Y - 2);
@@ -740,18 +887,18 @@
         }
         const x = o.x + px * sc, y = o.y + py * sc;
         S.hits.push([id, x, y]);
-        let col = '#6b7280';
+        let col = CT().staff;
         if (p.role === 'student') {
-          if (S.color === 'mood') { const m = moodAt(D, id, t); col = m == null ? '#4b5563' : moodColor(m); }
+          if (S.color === 'mood') { const m = moodAt(D, id, t); col = m == null ? CT().personUnknown : moodColor(m); }
           else if (S.color === 'grade') col = BANDS[bandOf(gradeOn(p, md.date))][1];
-          else col = '#3b82f6';
+          else col = CT().student;
           ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, r, 0, 6.2832); ctx.fill();
         } else {
           const R = r * 1.5;
-          if (p.role === 'teacher') { col = '#f97316'; ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(x, y - R); ctx.lineTo(x + R, y + R * .8); ctx.lineTo(x - R, y + R * .8); ctx.closePath(); ctx.fill(); }
-          else if (p.role === 'principal') { ctx.fillStyle = '#eab308'; star(ctx, x, y, R * 1.9); }
-          else if (p.role === 'visitor') { ctx.fillStyle = '#a855f7'; ctx.beginPath(); ctx.moveTo(x, y - R); ctx.lineTo(x + R, y); ctx.lineTo(x, y + R); ctx.lineTo(x - R, y); ctx.closePath(); ctx.fill(); }
-          else { ctx.fillStyle = '#9ca3af'; ctx.fillRect(x - R * .8, y - R * .8, R * 1.6, R * 1.6); }
+          if (p.role === 'teacher') { col = CT().teacher; ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(x, y - R); ctx.lineTo(x + R, y + R * .8); ctx.lineTo(x - R, y + R * .8); ctx.closePath(); ctx.fill(); }
+          else if (p.role === 'principal') { ctx.fillStyle = CT().principal; star(ctx, x, y, R * 1.9); }
+          else if (p.role === 'visitor') { ctx.fillStyle = CT().visitor; ctx.beginPath(); ctx.moveTo(x, y - R); ctx.lineTo(x + R, y); ctx.lineTo(x, y + R); ctx.lineTo(x - R, y); ctx.closePath(); ctx.fill(); }
+          else { ctx.fillStyle = CT().staff; ctx.fillRect(x - R * .8, y - R * .8, R * 1.6, R * 1.6); }
         }
       }
     } else if (D) {
@@ -762,15 +909,15 @@
         const series = D.cam[zi]; const obs = series ? series[Math.min(k, series.length - 1)] : null; if (obs == null) return;
         const rec = recs.find(r => r.camera_id === z.cam && Math.abs(r.minute - t) <= 6);
         const [x, y, w] = z.rect, X = o.x + x * sc, Y = o.y + y * sc;
-        const col = !rec ? '#3b82f6' : Math.abs(rec.deviation_pct) >= 60 ? '#ef4444' : Math.abs(rec.deviation_pct) >= 25 ? '#f59e0b' : '#10b981';
+        const col = !rec ? CT().control : Math.abs(rec.deviation_pct) >= 60 ? CT().worse : Math.abs(rec.deviation_pct) >= 25 ? CT().warn : CT().better;
         const txt = `${obs}` + (rec ? `  ${rec.deviation_pct > 0 ? '+' : ''}${Math.round(rec.deviation_pct)}%` : '');
         ctx.font = `700 ${Math.max(10, Math.min(sc * 2.6, 14))}px system-ui,sans-serif`;
         const tw = ctx.measureText(txt).width + 10;
-        ctx.fillStyle = isLight ? '#ffffff' : '#0f131c'; ctx.strokeStyle = col; ctx.lineWidth = 1.5;
+        ctx.fillStyle = CT().floor; ctx.strokeStyle = col; ctx.lineWidth = 1.5;
         roundRect(ctx, X + 3, Y + 3, tw, Math.max(16, sc * 3.2), 4); ctx.fill(); ctx.stroke();
         ctx.fillStyle = col; ctx.textAlign = 'left'; ctx.fillText(txt, X + 8, Y + 3 + Math.max(16, sc * 3.2) * .72);
       });
-      ctx.fillStyle = isLight ? '#64748b' : '#9ca3af'; ctx.font = '11px system-ui'; ctx.textAlign = 'left';
+      ctx.fillStyle = CT().floorName; ctx.font = '11px system-ui'; ctx.textAlign = 'left';
       ctx.fillText('Counters report numbers only: no faces, no identities. Grey areas have no counter.', 10, H - 8);
     }
 
@@ -783,36 +930,36 @@
         const cx = o.x + (ox + ow / 2) * sc;
         const cy = o.y + (oy + oh / 2) * sc;
         const nowMs = performance.now();
-        const phase = (nowMs % 1800) / 1800;
+        const phase = animPhase(nowMs, 1800, 3600);
 
         // 1. Expanding animated pulsing aura ring
         const maxR = Math.max(18, Math.min(ow, oh) * sc * 0.75);
         const pulseR = 8 + phase * (maxR - 8);
         ctx.beginPath();
         ctx.arc(cx, cy, pulseR, 0, 6.2832);
-        ctx.strokeStyle = `rgba(239, 68, 68, ${1 - phase})`;
+        ctx.strokeStyle = hexA(CT().origin, 1 - phase);
         ctx.lineWidth = 2;
         ctx.setLineDash([]);
         ctx.stroke();
 
-        // 2. High-contrast solid inner ring
+        // 2. High-contrast solid inner ring (origin = dot with two rings, §8.4)
         ctx.beginPath();
         ctx.arc(cx, cy, 9, 0, 6.2832);
-        ctx.strokeStyle = '#ffffff';
+        ctx.strokeStyle = isLight ? '#FFFFFF' : '#F4F6FA';
         ctx.lineWidth = 3;
         ctx.stroke();
-        ctx.strokeStyle = '#ef4444';
+        ctx.strokeStyle = CT().origin;
         ctx.lineWidth = 1.5;
         ctx.stroke();
 
         // 3. Focal core dot
         ctx.beginPath();
         ctx.arc(cx, cy, 4, 0, 6.2832);
-        ctx.fillStyle = '#ef4444';
+        ctx.fillStyle = CT().origin;
         ctx.fill();
 
         // 4. Reticle crosshairs
-        ctx.strokeStyle = '#ffffff';
+        ctx.strokeStyle = isLight ? '#FFFFFF' : '#F4F6FA';
         ctx.lineWidth = 1.5;
         [[cx - 15, cy, cx - 10, cy], [cx + 10, cy, cx + 15, cy], [cx, cy - 15, cx, cy - 10], [cx, cy + 10, cx, cy + 15]].forEach(([x1, y1, x2, y2]) => {
           ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
@@ -820,19 +967,19 @@
 
         // 5. Origin category badge floating above
         const badgeTxt = activeIncident ? `⚑ ORIGIN: ${activeIncident.title.slice(0, 24)}` : `⚑ ORIGIN: ${oz.label}`;
-        ctx.font = `700 10.5px var(--font-mono), monospace`;
+        ctx.font = `700 10.5px ui-monospace, Menlo, Consolas, monospace`;
         const bw = ctx.measureText(badgeTxt).width + 14;
-        ctx.fillStyle = isLight ? '#ffffff' : '#090b10';
-        ctx.strokeStyle = '#ef4444';
+        ctx.fillStyle = CT().panel;
+        ctx.strokeStyle = CT().origin;
         ctx.lineWidth = 1;
         roundRect(ctx, cx - bw / 2, cy - 28, bw, 18, 4);
         ctx.fill();
         ctx.stroke();
-        ctx.fillStyle = isLight ? '#dc2626' : '#ef4444';
+        ctx.fillStyle = CT().origin;
         ctx.textAlign = 'center';
         ctx.fillText(badgeTxt, cx, cy - 15);
 
-        // 6. Directional connector to responder zone if active
+        // 6. Directional connector to responder zone (response = dotted teal trail, §7.2)
         if (responderZoneId) {
           const rz = S.zones.find(z => z.id === responderZoneId);
           if (rz && L.org[rz.floor]) {
@@ -840,9 +987,9 @@
             const [rx, ry, rw, rh] = rz.rect;
             const rcx = ro.x + (rx + rw / 2) * sc;
             const rcy = ro.y + (ry + rh / 2) * sc;
-            ctx.setLineDash([4, 4]);
-            ctx.lineDashOffset = -(nowMs / 50) % 8;
-            ctx.strokeStyle = 'rgba(59, 130, 246, 0.85)';
+            ctx.setLineDash([2, 5]);
+            ctx.lineDashOffset = S.motionOff ? 0 : -((performance.now() / 50) % 7);
+            ctx.strokeStyle = hexA(CT().response, 0.9);
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.moveTo(cx, cy);
@@ -851,11 +998,11 @@
             ctx.setLineDash([]);
 
             // Responder badge
-            ctx.fillStyle = isLight ? '#dbeafe' : '#1e3a8a';
-            ctx.strokeStyle = '#3b82f6';
+            ctx.fillStyle = hexA(CT().response, 0.16);
+            ctx.strokeStyle = CT().response;
             roundRect(ctx, rcx - 36, rcy - 12, 72, 16, 4);
             ctx.fill(); ctx.stroke();
-            ctx.fillStyle = isLight ? '#1d4ed8' : '#93c5fd';
+            ctx.fillStyle = CT().response;
             ctx.font = '700 9.5px sans-serif';
             ctx.textAlign = 'center';
             ctx.fillText('RESPONDER', rcx, rcy);
@@ -866,15 +1013,15 @@
 
     // Legend
     if (L.legend && !camMode) {
-      const g = L.legend, f = Math.max(10, sc * 2.4); ctx.textAlign = 'left'; ctx.fillStyle = isLight ? '#475569' : '#9ca3af'; ctx.font = `600 ${f}px system-ui`;
+      const g = L.legend, f = Math.max(10, sc * 2.4); ctx.textAlign = 'left'; ctx.fillStyle = CT().legendText; ctx.font = `600 ${f}px system-ui`;
       ctx.fillText('Campus Twin Legend', g.x + 4, g.y + f);
-      const items = S.color === 'mood' ? [['#ef4444', 'low mood'], ['#f59e0b', 'steady'], ['#10b981', 'good']] : S.color === 'grade' ? BANDS.map(b => [b[1], 'students ' + b[0]]) : [['#3b82f6', 'student']];
-      items.forEach(([col, lab], i) => { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(g.x + 8, g.y + f * (2.3 + i * 1.25), 4, 0, 6.2832); ctx.fill(); ctx.fillStyle = isLight ? '#334155' : '#d1d5db'; ctx.font = `${f * .9}px system-ui`; ctx.fillText(lab, g.x + 18, g.y + f * (2.3 + i * 1.25) + 4); });
-      const y = g.y + f * (2.3 + items.length * 1.25) + f * .4; ctx.fillStyle = isLight ? '#ea580c' : '#f97316'; ctx.fillText('▲ teacher   ★ principal   ■ staff   ◆ visitor', g.x + 4, y + f);
-      ctx.fillStyle = isLight ? '#dc2626' : '#ef4444'; ctx.fillText('◎ Crimson Reticle = Incident Origin', g.x + 4, y + f * 2.2);
-      ctx.fillStyle = isLight ? '#d97706' : '#f97316'; ctx.fillText('╌╌ Dashed Orange = Affected Area', g.x + 4, y + f * 3.4);
+      const items = S.color === 'mood' ? [[CT().moodLow, 'low mood'], [CT().moodSteady, 'steady'], [CT().moodGood, 'good']] : S.color === 'grade' ? BANDS.map(b => [b[1], 'students ' + b[0]]) : [[CT().student, 'student']];
+      items.forEach(([col, lab], i) => { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(g.x + 8, g.y + f * (2.3 + i * 1.25), 4, 0, 6.2832); ctx.fill(); ctx.fillStyle = CT().zoneText; ctx.font = `${f * .9}px system-ui`; ctx.fillText(lab, g.x + 18, g.y + f * (2.3 + i * 1.25) + 4); });
+      const y = g.y + f * (2.3 + items.length * 1.25) + f * .4; ctx.fillStyle = CT().teacher; ctx.fillText('▲ teacher   ★ principal   ■ staff   ◆ visitor', g.x + 4, y + f);
+      ctx.fillStyle = CT().origin; ctx.fillText('◎ Vermilion reticle = Incident origin', g.x + 4, y + f * 2.2);
+      ctx.fillStyle = CT().affected; ctx.fillText('╌╌ Dashed amber = Affected area', g.x + 4, y + f * 3.4);
       const blk = S.clock.blocks.find(b => b.start <= t && t < b.end);
-      ctx.fillStyle = isLight ? '#2563eb' : '#60a5fa'; ctx.font = `700 ${f * 1.3}px system-ui`; ctx.fillText(blk ? blk.name.replace('_', ' ') : (md.open ? 'after hours' : 'closed'), g.x + 4, y + f * 4.8);
+      ctx.fillStyle = CT().accent; ctx.font = `700 ${f * 1.3}px system-ui`; ctx.fillText(blk ? blk.name.replace('_', ' ') : (md.open ? 'after hours' : 'closed'), g.x + 4, y + f * 4.8);
     }
 
     // Selection
@@ -884,8 +1031,8 @@
         const z = S.zones[zi], o = L.org[z.floor];
         if (o) {
           const [px, py] = posIn(z, id), x = o.x + px * sc, y = o.y + py * sc;
-          ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, Math.max(6, sc * .9), 0, 6.2832); ctx.stroke();
-          ctx.fillStyle = '#ffffff'; ctx.font = '600 12px system-ui'; ctx.textAlign = 'left'; ctx.fillText(S.people[id].name, x + 9, y - 8);
+          ctx.strokeStyle = isLight ? '#141821' : '#F4F6FA'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, Math.max(6, sc * .9), 0, 6.2832); ctx.stroke();
+          ctx.fillStyle = isLight ? '#141821' : '#F4F6FA'; ctx.font = '600 12px system-ui'; ctx.textAlign = 'left'; ctx.fillText(S.people[id].name, x + 9, y - 8);
         }
       }
     }
@@ -941,16 +1088,16 @@
     let lastM = '';
     days.forEach((d, i) => {
       const x = i * cw;
-      c.fillStyle = DAYCOL[d.type] || (isLight ? '#e2e8f0' : '#1e2638'); c.fillRect(x, 16, Math.ceil(cw), 12);
+      c.fillStyle = DAYCOL[d.type] || (isLight ? '#e2e8f0' : CT().floorBorder); c.fillRect(x, 16, Math.ceil(cw), 12);
       if (d.open && d.attendance_rate != null) {
         const h = clamp((d.attendance_rate - 0.8) / 0.2, 0, 1) * 24;
-        c.fillStyle = d.alerts && d.alerts.some(a => a.severity === 'high') ? '#ef4444' : (isLight ? '#0284c7' : '#38bdf8');
+        c.fillStyle = d.alerts && d.alerts.some(a => a.severity === 'high') ? CT().worse : CT().control;
         c.fillRect(x, 54 - h, Math.max(1, cw - 0.6), h);
       }
       const m = d.date.slice(0, 7);
       if (m !== lastM) {
         lastM = m;
-        c.fillStyle = isLight ? '#475569' : '#94a3b8';
+        c.fillStyle = CT().zoneText;
         c.font = '10px system-ui';
         c.textAlign = 'left';
         c.fillText(new Date(d.date + 'T00:00').toLocaleString('en', { month: 'short' }), x + 1, 11);
@@ -960,38 +1107,39 @@
     });
     allFlags().filter(f => f.kind !== 'calendar').forEach(f => {
       const x = f.day * cw + cw / 2;
-      c.fillStyle = f.kind === 'user' ? '#8b5cf6' : f.kind === 'event' ? '#ef4444' : f.sev >= 3 ? '#ef4444' : f.sev === 2 ? '#f59e0b' : '#38bdf8';
+      c.fillStyle = f.kind === 'user' ? CT().flagUser : f.kind === 'event' ? CT().flagEvent : f.sev >= 3 ? CT().flagSev3 : f.sev === 2 ? CT().flagSev2 : CT().flagSev1;
       c.beginPath(); c.arc(x, f.kind === 'event' ? 62 : 59, f.kind === 'event' ? 1.8 : 2.4, 0, 6.2832); c.fill();
     });
     // Timeline playhead
-    c.fillStyle = isLight ? '#0f172a' : '#10b981';
+    c.fillStyle = CT().playhead;
     c.fillRect(S.day * cw - 0.5, 0, 2, 64);
     if (S.pairedMode && S.pairMeta) {
-      // Shared Background Events: Cyan diamonds
+      // Shared background events: control-blue diamonds (§7.2 shape partner)
       (S.pairMeta.shared_background_events || []).forEach(ev => {
         const dIdx = days.findIndex(d => d.date === ev.date);
         if (dIdx >= 0) {
           const x = dIdx * cw + cw / 2;
-          c.fillStyle = '#38bdf8';
+          c.fillStyle = CT().control;
           c.beginPath();
           c.moveTo(x, 32); c.lineTo(x + 4, 36); c.lineTo(x, 40); c.lineTo(x - 4, 36);
           c.closePath();
           c.fill();
         }
       });
-      // Custom Intervention: Emerald star
+      // Custom intervention: scenario-violet star (the branch under study)
       if (S.pairMeta.custom_event && S.pairMeta.custom_event.date) {
         const dIdx = days.findIndex(d => d.date === S.pairMeta.custom_event.date);
         if (dIdx >= 0) {
           const x = dIdx * cw + cw / 2;
-          c.fillStyle = '#10b981';
+          c.fillStyle = CT().scenario;
           star(c, x, 36, 6);
         }
       }
     }
     if (n > 151) {
+      // The Day 150 | 151 seam: legacy baseline → generated future
       const seamX = 151 * cw;
-      c.strokeStyle = isLight ? '#059669' : '#10b981';
+      c.strokeStyle = CT().baseline;
       c.lineWidth = 2;
       c.setLineDash([3, 3]);
       c.beginPath();
@@ -999,14 +1147,14 @@
       c.lineTo(seamX, 64);
       c.stroke();
       c.setLineDash([]);
-      c.fillStyle = isLight ? '#059669' : '#10b981';
+      c.fillStyle = CT().baseline;
       c.font = 'bold 9px system-ui,sans-serif';
       c.fillText('SEAM · DAY 151', seamX + 4, 11);
-      c.fillStyle = isLight ? '#64748b' : '#34d399';
+      c.fillStyle = CT().zoneText;
       c.font = '8px system-ui,sans-serif';
       c.fillText(S.pairedMode ? 'PAIRED (CTRL vs TRT) →' : 'ALTERED SIMULATION →', seamX + 4, 21);
       c.textAlign = 'right';
-      c.fillStyle = isLight ? '#64748b' : '#94a3b8';
+      c.fillStyle = CT().zoneText;
       c.fillText('← LEGACY BASELINE', seamX - 4, 11);
       c.textAlign = 'left';
     }
@@ -1030,11 +1178,11 @@
       c.fillText(String(h).padStart(2, '0'), px(h * 60) + 1, 7);
     }
     flagsOn(S.day).filter(f => f.kind !== 'calendar').forEach(f => {
-      c.fillStyle = f.sev >= 3 ? '#ef4444' : f.sev === 2 ? '#f59e0b' : f.kind === 'user' ? '#8b5cf6' : '#38bdf8';
+      c.fillStyle = f.sev >= 3 ? CT().flagSev3 : f.sev === 2 ? CT().flagSev2 : f.kind === 'user' ? CT().flagUser : CT().flagSev1;
       c.fillRect(px(f.minute) - 1, 2, 3, 30);
     });
     // Minute playhead
-    c.fillStyle = isLight ? '#0f172a' : '#10b981';
+    c.fillStyle = CT().playhead;
     c.fillRect(px(S.minute) - 1, 0, 2.5, 34);
   }
 
@@ -1051,7 +1199,7 @@
   ];
   const pct = x => (x == null ? '–' : (x * 100).toFixed(1) + '%');
   const inr = x => '₹' + Math.round(x).toLocaleString('en-IN');
-  const band = m => (m < S.meta.mood.low ? ['low', '#d64545'] : m >= S.meta.mood.good ? ['good', '#1a9d5a'] : ['steady', '#e8a317']);
+  const band = m => (m < S.meta.mood.low ? ['low', CT().moodLow] : m >= S.meta.mood.good ? ['good', CT().moodGood] : ['steady', CT().moodSteady]);
   const hooks = [];
   function renderPanels(force) {
     if (!S.meta) return;
@@ -1084,8 +1232,8 @@
       c.stroke();
     };
     if (o.cmp) line(o.cmp, '#b7bfce', 1.2);
-    line(vals, o.color || '#2a6df4', 1.6);
-    if (o.flags) allFlags().filter(f => f.kind !== 'calendar' && f.sev >= 2).forEach(f => { c.fillStyle = '#d64545'; c.fillRect(X(f.day) - .5, H - 4, 1.5, 4); });
+    line(vals, o.color || CT().control, 1.6);
+    if (o.flags) allFlags().filter(f => f.kind !== 'calendar' && f.sev >= 2).forEach(f => { c.fillStyle = CT().worse; c.fillRect(X(f.day) - .5, H - 4, 1.5, 4); });
     if (o.marker != null) { c.fillStyle = '#1d2330'; c.fillRect(X(o.marker) - .5, 0, 1.5, H); }
     c.fillStyle = '#667085'; c.font = '9px system-ui'; c.textAlign = 'left'; c.fillText((o.fmt || (x => x.toFixed(1)))(hi), 3, 9);
     c.fillText((o.fmt || (x => x.toFixed(1)))(lo), 3, H - 7);
@@ -1118,7 +1266,7 @@
         <div class="card"><b>${md.open ? md.late : '–'}</b><span>late arrivals</span></div>
         <div class="card"><b>${md.open ? md.teachers_absent : '–'}</b><span>teachers absent</span></div>
         <div class="card"><b>${avg == null ? '–' : avg.toFixed(0)}</b><span>avg student mood</span></div>
-        <div class="card"><b style="color:${lowN ? '#d64545' : 'inherit'}">${lowN}</b><span>low mood now${moods.length ? ' (' + Math.round(lowN / moods.length * 100) + '%)' : ''}</span></div>
+        <div class="card"><b style="color:${lowN ? CT().worse : 'inherit'}">${lowN}</b><span>low mood now${moods.length ? ' (' + Math.round(lowN / moods.length * 100) + '%)' : ''}</span></div>
       </div>
       <h4>Who is here</h4>
       <div class="mut">${st} students · ${te} teachers · ${ot} staff${vi ? ' · ' + vi + ' visitors' : ''}</div>
@@ -1128,18 +1276,18 @@
       <h4>Lowest right now</h4>
       ${worst.length ? worst.map(([id, m]) => `<div class="row" data-act="person" data-id="${id}"><span class="dot" style="background:${moodColor(m)}"></span><div class="grow">${esc(S.people[id].name)}<small>${esc(gradeOn(S.people[id], md.date))} ${esc(S.people[id].section)}</small></div><b>${m.toFixed(0)}</b></div>`).join('') : '<div class="mut">No students on campus.</div>'}
       <h4>Busiest places</h4>
-      ${busiest.map(([z, n]) => `<div class="row" data-act="zone" data-id="${z.id}"><div class="grow">${esc(z.label)}</div><div style="width:90px" class="bar"><i style="width:${Math.min(100, n / z.cap * 100)}%;background:${n / z.cap > .85 ? '#d64545' : '#7aa7ff'}"></i></div><span class="mut" style="min-width:56px;text-align:right">${n}/${z.cap}</span></div>`).join('') || '<div class="mut">Nobody in shared spaces.</div>'}
+      ${busiest.map(([z, n]) => `<div class="row" data-act="zone" data-id="${z.id}"><div class="grow">${esc(z.label)}</div><div style="width:90px" class="bar"><i style="width:${Math.min(100, n / z.cap * 100)}%;background:${n / z.cap > .85 ? CT().worse : CT().control}"></i></div><span class="mut" style="min-width:56px;text-align:right">${n}/${z.cap}</span></div>`).join('') || '<div class="mut">Nobody in shared spaces.</div>'}
       ${q ? `<div class="mut" style="margin-top:4px">Canteen queue at ${fmtT(q.minute)}: counter ${q.observed_count} (usual ${Math.round(q.expected_count)}).</div>` : ''}
       <h4>Flags today</h4>
       ${todayFlags.length ? todayFlags.map(flagRow).join('') : '<div class="mut">Nothing flagged.</div>'}
       <h4>Colours</h4>
-      <div class="legend">${S.color === 'grade' ? BANDS.map(b => `<span><i style="background:${b[1]}"></i>${b[0]}</span>`).join('') : S.color === 'mood' ? '<span><i style="background:#d64545"></i>low</span><span><i style="background:#e8a317"></i>steady</span><span><i style="background:#1a9d5a"></i>good</span>' : '<span><i style="background:#4f7cff"></i>student</span>'}
+      <div class="legend">${S.color === 'grade' ? BANDS.map(b => `<span><i style="background:${b[1]}"></i>${b[0]}</span>`).join('') : S.color === 'mood' ? `<span><i style="background:${CT().moodLow}"></i>low</span><span><i style="background:${CT().moodSteady}"></i>steady</span><span><i style="background:${CT().moodGood}"></i>good</span>` : `<span><i style="background:${CT().student}"></i>student</span>`}
         <span>▲ teacher</span><span>★ principal</span><span>■ staff</span><span>◆ visitor</span></div>`;
   }
   function flagRow(f) {
     const who = f.kind === 'user' ? 'you' : f.kind === 'event' ? 'hidden cause' : f.kind;
     const isSpotlight = S.activeFlag && S.activeFlag.id === f.id;
-    return `<div class="row ${isSpotlight ? 'active-flag-spotlight' : ''}" data-act="flag" data-id="${esc(f.id)}"><span class="dot s${f.sev}" style="${f.kind === 'user' ? 'background:#8b5cf6' : f.kind === 'event' ? 'background:#ef4444' : ''}"></span><span class="t">${esc(f.date.slice(5))} ${fmtT(f.minute)}</span><div class="grow">${esc(f.title)}${f.zone ? ` <span class="chip" style="font-size:9.5px;padding:1px 5px;background:rgba(239,68,68,0.15);color:#ef4444;border-color:rgba(239,68,68,0.3)">⚑ ${esc(f.zone)}</span>` : ''}<small>${esc(who)}${f.kind === 'event' ? ' · ' + esc((f.text || '').replace('Hidden cause: ', '')) : ''}</small></div></div>`;
+    return `<div class="row ${isSpotlight ? 'active-flag-spotlight' : ''}" data-act="flag" data-id="${esc(f.id)}"><span class="dot s${f.sev}" style="${f.kind === 'user' ? 'background:' + CT().flagUser : f.kind === 'event' ? 'background:' + CT().flagEvent : ''}"></span><span class="t">${esc(f.date.slice(5))} ${fmtT(f.minute)}</span><div class="grow">${esc(f.title)}${f.zone ? ` <span class="chip" style="font-size:9.5px;padding:1px 5px;background:rgba(255,92,58,0.14);color:var(--origin-vermilion);border-color:rgba(255,92,58,0.32)">⚑ ${esc(f.zone)}</span>` : ''}<small>${esc(who)}${f.kind === 'event' ? ' · ' + esc((f.text || '').replace('Hidden cause: ', '')) : ''}</small></div></div>`;
   }
 
   function renderInspect() {
@@ -1219,9 +1367,9 @@
               ${rels.map(r => {
                 const targetPerson = S.people[r.target_id];
                 const tName = targetPerson ? targetPerson.name : `Agent ${r.target_id}`;
-                const affColor = r.affinity >= 0.7 ? '#15803d' : r.affinity >= 0.4 ? '#0369a1' : '#b45309';
+                const affColor = r.affinity >= 0.7 ? CT().better : r.affinity >= 0.4 ? CT().control : CT().warn;
                 return `
-                  <span class="chip" style="cursor:pointer" data-act="person" data-id="${r.target_id}" title="Affinity: ${r.affinity}">
+                  <span class="chip" style="cursor:pointer" data-act="person" data-id="${esc(r.target_id)}" title="Affinity: ${esc(r.affinity)}">
                     ${esc(tName)} <small style="color:${affColor}">(${esc((r.relation_type || 'peer').replace(/_/g, ' '))})</small>
                   </span>
                 `;
@@ -1238,8 +1386,9 @@
       if ($('#sp-mood')) spark($('#sp-mood'), mv, { floor: 0, min: 0, max: 100, marker: S.day, color: '#7b2cbf', fmt: x => x.toFixed(0), click: i => goTo(i, S.minute) });
       if ($('#sp-att')) {
         const [c, W] = sizeCanvas($('#sp-att'), 20), cw = W / att.length;
-        for (let i = 0; i < att.length; i++) { c.fillStyle = { P: '#1a9d5a', L: '#e8a317', A: '#d64545', '-': '#eef1f7' }[att[i]] || '#eef1f7'; c.fillRect(i * cw, 2, Math.max(1, cw - .5), 14); }
-        c.fillStyle = '#111'; c.fillRect(S.day * cw, 0, 1.5, 20);
+        const AC = CT();
+        for (let i = 0; i < att.length; i++) { c.fillStyle = { P: AC.attGood, L: AC.attSteady, A: AC.attBad, '-': AC.attNone }[att[i]] || AC.attNone; c.fillRect(i * cw, 2, Math.max(1, cw - .5), 14); }
+        c.fillStyle = AC.playhead; c.fillRect(S.day * cw, 0, 1.5, 20);
         $('#sp-att').onclick = e => { const r = $('#sp-att').getBoundingClientRect(); goTo(Math.floor((e.clientX - r.left) / r.width * att.length), S.minute); };
       }
     });
@@ -1256,7 +1405,7 @@
       <h4>Headcount today</h4>${sparkTag('sp-zone')}
       <h4>People here now</h4>
       ${D ? D.ids.filter(id => zoneAt(D.paths.get(id), t) === zi).slice(0, 30).map(id => `<span class="chip" style="cursor:pointer" data-act="person" data-id="${id}">${esc(S.people[id].name)}</span>`).join('') : ''}`;
-    hooks.push(() => { if (D && $('#sp-zone')) { const ser = zoneSeries(D, zi); spark($('#sp-zone'), ser, { min: 0, marker: Math.round((t - S.clock.start) / S.clock.step), color: '#2a6df4', fmt: x => x.toFixed(0), click: i => goTo(S.day, S.clock.start + i * S.clock.step) }); } });
+    hooks.push(() => { if (D && $('#sp-zone')) { const ser = zoneSeries(D, zi); spark($('#sp-zone'), ser, { min: 0, marker: Math.round((t - S.clock.start) / S.clock.step), color: CT().control, fmt: x => x.toFixed(0), click: i => goTo(S.day, S.clock.start + i * S.clock.step) }); } });
   }
 
   S.flt = { alert: true, incident: true, decision: true, calendar: false, user: true, event: true }; S.sevMin = 0;
@@ -1286,10 +1435,10 @@
   }
   function renderStats() {
     const p = $('#p-stats'), cmp = S.cmp && S.cmp.meta;
-    const charts = [['att', 'Attendance', x => (x * 100).toFixed(0) + '%', '#2a6df4', .8, 1], ['mood_avg', 'Average student mood', x => x.toFixed(0), '#7b2cbf', 40, 80],
-      ['mood_low_share', 'Students in low mood', x => (x * 100).toFixed(0) + '%', '#d64545', 0, null], ['late', 'Late arrivals', x => x.toFixed(0), '#e8a317', 0, null],
-      ['teachers_absent', 'Teachers absent', x => x.toFixed(0), '#f08a24', 0, null], ['neg', 'Negative feedback share', x => (x * 100).toFixed(0) + '%', '#d64545', 0, null],
-      ['canteen_peak_queue', 'Canteen queue (peak counter)', x => x.toFixed(0), '#1a9d5a', 0, null], ['alerts', 'Detector alerts per day', x => x.toFixed(0), '#111', 0, null]];
+    const CH = CT(); const charts = [['att', 'Attendance', x => (x * 100).toFixed(0) + '%', CH.control, .8, 1], ['mood_avg', 'Average student mood', x => x.toFixed(0), CH.scenario, 40, 80],
+      ['mood_low_share', 'Students in low mood', x => (x * 100).toFixed(0) + '%', CH.moodLow, 0, null], ['late', 'Late arrivals', x => x.toFixed(0), CH.attSteady, 0, null],
+      ['teachers_absent', 'Teachers absent', x => x.toFixed(0), CH.teacher, 0, null], ['neg', 'Negative feedback share', x => (x * 100).toFixed(0) + '%', CH.moodLow, 0, null],
+      ['canteen_peak_queue', 'Canteen queue (peak counter)', x => x.toFixed(0), CH.better, 0, null], ['alerts', 'Detector alerts per day', x => x.toFixed(0), CH.baseline, 0, null]];
     p.innerHTML = `<div class="mut" style="margin-bottom:6px">Click a chart to jump to that day. Red ticks are medium and high flags.${cmp ? ' Grey line: ' + esc(S.cmp.id) + '.' : ''}</div>` +
       charts.map(c => `<h4>${c[1]}</h4>${sparkTag('ch-' + c[0])}`).join('');
     hooks.push(() => charts.forEach(c => spark($('#ch-' + c[0]), seriesOf(S.meta, c[0]), { fmt: c[2], color: c[3], min: c[4], max: c[5], marker: S.day, flags: true, cmp: cmp ? seriesOf(cmp, c[0]) : null, click: i => goTo(i, S.minute) })));
@@ -1301,7 +1450,7 @@
       <div class="cards" style="margin-top:8px"><div class="card"><b>${inr(f.cash)}</b><span>cash at close</span></div><div class="card"><b class="pos">${inr(f.inflow)}</b><span>in today</span></div><div class="card"><b class="neg">${inr(f.outflow)}</b><span>out today</span></div></div>
       <h4>Today's accrued costs</h4><table>${accts.map(([a, v]) => `<tr><td>${esc(a.replace(/_/g, ' '))}</td><td style="text-align:right">${inr(v)}</td></tr>`).join('')}</table>
       <div class="mut" style="margin-top:8px">${S.meta.run.mode === 'anchor' ? 'Anchor mode: money follows the story’s own ledger.' : 'Generate mode: money is rebuilt from the story’s fee and cost assumptions.'}</div>`;
-    hooks.push(() => spark($('#ch-cash'), S.meta.days.map(x => x.finance.cash), { fmt: x => (x / 1e6).toFixed(2) + 'M', color: '#1a9d5a', marker: S.day, flags: true, h: 80, cmp: cmp ? cmp.days.map(x => x.finance.cash) : null, click: i => goTo(i, S.minute) }));
+    hooks.push(() => spark($('#ch-cash'), S.meta.days.map(x => x.finance.cash), { fmt: x => (x / 1e6).toFixed(2) + 'M', color: CT().better, marker: S.day, flags: true, h: 80, cmp: cmp ? cmp.days.map(x => x.finance.cash) : null, click: i => goTo(i, S.minute) }));
   }
 
   // ------------------------------------------------------------------ run & scenario builder
@@ -1544,15 +1693,16 @@
       const dayOfYear = Math.round((dt - d0) / 86400000);
       const isSelected = iso === selDate;
       const isSunday = dt.getDay() === 0;
-      const isReopening = iso === '2026-07-01';
-      const isBreak = iso < '2026-07-01';
+      const isReopening = iso === REOPEN_DATE;
+      const isClosed = extDayClosed(iso);
+      const closedWhy = iso < REOPEN_DATE ? 'summer break' : (isSunday ? 'weekly closure (Sunday)' : 'school closed');
 
       let badgeHtml = '';
       if (isReopening) badgeHtml = '<span class="cal-day-badge reopen">Reopen</span>';
-      else if (isBreak && d === 1) badgeHtml = '<span class="cal-day-badge break">Break</span>';
+      else if (iso < REOPEN_DATE && d === 1) badgeHtml = '<span class="cal-day-badge break">Break</span>';
 
       cells.push(`
-        <div class="cal-day-cell ${isSelected ? 'selected' : ''} ${isSunday ? 'sunday' : ''}" data-act="pickCalDate" data-iso="${iso}" data-day="${dayOfYear}" title="${iso} (Day ${dayOfYear + 1} · Month ${curMonthMeta.num})">
+        <div class="cal-day-cell ${isSelected ? 'selected' : ''} ${isSunday ? 'sunday' : ''} ${isClosed ? 'closed' : 'open-day'}" data-act="pickCalDate" data-iso="${iso}" data-day="${dayOfYear}" title="${iso} (Day ${dayOfYear + 1} · Month ${curMonthMeta.num})${isClosed ? ' · ' + closedWhy : ' · school open'}">
           <span class="cal-day-num">${d}</span>
           <span class="cal-day-idx">D${dayOfYear + 1}</span>
           ${badgeHtml}
@@ -1590,6 +1740,9 @@
             <div style="font-size:12.5px;font-weight:700;color:var(--accent)">
               ${selDowStr}, ${selDate} · <span style="font-family:var(--font-mono);font-size:11px">Day ${selDayIdx + 1} (Month ${curMonthMeta.num})</span>
             </div>
+            ${extDayClosed(selDate)
+              ? `<div style="font-size:10.5px;margin-top:3px;color:var(--affected-amber)">⏾ School closed on this date${selDate < REOPEN_DATE ? ' (summer break)' : ''}${isStudentEvent(F.curEvType) ? ` — <b>${esc(activePresetTitle(F.curEvType))}</b> needs students on campus. First open day: <b>${firstOpenHint()}</b>` : ' (facility & staffing events still apply)'}</div>`
+              : `<div style="font-size:10.5px;margin-top:3px;color:var(--response-teal)">✓ School open — students on campus</div>`}
           </div>
           <div style="display:flex;align-items:center;gap:6px">
             <label style="font-size:11px;color:var(--text-secondary)">Date Picker:</label>
@@ -1600,13 +1753,36 @@
     `;
   }
 
+  function activePresetTitle(t) {
+    const p = PRESET_EVENTS.find(p => p.id === t);
+    return p ? p.title : (t || '').replace(/_/g, ' ');
+  }
+  // Local-timezone ISO date strings: toISOString() shifts results a day early
+  // in every UTC+ timezone, disagreeing with the calendar picker.
+  function isoOfDay(dayIdx) {
+    const d = new Date(2026, 0, 1 + dayIdx);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+  function isoOfDate(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+  // Honest open-day status: distinguishes "zero open days" (amber warning) from
+  // "unknown — timing API unavailable" (muted) instead of warning falsely offline.
+  function openDayLineHtml(dur) {
+    const n = (S.timing && typeof S.timing.open_days === 'number' && S.timingDuration === dur)
+      ? S.timing.open_days : null;
+    if (n === null) return `<span id="openDayLine" style="color:var(--text-muted)"> · open school days unknown (offline)</span>`;
+    if (n > 0) return `<span id="openDayLine" style="color:var(--text-muted)"> · ${n} open school day${n === 1 ? '' : 's'}</span>`;
+    return `<span id="openDayLine" style="color:var(--affected-amber)"> · no open school days — summer break until ${REOPEN_DATE}</span>`;
+  }
+
   function renderBuilderTab(tab, M, F, storyEvents) {
     if (tab === 'setup') {
       const dur = +F.evalDuration || 30;
       const startDay = F.extendPostBaseline ? 151 : 0;
       const endDay = Math.min(364, startDay + dur - 1);
-      const startDate = new Date(2026, 0, 1 + startDay).toISOString().slice(0, 10);
-      const endDate = new Date(2026, 0, 1 + endDay).toISOString().slice(0, 10);
+      const startDate = isoOfDay(startDay);
+      const endDate = isoOfDay(endDay);
 
       return `
         <div class="field"><label>Scenario Name</label><input type="text" data-f="name" value="${esc(F.name)}" placeholder="whatif_${esc(S.run)}_d${S.day}"></div>
@@ -1649,8 +1825,9 @@
       const dur = +F.evalDuration || 30;
       const startDay = 151;
       const endDay = startDay + dur - 1;
-      const startDate = new Date(2026, 0, 1 + startDay).toISOString().slice(0, 10);
-      const endDate = new Date(2026, 0, 1 + endDay).toISOString().slice(0, 10);
+      const startDate = isoOfDay(startDay);
+      const endDate = isoOfDay(endDay);
+      ensureTiming(dur);
 
       return `
         <div class="card builder-step-card" style="border-radius:10px;padding:14px;margin-bottom:12px">
@@ -1696,6 +1873,7 @@
           </div>
           <div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px">
             Simulated Range: <b style="color:var(--accent)">Day ${startDay} → Day ${endDay} (${startDate} to ${endDate})</b>
+            ${openDayLineHtml(dur)}
           </div>
 
           <div class="step-header">
@@ -1735,7 +1913,7 @@
             <h4 class="step-title">Simulate Horizon & Watch Campus Consequences</h4>
           </div>
           <div style="display:flex;flex-direction:column;gap:8px">
-            <button class="primary btn-hero-run" data-act="runPairedComparison" ${S.api ? '' : 'disabled'} style="background:linear-gradient(135deg, var(--accent) 0%, #059669 100%);box-shadow:var(--shadow-button-glow)">
+            <button class="primary btn-hero-run" data-act="runPairedComparison" ${S.api ? '' : 'disabled'} style="background:var(--accent);box-shadow:var(--shadow-button-glow)">
               ⚡ Run Paired Comparison (Control vs Treatment)
             </button>
             <button class="btn-subtle" data-act="addAndRunTimeLapse" ${S.api ? '' : 'disabled'} style="font-size:11.5px;padding:6px 12px">
@@ -1835,8 +2013,8 @@
       const dur = +F.evalDuration || 30;
       const startDay = 151;
       const endDay = Math.min(364, startDay + dur - 1);
-      const startDate = new Date(2026, 0, 1 + startDay).toISOString().slice(0, 10);
-      const endDate = new Date(2026, 0, 1 + endDay).toISOString().slice(0, 10);
+      const startDate = isoOfDay(startDay);
+      const endDate = isoOfDay(endDay);
 
       return `
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
@@ -1883,7 +2061,7 @@
 
         <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
           <button class="primary" data-act="parsePrompt" style="padding:7px 14px">🔍 Interpret Prompt</button>
-          <button class="primary" data-act="applyAndSimulateNL" style="padding:7px 16px;background:linear-gradient(135deg, var(--ok) 0%, #059669 100%);border-color:var(--ok);box-shadow:var(--shadow-button-glow)" ${S.api ? '' : 'disabled'}>⚡ Simulate Immediately & Watch</button>
+          <button class="primary" data-act="applyAndSimulateNL" style="padding:7px 16px;background:var(--accent);border-color:var(--accent);box-shadow:var(--shadow-button-glow)" ${S.api ? '' : 'disabled'}>⚡ Simulate Immediately & Watch</button>
         </div>
 
         ${F.nlStatus ? `<div class="card" style="margin:6px 0 10px;font-weight:600;font-size:11.5px;padding:8px 12px;background:var(--bg-subtle);border-color:var(--accent)">${esc(F.nlStatus)}</div>` : ''}
@@ -1933,21 +2111,6 @@
             </div>
           </div>
         ` : ''}
-      `;
-    }
-    if (tab === 'saved') {
-      return `
-        <h4>Available Runs & Packs</h4>
-        <div style="margin-bottom:8px">
-          ${S.index.runs.map(r => `
-            <div class="row" style="cursor:default">
-              <div class="grow"><b>${esc(r.name)}</b> <small>${esc(r.mode)} mode · ${r.days} days</small></div>
-              <button data-act="loadRunId" data-id="${esc(r.id)}">Load</button>
-            </div>
-          `).join('')}
-        </div>
-        <h4>Saved Scenario Configs</h4>
-        <div id="savedScenList"><div class="mut">Loading saved scenarios...</div></div>
       `;
     }
     return '';
@@ -2101,7 +2264,7 @@
           <b>Custom Intervention:</b> ${esc((pm.custom_event && (pm.custom_event.title || pm.custom_event.type)) || 'Custom Event')} on <b>${esc(pm.custom_event && pm.custom_event.date)}</b>
         </div>
         <div style="font-size:11px;color:var(--text-muted);line-height:1.4">
-          Profile: <b>${esc(pm.profile)}</b> · Shared Background Events: <b>${pm.shared_background_events_count || 0} scheduled</b> · Horizon: <b>Day ${pm.start_day} to Day ${pm.end_day}</b>
+          Profile: <b>${esc(pm.profile)}</b> · Shared Background Events: <b>${pm.shared_background_events_count || 0} scheduled</b> · Horizon: <b>Day ${esc(pm.start_day)} to Day ${esc(pm.end_day)}</b>
         </div>
       </div>
 
@@ -2119,6 +2282,31 @@
             `).join('')}
           </div>
         </details>
+      ` : ''}
+
+      ${(pm.event_day_impact && pm.event_day_impact.metrics && pm.event_day_impact.metrics.length) ? `
+        <div class="card" style="margin-bottom:10px;border-left:3px solid var(--scenario-violet)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <b style="color:var(--scenario-violet);font-size:12px">Event-Day Impact — ${esc(pm.event_day_impact.date)}</b>
+            <span class="badge badge-computed" style="font-size:9.5px">Control → Treatment</span>
+          </div>
+          <div class="mut" style="font-size:10.5px;margin-bottom:6px">${esc(pm.event_day_impact.note)}</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px">
+            ${pm.event_day_impact.metrics.map(m => {
+              const labels = { attendance_rate: 'Attendance', late: 'Late arrivals', mood_avg: 'Avg mood', queries: 'Parent queries', infirmary: 'Infirmary visits', incidents: 'Incidents logged' };
+              const fmt = v => m.id === 'attendance_rate' && v != null ? (v * 100).toFixed(1) + '%' : String(v);
+              const changed = m.delta !== null && m.delta !== 0;
+              const dTxt = m.delta === null ? '' : (m.delta > 0 ? '+' : '') + (m.id === 'attendance_rate' ? (m.delta * 100).toFixed(1) + 'pt' : String(m.delta));
+              return `<div style="background:var(--bg-subtle);padding:6px;border-radius:4px">
+                <small style="color:var(--text-muted)">${esc(labels[m.id] || m.id)}</small>
+                <div style="font-size:11px;font-family:var(--font-mono);margin-top:2px">
+                  ${esc(fmt(m.control))} → <b style="color:${changed ? 'var(--scenario-violet)' : 'var(--text-primary)'}">${esc(fmt(m.treatment))}</b>
+                  ${changed ? ` <span style="color:var(--affected-amber)">${esc(dTxt)}</span>` : ''}
+                </div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
       ` : ''}
 
       <div class="card" style="margin-bottom:10px;padding:10px">
@@ -2162,8 +2350,8 @@
         <div class="card" style="margin-bottom:10px">
           <b style="color:var(--text-primary)">Input Deltas</b>
           <div class="mut" style="font-size:11.5px;margin-top:2px">
-            Seed: <b>${deltas.seed_baseline}</b> vs <b>${deltas.seed_scenario}</b> ·
-            Mode: <b>${deltas.mode_baseline}</b> vs <b>${deltas.mode_scenario}</b> ·
+            Seed: <b>${esc(deltas.seed_baseline)}</b> vs <b>${esc(deltas.seed_scenario)}</b> ·
+            Mode: <b>${esc(deltas.mode_baseline)}</b> vs <b>${esc(deltas.mode_scenario)}</b> ·
             Events added: <b>${deltas.events_added_in_scenario || 0}</b>
           </div>
         </div>
@@ -2248,7 +2436,7 @@
       ` : ''}
 
       <div class="card" style="margin-top:10px;background:rgba(16, 185, 129, 0.08);border:1px solid rgba(16, 185, 129, 0.25)">
-        <small style="color:#34d399"><b>Honest Modeling Boundaries:</b> ${esc(rep.honest_notice || 'Calculations derived from verified simulation logs.')}</small>
+        <small style="color:var(--response-teal)"><b>Honest Modeling Boundaries:</b> ${esc(rep.honest_notice || 'Calculations derived from verified simulation logs.')}</small>
       </div>
     `;
   }
@@ -2331,7 +2519,7 @@
     if (!edate) {
       if (F.curEvDay != null) {
         const dt = new Date(2026, 0, 1 + F.curEvDay);
-        edate = dt.toISOString().slice(0, 10);
+        edate = isoOfDate(dt);
       } else {
         edate = '2026-06-05';
       }
@@ -2452,8 +2640,17 @@
         return;
       }
       const poll = async () => {
-        window.__TIMELAPSE_STATUS = window.__TIMELAPSE_STATUS || [];
-        const s = await getJSON('api/status');
+        let s;
+        try {
+          s = await getJSON('api/status');
+        } catch (e) {
+          // Server unreachable mid-run: surface the failure instead of a
+          // permanently disabled hero button.
+          if (st) st.textContent = 'Lost contact with the server.';
+          if (heroSt) heroSt.textContent = '❌ Lost contact with the server while running.';
+          if (heroBtn) { heroBtn.disabled = false; heroBtn.textContent = '⚡ Add & Watch in Time-lapse'; }
+          return;
+        }
         if (s.running) {
           const msg = `Running… day ${s.day}/${s.total || 151}`;
           if (st) st.textContent = msg;
@@ -2462,7 +2659,6 @@
           setTimeout(poll, 600);
           return;
         }
-        window.__TIMELAPSE_STATUS.push('poll: completed status detected');
         if (s.error) {
           if (st) st.textContent = 'Failed: ' + s.error;
           if (heroSt) heroSt.textContent = '❌ Failed: ' + s.error;
@@ -2527,8 +2723,19 @@
     const heroBtn = $('[data-act="runPairedComparison"]');
     const heroSt = $('#heroRunStatus');
 
+    // Pre-flight: mirror the server's honest-intervention gate so the user
+    // learns about closed-day student events before a run is attempted.
+    if (isStudentEvent(ev.type) && extDayClosed(ev.date)) {
+      if (heroSt) {
+        heroSt.textContent = `✋ ${activePresetTitle(ev.type)} needs students on campus, but ${ev.date} is a closed day. School reopens ${REOPEN_DATE} — pick an open day (green) on the calendar.`;
+        heroSt.style.color = 'var(--affected-amber)';
+      }
+      toast(`Closed day: pick a school-open date from ${firstOpenHint()} onward`);
+      return;
+    }
+
     if (heroBtn) { heroBtn.disabled = true; heroBtn.textContent = '⏳ Preparing Matched Pair…'; }
-    if (heroSt) heroSt.textContent = '⏳ Pre-generating common background random schedule…';
+    if (heroSt) { heroSt.textContent = '⏳ Pre-generating common background random schedule…'; heroSt.style.color = ''; }
     toast('⚡ Launching Matched Control vs Treatment Paired Simulation...');
 
     const body = {
@@ -2620,12 +2827,25 @@
     S.pairMeta = pairMeta;
     S.ctrlDays.clear();
     S.trtDays.clear();
+    // Drop the previously loaded run's day cache: Now/Inspect panels must not
+    // render the old run's minute paths against the treatment pack's zones.
+    S.days.clear();
+    S.cmp = null;
+    S.activeFlag = null;
 
     // Concurrently load both meta packs
-    const [ctrlMeta, trtMeta] = await Promise.all([
-      getJSON(S.base + pairMeta.control_run + '/meta.json'),
-      getJSON(S.base + pairMeta.treatment_run + '/meta.json')
-    ]);
+    let ctrlMeta, trtMeta;
+    try {
+      [ctrlMeta, trtMeta] = await Promise.all([
+        getJSON(S.base + pairMeta.control_run + '/meta.json'),
+        getJSON(S.base + pairMeta.treatment_run + '/meta.json')
+      ]);
+    } catch (e) {
+      // A missing branch pack must not strand the UI in paired mode
+      toast(`Could not load the comparison packs (${e.message || e}).`);
+      S.pairedMode = false; S.pairMeta = null;
+      return;
+    }
     S.ctrlMeta = ctrlMeta;
     S.trtMeta = trtMeta;
     S.meta = trtMeta;
@@ -2710,6 +2930,7 @@
   }
 
   function bindUI() {
+    $('#runSel').onchange = e => { const id = e.target.value; if (id && id !== S.run) loadRun(id); };
     $$('#viewSeg button').forEach(b => { b.onclick = () => { if (b.disabled) return; S.view = b.dataset.v; setOn('#viewSeg', b); S.dirty = true; renderPanels(true); drawStrips(); }; });
     $$('#layerSeg button').forEach(b => { b.onclick = () => { S.layer = b.dataset.v; setOn('#layerSeg', b); S.dirty = true; }; });
     $$('#colorSeg button').forEach(b => { b.onclick = () => { S.color = b.dataset.v; setOn('#colorSeg', b); S.dirty = true; renderPanels(true); }; });
@@ -2750,24 +2971,29 @@
 
     // In-app Motion Setting Toggle (Full / Reduced / Off)
     const bMot = $('#btnMotionToggle');
+    const applyMotionSetting = (v, persist = true) => {
+      S.motionSetting = v;
+      S.motionOff = v === 'off';
+      if (typeof document !== 'undefined' && document.body) {
+        document.body.className = v === 'off' ? 'motion-off' : v === 'reduced' ? 'reduced-motion' : '';
+      }
+      if (bMot) bMot.textContent = v === 'off' ? '✨ Motion: Off' : v === 'reduced' ? '✨ Motion: Reduced' : '✨ Motion: Full';
+      if (persist) { try { localStorage.setItem('st-motion-setting', v); } catch (e) {} }
+      S.dirty = true;
+    };
     if (bMot) {
       bMot.onclick = () => {
-        if (!S.motionSetting || S.motionSetting === 'full') {
-          S.motionSetting = 'reduced';
-          if (typeof document !== 'undefined' && document.body) document.body.className = 'reduced-motion';
-          bMot.textContent = '✨ Motion: Reduced';
-        } else if (S.motionSetting === 'reduced') {
-          S.motionSetting = 'off';
-          if (typeof document !== 'undefined' && document.body) document.body.className = 'motion-off';
-          bMot.textContent = '✨ Motion: Off';
-        } else {
-          S.motionSetting = 'full';
-          if (typeof document !== 'undefined' && document.body) document.body.className = '';
-          bMot.textContent = '✨ Motion: Full';
-        }
-        try { localStorage.setItem('st-motion-setting', S.motionSetting); } catch (e) {}
+        const next = !S.motionSetting || S.motionSetting === 'full' ? 'reduced'
+          : S.motionSetting === 'reduced' ? 'off' : 'full';
+        applyMotionSetting(next);
       };
     }
+    // Restore the saved preference (canvas animation is gated by S.motionOff,
+    // so without this restore the map would animate after a reload)
+    try {
+      const savedMotion = localStorage.getItem('st-motion-setting');
+      if (savedMotion === 'reduced' || savedMotion === 'off') applyMotionSetting(savedMotion, false);
+    } catch (e) { /* private mode */ }
 
     // In-app Theme Toggle (Dark / Light)
     const bTheme = $('#btnThemeToggle');
@@ -2779,13 +3005,21 @@
     if (typeof window !== 'undefined' && window.addEventListener) {
       window.addEventListener('keydown', e => {
         if (e.target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+        // Never hijack browser/OS combos (Ctrl+F find, Ctrl+V paste, Alt+T, …)
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
         if (e.key === ' ') { e.preventDefault(); S.playing ? pause() : play(); }
         else if (e.key === 'ArrowLeft') { e.preventDefault(); goTo(S.day, S.minute - 1, { pause: true }); }
         else if (e.key === 'ArrowRight') { e.preventDefault(); goTo(S.day, S.minute + 1, { pause: true }); }
         else if (e.key === '[') { e.preventDefault(); stepFlag(-1); }
         else if (e.key === ']') { e.preventDefault(); stepFlag(1); }
         else if (e.key === 'f' || e.key === 'F') { e.preventDefault(); addUserFlag('Flagged moment'); }
-        else if (e.key === 'v' || e.key === 'V') { e.preventDefault(); S.view = S.view === 'operator' ? 'author' : 'operator'; $$('#viewSeg button').forEach(b => b.classList.toggle('on', b.dataset.v === S.view)); S.dirty = true; renderPanels(true); drawStrips(); }
+        else if (e.key === 'v' || e.key === 'V') {
+          if (S.redacted) return;   // author view is disabled on operator-only packs
+          e.preventDefault();
+          S.view = S.view === 'operator' ? 'author' : 'operator';
+          $$('#viewSeg button').forEach(b => b.classList.toggle('on', b.dataset.v === S.view));
+          S.dirty = true; renderPanels(true); drawStrips();
+        }
         else if (e.key === 'm' || e.key === 'M') { e.preventDefault(); if (bMot) bMot.click(); }
         else if (e.key === 't' || e.key === 'T') { e.preventDefault(); toggleTheme(); }
       });
@@ -2867,6 +3101,7 @@
       else if (act === 'pickCalDate') {
         S.form.curEvDate = a.dataset.iso;
         S.form.curEvDay = +a.dataset.day;
+        ensureHorizonCoversDate();
         renderRun();
       }
       else if (act === 'setHorizonDuration') {
@@ -2878,7 +3113,7 @@
         const next = Math.max(151, cur + (+a.dataset.delta || 0));
         S.form.curEvDay = next;
         const dt = new Date(2026, 0, 1 + next);
-        S.form.curEvDate = dt.toISOString().slice(0, 10);
+        S.form.curEvDate = isoOfDate(dt);
         S.form.calMonth = S.form.curEvDate.slice(0, 7);
         renderRun();
       }
@@ -2887,13 +3122,28 @@
         S.form.curEvType = t;
         const p = PRESET_EVENTS.find(x => x.id === t);
         if (p) S.form.curEvSev = p.defaultSev;
+        // A student-dependent preset cannot run on a closed day (summer
+        // break). Jump the selection to the first open school day instead of
+        // leaving the user on a date the run would reject.
+        if (isStudentEvent(t) && extDayClosed(S.form.curEvDate)) {
+          const openIso = nearestOpenFrom(S.form.curEvDate);
+          if (openIso !== S.form.curEvDate) {
+            S.form.curEvDate = openIso;
+            S.form.curEvDay = branchDayOf(openIso);
+            S.form.calMonth = openIso.slice(0, 7);
+            toast(`Date moved to the nearest open school day: ${openIso}`);
+          }
+        }
+        // The intervention date must fall inside the simulated horizon —
+        // extend to the shortest preset that covers it.
+        ensureHorizonCoversDate();
         renderRun();
       }
       else if (act === 'setEvDay') {
         const d = +a.dataset.day;
         S.form.curEvDay = d;
         const dt = new Date(2026, 0, 1 + d);
-        S.form.curEvDate = dt.toISOString().slice(0, 10);
+        S.form.curEvDate = isoOfDate(dt);
         S.form.calMonth = S.form.curEvDate.slice(0, 7);
         renderRun();
       }
@@ -3043,6 +3293,7 @@
           const cur = new Date(iso + 'T00:00:00');
           S.form.curEvDay = Math.max(0, Math.round((cur - d0) / 86400000));
           S.form.calMonth = iso.slice(0, 7);
+          ensureHorizonCoversDate();
           renderRun();
         }
       }
@@ -3071,16 +3322,8 @@
       }
     });
 
-    window.addEventListener('keydown', e => {
-      if (/INPUT|TEXTAREA|SELECT/.test((e.target.tagName || ''))) return;
-      const k = e.key;
-      if (k === ' ') { e.preventDefault(); S.playing ? pause() : play(); }
-      else if (k === 'ArrowRight') $('#bFwd').click(); else if (k === 'ArrowLeft') $('#bBack').click();
-      else if (k === ']') stepFlag(1); else if (k === '[') stepFlag(-1);
-      else if (k === 'f' || k === 'F') $('#bFlag').click();
-      else if (k === 'v' || k === 'V') $$('#layerSeg button')[S.layer === 'reality' ? 1 : 0].click();
-      else if (k === 'm' || k === 'M') $$('#colorSeg button')[S.color === 'mood' ? 0 : 1].click();
-    });
+    // Single keyboard-shortcut handler lives in bindUI(); keep this scope for
+    // resize only so keys never double-fire (arrows/Space/V/M used to step twice).
     window.addEventListener('resize', () => { S.dirty = true; drawStrips(); renderPanels(true); });
   }
 
