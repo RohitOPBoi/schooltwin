@@ -43,9 +43,7 @@ class TestPhase3CausalEngine(unittest.TestCase):
         self.transport = TransportMaintenanceManager(num_routes=12)
         self.registry = CausalHandlerRegistry(self.audit, self.ledger, self.learning, self.transport)
 
-    # ------------------------------------------------------------------
-    # 1. Serious Student Altercation Handler
-    # ------------------------------------------------------------------
+
     def test_serious_student_fight_handler(self):
         students = {f"STU-{i:04d}" for i in range(1, 100)}
         ev = EventRecord(
@@ -74,9 +72,7 @@ class TestPhase3CausalEngine(unittest.TestCase):
         self.assertEqual(chain[0]["node_type"], "event")
         self.assertEqual(chain[1]["node_type"], "rule")
 
-    # ------------------------------------------------------------------
-    # 2. Suspected Policy Violation Investigation Workflow
-    # ------------------------------------------------------------------
+
     def test_investigation_state_machine_presumption_of_innocence(self):
         ev = EventRecord(
             event_id="EV-2026-01-14-BIZ",
@@ -98,9 +94,7 @@ class TestPhase3CausalEngine(unittest.TestCase):
         self.assertTrue(case.disciplinary_action_taken)
         self.assertEqual(case.resolution_date, "2026-01-18")
 
-    # ------------------------------------------------------------------
-    # 3. Teacher Resignation Notice & Effective Departure
-    # ------------------------------------------------------------------
+
     def test_teacher_resignation_notice_and_departure(self):
         ev = EventRecord(
             event_id="EV-2026-01-20-RESIGN",
@@ -133,9 +127,7 @@ class TestPhase3CausalEngine(unittest.TestCase):
         staff_effects = self.audit.get_effects_for_subsystem("staffing")
         self.assertTrue(any(e.applied_rule_id == "RULE-STAFF-DEPARTURE-01" for e in staff_effects))
 
-    # ------------------------------------------------------------------
-    # 4. Bus Breakdown & Route-Specific Delay
-    # ------------------------------------------------------------------
+
     def test_bus_breakdown_route_isolation(self):
         # Register students on routes
         self.transport.register_student_route("STU-0001", 3)
@@ -165,9 +157,7 @@ class TestPhase3CausalEngine(unittest.TestCase):
         trans_effects = self.audit.get_effects_for_subsystem("transport")
         self.assertTrue(any(e.applied_rule_id == "RULE-TRANS-BREAKDOWN-01" for e in trans_effects))
 
-    # ------------------------------------------------------------------
-    # 5. Fee Increase Announcement & Governance Gate
-    # ------------------------------------------------------------------
+
     def test_fee_increase_requires_approval(self):
         ev = EventRecord(
             event_id="EV-2026-01-10-FEE",
@@ -186,9 +176,7 @@ class TestPhase3CausalEngine(unittest.TestCase):
         self.assertTrue(res_approved["applied"])
         self.assertEqual(res_approved["delta_pct"], 15.0)
 
-    # ------------------------------------------------------------------
-    # 6. Additional Teacher Hired & Timetable Coverage
-    # ------------------------------------------------------------------
+
     def test_additional_teacher_hired(self):
         ev = EventRecord(
             event_id="EV-2026-02-01-HIRE",
@@ -206,9 +194,7 @@ class TestPhase3CausalEngine(unittest.TestCase):
         fin_effects = self.audit.get_effects_for_subsystem("finance")
         self.assertTrue(any(e.applied_rule_id == "RULE-FIN-PAYROLL-NEW-HIRE-01" for e in fin_effects))
 
-    # ------------------------------------------------------------------
-    # 7. Financial Ledger Exact Arithmetic & Reconciliation
-    # ------------------------------------------------------------------
+
     def test_ledger_exact_arithmetic_and_reconciliation(self):
         ledger = FinancialLedger(opening_cash_inr=100000.0, opening_ar_inr=50000.0)
 
@@ -231,9 +217,7 @@ class TestPhase3CausalEngine(unittest.TestCase):
         self.assertEqual(rec["cash"]["discrepancy"], 0.0)
         self.assertEqual(rec["accounts_receivable"]["discrepancy"], 0.0)
 
-    # ------------------------------------------------------------------
-    # 8. Academic Learning Progression & Exposure
-    # ------------------------------------------------------------------
+
     def test_learning_model_exposure_and_uncovered_penalty(self):
         lm = LearningModel(seed=20261014)
         s1 = lm.initialize_student("STU-0001", "Class 8", "B", 1)
@@ -264,9 +248,7 @@ class TestPhase3CausalEngine(unittest.TestCase):
         self.assertGreaterEqual(summary["lost_instructional_hours"], 1.5)
         self.assertEqual(summary["uncovered_periods_total"], 2)
 
-    # ------------------------------------------------------------------
-    # 9. Comparison Report with Causal Audit Chains
-    # ------------------------------------------------------------------
+
     def test_compare_runs_with_causal_chain(self):
         rep = compare_runs("story_baseline", "story_baseline")
         self.assertIn("narrative_summary", rep)
@@ -291,9 +273,7 @@ class TestPhase3CausalEngine(unittest.TestCase):
         self.assertTrue(len(unmodeled) >= 1)
         self.assertIn("explanation", unmodeled[0])
 
-    # ------------------------------------------------------------------
-    # 10. Baseline Immutability
-    # ------------------------------------------------------------------
+
     def test_baseline_immutability(self):
         base_meta_path = Path("pack/story_baseline/meta.json")
         self.assertTrue(base_meta_path.exists())
@@ -305,9 +285,7 @@ class TestPhase3CausalEngine(unittest.TestCase):
         after_bytes = base_meta_path.read_bytes()
         self.assertEqual(before_bytes, after_bytes, "Baseline meta.json must remain strictly bit-for-bit immutable")
 
-    # ------------------------------------------------------------------
-    # 11. Simulation Determinism & Ledger Reconciliation
-    # ------------------------------------------------------------------
+
     def test_simulation_determinism_and_reconciliation(self):
         ov1 = {
             "name": "test_det_1",

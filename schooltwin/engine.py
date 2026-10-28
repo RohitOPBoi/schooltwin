@@ -152,7 +152,7 @@ class Engine:
         from .snapshots import capture_snapshot
         return capture_snapshot(self, day_idx)
 
-    # ------------------------------------------------------------------ setup
+    # setup
     def _build_events(self):
         e, evs = self.ov["events"], []
         if e["use_story_events"]:
@@ -211,7 +211,7 @@ class Engine:
                 out.append(ev)
         return out
 
-    # ------------------------------------------------------------------- PLAN
+    # PLAN
     def _assess_grades(self, iso):
         out = set()
         for w in self.story.assessments:
@@ -243,7 +243,7 @@ class Engine:
         for tname in list(self.causal_registry.active_resignations.keys()):
             self.causal_registry.evaluate_resignation_departure(tname, iso, [a for a in self.agents if a.role == "teacher"])
 
-        # ---- events -> effects
+        # events -> effects
         day["skipped_events"] = []
         for ev in self._events_on(iso, i):
             # Honest applicability gate: student-dependent events cannot occur when
@@ -356,12 +356,12 @@ class Engine:
                 self._apply_effect(day, ev, fx, anchor, i)
             # The event's handlers and effect verbs have now run for this date
             ev_rec.execution_status = "executed"
-        # ---- decisions from earlier days that are still active
+        # decisions from earlier days that are still active
         self.effects_active = [e for e in self.effects_active if e["until"] >= i]
         for e in self.effects_active:
             if e["name"] == "notify_families":
                 day["absence_mult"] *= 0.97
-        # ---- extra teachers lever
+        # extra teachers lever
         want = int(self.lever(i, "additional_teachers") or 0)
         while self.extra_teachers < want:
             self.extra_teachers += 1
@@ -371,11 +371,11 @@ class Engine:
         if not day["open"]:
             self._plan_closed(day, rng)
             return day
-        # ---- students present / late
+        # students present / late
         present, late = self._plan_students(day, row, roll, rng, anchor, K)
         day["present_students"], day["late_ids"] = present, late
         self._arrivals(day, rng, K)
-        # ---- teachers & staff
+        # teachers & staff
         self._plan_staff(day, row, rng, anchor)
         for a in self.students:
             day["friends"][a.id] = sum(1 for f in a.friends if f in present) if a.id in present else 0
@@ -543,7 +543,7 @@ class Engine:
                 a.break_pref = "staffroom"
         day["cover_periods"] = 0
 
-    # ---------------------------------------------------------------- effects
+    # effects
     def _apply_effect(self, day, ev, fx, anchor, i):
         v, a = fx.verb, fx.args
         if v == "absence":
@@ -583,7 +583,7 @@ class Engine:
         elif v == "staff_notice":
             day["notices"].append(a["name"])
 
-    # ------------------------------------------------------------------- PLAY
+    # PLAY
     def _block_at(self, t):
         for b in self.D["blocks"]:
             if b["start"] <= t < b["end"]:
@@ -827,7 +827,7 @@ class Engine:
         self._move(a, zid, t)
         self.queue[t + dur].append(("return", a.id))
 
-    # --------------------------------------------------- the 'real school' layer
+    # movement and interactions
     def _behaviors(self, t, block):
         if block["type"] == "class":
             self._errands(t)
@@ -939,7 +939,7 @@ class Engine:
         self.micro_events.append({"minute": t, "zone": spot, "kind": "blind_spot_caught", "sev": 1,
                                   "text": f"{len(kids)} student(s) found in an unwatched area and sent back to class."})
 
-    # ------------------------------------------------------- timed (event) effects
+    # timed event effects
     def _timed(self, t, verb, a):
         rng = self.rng
         pres = [x for x in self.students if x.present_today and x.zone != OUTSIDE and x.away_until <= t]
@@ -1009,7 +1009,7 @@ class Engine:
         for x in group:
             self._adjust(x, e["delta"], "event")
 
-    # --------------------------------------------------------------- counters
+    # camera counters
     CLOSED_LABELS = ("staff/approved visitor flow", "vehicle movement count", "restricted-room aggregate access", "perimeter exit count")
 
     def _reading(self, z, t):
@@ -1052,7 +1052,7 @@ class Engine:
                 true, obs = self._reading(z, t)
                 self.cctv.append(self._record(cam, z.id, t, label, z.measure, true, obs))
 
-    # ------------------------------------------------------------------- PLAY
+    # PLAY
     def _play(self, day, rng):
         D = self.D
         self.rng, self.day = rng, day
@@ -1150,7 +1150,7 @@ class Engine:
                 if load:
                     self.drv[a.id]["workload"] += load * sm["pull"]
 
-    # ------------------------------------------------------------------ CLOSE
+    # CLOSE
     def _close(self, day, rng):
         i, iso, st, anchor = day["i"], day["iso"], self.story, day["anchor"]
         K, mc = self.ov["randomness"]["intensity"], self.bh["mood"]
@@ -1161,7 +1161,7 @@ class Engine:
         late_n = sum(1 for a in pres if a.late_today)
         t_abs = len(day["teachers_absent"])
         moods = np.array([a.mood for a in pres]) if pres else np.array([60.0])
-        # ---- feedback (what a survey would hear, drawn from today's moods)
+        # feedback (what a survey would hear, drawn from today's moods)
         pos = neu = neg = 0
         themes = []
         if opened and pres:
@@ -1181,7 +1181,7 @@ class Engine:
         tstaff = [a for a in self.agents if a.role == "teacher" and a.present_today]
         t_pos = sum(a.mood > 72 for a in tstaff[:18]); t_str = sum(a.mood < 58 for a in tstaff[:18])
         disagreements = int(rng.poisson(0.71 * K)) + (2 if any(e["type"] == "student_teacher_conflict" for e in day["events"]) else 0)
-        # ---- signals and counters the detector may see
+        # signals and counters the detector may see
         sig = dict(day["signals"])
         sig["weather_disruption_index"], sig["heat_pressure_index"] = day["weather"], day["heat"]
         sig["infirmary_entries"] = self.infirm_visits
@@ -1200,7 +1200,7 @@ class Engine:
                          negative_count=570, queries=620, _default=540)
         alerts = self.det.review(iso, minute_of, metrics)
         self.alerts += alerts
-        # ---- decisions
+        # decisions
         state = {"attendance_rate": round(att, 3), "late_arrivals": late_n, "teachers_absent": t_abs, "cash_inr": round(self.fin.cash)}
         decisions = []
         if anchor:
@@ -1224,7 +1224,7 @@ class Engine:
                     if d["status"].startswith("implemented") and d["effect"]:
                         self.effects_active.append({"name": d["effect"][0], "until": i + d["effect"][1]})
         self.decisions += decisions
-        # ---- finance
+        # finance
         if anchor:
             fin = self.fin.story_day(iso)
         else:
@@ -1286,7 +1286,7 @@ class Engine:
         uncovered_set = set(self.uncovered)
         cog_res = self.cognitive.step_daily_states(iso, opened, pres_ids, uncovered_set)
 
-        # ---- flags
+        # flags
         flags = self._flags(day, alerts, decisions)
         incidents = day["incidents"]
         res = {
@@ -1341,7 +1341,7 @@ class Engine:
                 text="School calendar change.", zone="", ref="")
         return out
 
-    # ------------------------------------------------------------------- STEP
+    # STEP
     def step(self, i):
         rng = self.day_rng(i)
         day = self._plan(i, rng)

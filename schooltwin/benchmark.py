@@ -18,11 +18,9 @@ from .pack import Packer
 
 def run_benchmark(days_to_run: int = 90, seed: int = 20261014) -> dict:
     """Runs a measured 3-month scenario execution benchmark."""
-    print("=" * 60)
-    print("  SCHOOLTWIN PERFORMANCE BENCHMARK (3-MONTH HORIZON)")
-    print("=" * 60)
+    print("--- Benchmark: 3-Month Horizon ---")
 
-    # 1. Environment Info
+
     env_info = {
         "os": platform.system(),
         "release": platform.release(),
@@ -31,7 +29,7 @@ def run_benchmark(days_to_run: int = 90, seed: int = 20261014) -> dict:
     }
     print(f"System: {env_info['os']} {env_info['release']} | Python {env_info['python_version']}")
 
-    # 2. Baseline Loading Benchmark
+
     t_load_start = time.perf_counter()
     base_dir = ROOT / "pack" / "story_baseline"
     meta = json.loads((base_dir / "meta.json").read_text(encoding="utf-8"))
@@ -40,7 +38,7 @@ def run_benchmark(days_to_run: int = 90, seed: int = 20261014) -> dict:
     load_time = t_load_end - t_load_start
     print(f"[1/3] Baseline loading time: {load_time * 1000:.2f} ms ({len(meta['people'])} people, {len(meta['days'])} days)")
 
-    # 3. 3-Month Scenario Simulation Benchmark (Phase 3 Causal Engine)
+
     # 90 calendar days is approx 3 months (Jan 1 to Apr 1)
     ov = {
         "name": "benchmark_3month",
@@ -119,13 +117,13 @@ def run_benchmark(days_to_run: int = 90, seed: int = 20261014) -> dict:
     t_sim_end = time.perf_counter()
     sim_time = t_sim_end - t_sim_start
 
-    # 4. Finalize & Pack Persistence Benchmark
+
     t_pack_start = time.perf_counter()
     packer.finalize(evaluate(eng))
     t_pack_end = time.perf_counter()
     pack_time = t_pack_end - t_pack_start
 
-    # 5. Causal Comparison Report Generation Benchmark
+
     from .compare import compare_runs
     t_cmp_start = time.perf_counter()
     cmp_rep = compare_runs("story_baseline", "benchmark_3month")

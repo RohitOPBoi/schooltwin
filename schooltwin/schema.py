@@ -1,8 +1,4 @@
-"""Canonical Scenario Schema and Validation for SchoolTwin.
-
-Defines the single source of truth for scenario configurations, checkpoints,
-event definitions, policy settings, and deterministic configuration hashing.
-"""
+"""Scenario schema and validation."""
 import copy
 import hashlib
 import json
@@ -26,9 +22,7 @@ MIN_DATE = BASELINE_START_DATE
 MAX_DATE = "2026-12-31"
 TOTAL_DAYS = MAX_SIMULATION_DAYS
 
-# ----------------------------------------------------------------------
-# Policy parameter definitions with units, bounds, defaults, and modeling status
-# ----------------------------------------------------------------------
+
 POLICY_DEFINITIONS: Dict[str, Dict[str, Any]] = {
     "additional_teachers": {
         "title": "Additional Teachers",
@@ -139,9 +133,7 @@ POLICY_DEFINITIONS: Dict[str, Dict[str, Any]] = {
     },
 }
 
-# ----------------------------------------------------------------------
-# Supported event catalog definitions
-# ----------------------------------------------------------------------
+
 EVENT_CATALOG: Dict[str, Dict[str, Any]] = {
     # Phase 2 required events:
     "serious_student_fight": {
@@ -503,17 +495,13 @@ EVENT_CATALOG: Dict[str, Dict[str, Any]] = {
     },
 }
 
-# ----------------------------------------------------------------------
-# Helper functions for normalization and hashing
-# ----------------------------------------------------------------------
+
 def compute_config_hash(data: Any) -> str:
-    """Computes a deterministic SHA-256 hash for a normalized configuration dictionary."""
     normalized = json.dumps(data, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:16]
 
 
 def validate_date(date_str: str) -> Tuple[bool, Optional[str]]:
-    """Validates that a date string is in YYYY-MM-DD format and falls within the school calendar."""
     if not isinstance(date_str, str) or not re.match(r"^\d{4}-\d{2}-\d{2}$", date_str):
         return False, f"Date '{date_str}' must be in YYYY-MM-DD format"
     if date_str < MIN_DATE or date_str > MAX_DATE:
@@ -525,7 +513,6 @@ _VALID_ZONES_CACHE: Optional[Dict[str, Dict[str, Any]]] = None
 
 
 def get_valid_zones() -> Dict[str, Dict[str, Any]]:
-    """Loads and caches the 69 canonical campus zones with floor and type."""
     global _VALID_ZONES_CACHE
     if _VALID_ZONES_CACHE is not None:
         return _VALID_ZONES_CACHE
@@ -604,7 +591,6 @@ def compute_scenario_timeline(
     custom_days: Optional[int] = None,
     reopening_date: str = "2026-07-01",
 ) -> Dict[str, Any]:
-    """Computes exact scenario timeline, start/end day, start/end dates, and school day counts."""
     from .extension_calendar import ExtensionCalendar
     cal = ExtensionCalendar(reopening_date=reopening_date)
 
@@ -639,9 +625,7 @@ def compute_scenario_timeline(
     return cal.compute_timeline(start_day=start_day, duration_days=dur_days)
 
 
-# ----------------------------------------------------------------------
-# Scenario Schema Class
-# ----------------------------------------------------------------------
+
 @dataclass
 class ScenarioConfig:
     scenario_id: str
@@ -753,9 +737,7 @@ class ScenarioConfig:
         return ov
 
 
-# ----------------------------------------------------------------------
-# Canonical Validation Suite
-# ----------------------------------------------------------------------
+
 def validate_scenario(data: Dict[str, Any]) -> Tuple[bool, List[str]]:
     """Strictly validates a scenario configuration dict against the canonical schema.
 

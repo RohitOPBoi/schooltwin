@@ -91,7 +91,7 @@ class OllamaReasoner:
         self.total_calls += 1
         req_hash = compute_request_hash(agent_id, date_str, role, trigger_context)
 
-        # 1. Check if decision is already in replay trace
+
         if req_hash in self.decision_trace:
             self.replayed_calls += 1
             rec = self.decision_trace[req_hash]
@@ -112,7 +112,7 @@ class OllamaReasoner:
                 date=date_str,
             )
 
-        # 2. If Ollama is available, attempt structured inference
+
         if self.is_available():
             decision = self._call_ollama_structured(
                 agent_id=agent_id,
@@ -131,7 +131,7 @@ class OllamaReasoner:
             else:
                 self.record_failure()
 
-        # 3. Transparent deterministic fallback to RuleBasedReasoner
+
         self.fallback_calls += 1
         st = state or CognitiveState(agent_id=agent_id, role=role)
         if role == "student":

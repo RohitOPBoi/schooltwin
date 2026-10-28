@@ -43,9 +43,7 @@ class CausalHandlerRegistry:
         self.active_resignations: Dict[str, Dict[str, Any]] = {}  # teacher_id -> resignation info
         self.active_hires: Dict[str, Dict[str, Any]] = {}         # teacher_id -> hire info
 
-    # ------------------------------------------------------------------
-    # 1. Serious Student Altercation (3 Students)
-    # ------------------------------------------------------------------
+
     def handle_serious_student_fight(
         self,
         event: EventRecord,
@@ -135,9 +133,7 @@ class CausalHandlerRegistry:
             "camera_zone": loc,
         }
 
-    # ------------------------------------------------------------------
-    # 2. Suspected Prohibited Business / Policy Violation
-    # ------------------------------------------------------------------
+
     def handle_suspected_prohibited_business(
         self,
         event: EventRecord,
@@ -199,9 +195,7 @@ class CausalHandlerRegistry:
             "disciplinary_action_taken": inv.disciplinary_action_taken,
         }
 
-    # ------------------------------------------------------------------
-    # 3. Teacher Resignation Notice & Departure
-    # ------------------------------------------------------------------
+
     def handle_teacher_resignation(
         self,
         event: EventRecord,
@@ -288,9 +282,7 @@ class CausalHandlerRegistry:
             return True
         return False
 
-    # ------------------------------------------------------------------
-    # 4. School Bus Breakdown
-    # ------------------------------------------------------------------
+
     def handle_bus_breakdown(
         self,
         event: EventRecord,
@@ -353,9 +345,7 @@ class CausalHandlerRegistry:
 
         return result
 
-    # ------------------------------------------------------------------
-    # 5. School Fee Increase Announcement
-    # ------------------------------------------------------------------
+
     def handle_fee_increase(
         self,
         event: EventRecord,
@@ -420,9 +410,7 @@ class CausalHandlerRegistry:
             "effective_date": current_date,
         }
 
-    # ------------------------------------------------------------------
-    # 6. Additional Teacher Hired
-    # ------------------------------------------------------------------
+
     def handle_additional_teacher_hired(
         self,
         event: EventRecord,
@@ -491,9 +479,7 @@ class CausalHandlerRegistry:
 
         return info
 
-    # ------------------------------------------------------------------
-    # 7. Water Cooler Breakdown (WP1 & WP2)
-    # ------------------------------------------------------------------
+
     def handle_water_cooler_breakdown(
         self,
         event: EventRecord,
@@ -540,9 +526,7 @@ class CausalHandlerRegistry:
 
         return {"location": loc, "repair_cost_inr": repair_cost_inr, "status": "repaired"}
 
-    # ------------------------------------------------------------------
-    # 8. Staff Collective Strike (WP1 & WP2)
-    # ------------------------------------------------------------------
+
     def handle_collective_strike(
         self,
         event: EventRecord,

@@ -2,7 +2,7 @@
 
 <img src="./assets/hero_campus.jpg" alt="SchoolTwin Campus Aerial View" width="100%" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);" />
 
-# 🏫 SchoolTwin
+# SchoolTwin
 ### High-Fidelity Synthetic Digital Twin of a Delhi Secondary School
 
 *A deterministic, multi-agent operational simulation and what-if scenario exploration platform for campus administration, student wellbeing, transport logistics, and facility planning.*
@@ -32,15 +32,15 @@
 
 ---
 
-## ⚡ Campus at a Glance
+## Campus at a Glance
 
-| 👥 1,309 | 📅 151 Days | 📍 69 Zones | ⚡ 10.98s |
+| 1,309 Agents | 151 Days | 69 Zones | 10.98s Benchmark |
 | :---: | :---: | :---: | :---: |
 | **Synthetic Agents**<br><sub>1,020 Students & 123 Staff</sub> | **Full School Term**<br><sub>January – May 2026</sub> | **Monitored Campus Locations**<br><sub>Classrooms, Labs, Grounds</sub> | **90-Day Simulation**<br><sub>High-performance PRNG engine</sub> |
 
 ---
 
-## 🎯 What is SchoolTwin?
+## What is SchoolTwin?
 
 SchoolTwin provides school principals, administrators, and policy planners with an interactive sandbox to test decisions **before deploying them in reality**. By simulating the interlinked dynamics of academics, staffing, transport, student sentiment, and facility load, SchoolTwin reveals second-order consequences of policy choices.
 
@@ -62,7 +62,7 @@ SchoolTwin provides school principals, administrators, and policy planners with 
 
 ---
 
-## 🚀 Quickstart
+## Quickstart
 
 SchoolTwin requires **no paid APIs, no external cloud connections, and runs completely locally**.
 
@@ -91,7 +91,7 @@ Visit **[http://localhost:8765](http://localhost:8765)** for the live interactiv
 
 ---
 
-## 🛠️ Scenario Builder & Branching
+## Scenario Builder & Branching
 
 Create distinct hypothetical timelines by applying events and policy levers starting from any immutable milestone:
 
@@ -115,12 +115,12 @@ Create distinct hypothetical timelines by applying events and policy levers star
 <details open>
 <summary><strong>Explore Event Injectors</strong></summary>
 
-- 🥊 **`serious_student_fight`**: Physical altercation involving 3 students. Dispatches staff monitors, routes students to the infirmary, and triggers parent notifications.
-- 🔍 **`suspected_prohibited_business`**: Presumed-innocent administrative review into unapproved on-campus trading.
-- 🚌 **`bus_breakdown`**: Mechanical failure on a designated route. Generates late-arrival cascades and driver dispatch logs.
-- 📈 **`school_fee_increase`**: Tuition and transport fee updates (+/-20%) with modeled parent inquiry volume and collection friction.
-- 📝 **`teacher_resignation_notice`**: Faculty departure creating substitute cover demand and classroom disruption.
-- 🤝 **`additional_teacher_hired`**: Mid-term recruitment mitigating lesson substitution stress and workload.
+- **`serious_student_fight`**: Physical altercation involving 3 students. Dispatches staff monitors, routes students to the infirmary, and triggers parent notifications.
+- **`suspected_prohibited_business`**: Presumed-innocent administrative review into unapproved on-campus trading.
+- **`bus_breakdown`**: Mechanical failure on a designated route. Generates late-arrival cascades and driver dispatch logs.
+- **`school_fee_increase`**: Tuition and transport fee updates (+/-20%) with modeled parent inquiry volume and collection friction.
+- **`teacher_resignation_notice`**: Faculty departure creating substitute cover demand and classroom disruption.
+- **`additional_teacher_hired`**: Mid-term recruitment mitigating lesson substitution stress and workload.
 
 </details>
 
@@ -135,7 +135,7 @@ Adjust organizational levers within validated bounds:
 
 ---
 
-## 🧠 Three-Level Agent Architecture & Cognitive Simulation (Phase 4)
+## Three-Level Agent Architecture & Cognitive Simulation
 
 SchoolTwin introduces a lightweight, computationally bounded cognitive architecture across all 1,309 synthetic individuals (1,020 students, 122 staff, teachers, and school leadership) without turning the simulation into an unconstrained, expensive collection of LLM calls.
 
@@ -236,7 +236,7 @@ SchoolTwin replaces static lookups with a deterministic, rule-based causal propa
 
 ---
 
-## 📊 Honest Scenario Comparison
+## Honest Scenario Comparison
 
 SchoolTwin features a rigorous comparison engine that highlights differences between any scenario run and the baseline. Every metric is labelled with an honest status badge to ensure decision-makers know what is mathematically simulated versus what is an assumed input.
 
@@ -291,7 +291,7 @@ Target Window: 15–30 seconds | Status: TARGET ACHIEVED (16.47s)
 
 ---
 
-## 🛡️ Privacy & Architectural Invariants
+## Privacy & Architectural Invariants
 
 1. **Aggregate-Only Sensing:** CCTV feeds consist exclusively of zone occupancy counters (`CAM-GATE-A`, `CAM-LIBRARY`, `CAM-GROUND`). Person-level tracking, re-identification, and facial recognition are strictly prohibited.
 2. **Immutable Ground Truth:** `pack/story_baseline` is write-protected. All scenario runs output to dedicated, isolated scenario directories (`pack/<scenario_id>`).
@@ -300,7 +300,7 @@ Target Window: 15–30 seconds | Status: TARGET ACHIEVED (16.47s)
 
 ---
 
-## 🧪 Testing
+## Testing
 
 The automated test suites run entirely offline with deterministic verification:
 
@@ -324,7 +324,7 @@ npm test
 
 ---
 
-## 🛠️ Developer Guide: Extending Cognitive Agents
+## Developer Guide: Extending Cognitive Agents
 
 ### Adding a New State Variable
 1. Define the attribute and default value in `CognitiveState` inside `schooltwin/cognitive.py`.
@@ -339,7 +339,7 @@ npm test
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```text
 schooltwin/

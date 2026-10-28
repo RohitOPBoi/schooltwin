@@ -66,9 +66,7 @@ class TestPhase4CognitiveArchitecture(unittest.TestCase):
 
         self.manager.initialize_population(self.mock_agents)
 
-    # ------------------------------------------------------------------
-    # 1. Level 1 Individual State & Bounds
-    # ------------------------------------------------------------------
+
     def test_level1_individual_state_initialization(self):
         self.assertEqual(len(self.manager.states), 23)
 
@@ -90,9 +88,7 @@ class TestPhase4CognitiveArchitecture(unittest.TestCase):
         self.assertEqual(cs_prin.role, "principal")
         self.assertIn("MGMT", cs_prin.current_goal_id)
 
-    # ------------------------------------------------------------------
-    # 2. Sparse Relationship Graph
-    # ------------------------------------------------------------------
+
     def test_sparse_relationship_graph(self):
         # Verify student 1 has relationships within Section A
         rels_1 = self.manager.relationships[1]
@@ -110,9 +106,7 @@ class TestPhase4CognitiveArchitecture(unittest.TestCase):
         rels_prin = self.manager.relationships[23]
         self.assertTrue(any(r.relation_type == RelationshipType.COWORKER for r in rels_prin.values()))
 
-    # ------------------------------------------------------------------
-    # 3. Epistemic Memory Management & Bounded Retention
-    # ------------------------------------------------------------------
+
     def test_epistemic_memory_and_bounded_eviction(self):
         aid = 1
         # Add 15 memories with varying importances (limit is 12)
@@ -151,9 +145,7 @@ class TestPhase4CognitiveArchitecture(unittest.TestCase):
         self.assertEqual(top_mems[0].memory_id, f"MEM-{aid}-CRITICAL")
         self.assertEqual(top_mems[0].epistemic_status, EpistemicStatus.CONFIRMED_FACT)
 
-    # ------------------------------------------------------------------
-    # 4. Event-Triggered Epistemic Perception Propagation
-    # ------------------------------------------------------------------
+
     def test_event_perception_propagation(self):
         # Trigger altercation involving students 1 and 2
         counts = self.manager.propagate_event_perception(
@@ -180,9 +172,7 @@ class TestPhase4CognitiveArchitecture(unittest.TestCase):
         self.assertEqual(len(mems_3), 1)
         self.assertEqual(mems_3[0].epistemic_status, EpistemicStatus.EYEWITNESS_ACCOUNT)
 
-    # ------------------------------------------------------------------
-    # 5. Action Validation & Precondition Checks
-    # ------------------------------------------------------------------
+
     def test_action_validation_and_approval_tiers(self):
         # 1. Valid student action
         valid, errs, tier = ActionValidator.validate_action(
@@ -225,9 +215,7 @@ class TestPhase4CognitiveArchitecture(unittest.TestCase):
         self.assertFalse(valid_unknown)
         self.assertEqual(tier_unknown, ApprovalTier.PROHIBITED)
 
-    # ------------------------------------------------------------------
-    # 6. AI Principal 4-Tier Authorization & Human Approval Gate
-    # ------------------------------------------------------------------
+
     def test_principal_4tier_authorization(self):
         class MockStory:
             def __init__(self):
@@ -248,9 +236,7 @@ class TestPhase4CognitiveArchitecture(unittest.TestCase):
         self.assertEqual(dec_fee["approval_tier"], ApprovalTier.HIGH_IMPACT.value)
         self.assertEqual(dec_fee["status"], "proposed_awaiting_approval")
 
-    # ------------------------------------------------------------------
-    # 7. Optional Ollama Reasoner: Circuit Breaker & Fallback
-    # ------------------------------------------------------------------
+
     def test_ollama_circuit_breaker_and_rule_fallback(self):
         # Initialize reasoner with enabled=True but pointing to unreachable mock port
         reasoner = OllamaReasoner(enabled=True, timeout_seconds=0.1)
@@ -277,9 +263,7 @@ class TestPhase4CognitiveArchitecture(unittest.TestCase):
         self.assertEqual(dec.provenance, "fallback_rule")
         self.assertIn(dec.action_name, SUPPORTED_ACTIONS)
 
-    # ------------------------------------------------------------------
-    # 8. Deterministic Decision Replay Trace
-    # ------------------------------------------------------------------
+
     def test_decision_trace_replay(self):
         reasoner = OllamaReasoner(enabled=False) # Offline mode
 
@@ -316,9 +300,7 @@ class TestPhase4CognitiveArchitecture(unittest.TestCase):
         self.assertEqual(dec1.action_name, dec2.action_name)
         self.assertEqual(replay_reasoner.replayed_calls, 1)
 
-    # ------------------------------------------------------------------
-    # 9. Structured Ollama Response Schema Validation (Mocked)
-    # ------------------------------------------------------------------
+
     @patch("urllib.request.urlopen")
     def test_ollama_mocked_structured_decision(self, mock_urlopen):
         # Mock valid Ollama JSON response
@@ -350,9 +332,7 @@ class TestPhase4CognitiveArchitecture(unittest.TestCase):
             self.assertEqual(dec.action_name, "seek_academic_help")
             self.assertEqual(dec.approval_tier, ApprovalTier.LOW_IMPACT)
 
-    # ------------------------------------------------------------------
-    # 10. End-to-End Simulation Integration with Cognitive Population
-    # ------------------------------------------------------------------
+
     def test_simulation_integration_with_cognitive_population(self):
         ov = {
             "name": "test_phase4_sim",
@@ -396,9 +376,7 @@ class TestPhase4CognitiveArchitecture(unittest.TestCase):
         mems = eng.cognitive.retrieve_memories(p_aid)
         self.assertTrue(any(m.epistemic_status == EpistemicStatus.CONFIRMED_FACT for m in mems))
 
-    # ------------------------------------------------------------------
-    # 11. Determinism: Bit-for-Bit Reproducibility of Cognitive States
-    # ------------------------------------------------------------------
+
     def test_cognitive_determinism(self):
         ov1 = {
             "name": "det_cog_1",
@@ -436,9 +414,7 @@ class TestPhase4CognitiveArchitecture(unittest.TestCase):
         self.assertEqual(cs1.engagement, cs2.engagement)
         self.assertEqual(cs1.stress_proxy, cs2.stress_proxy)
 
-    # ------------------------------------------------------------------
-    # 12. Live Local Ollama Integration (Conditional on Local Service)
-    # ------------------------------------------------------------------
+
     def test_live_ollama_integration_if_service_online(self):
         from schooltwin.nlp import is_ollama_available
         if not is_ollama_available():

@@ -1,15 +1,4 @@
-"""Baseline-versus-Scenario Comparison Engine for SchoolTwin Phase 3.
-
-Computes exact differences across all supported metrics between a baseline run
-and an independent scenario run, with honest categorical labeling:
-  - COMPUTED: Derived from actual saved simulation output and causal calculations
-  - CONFIGURED: Declared in scenario inputs, not necessarily behaviorally modeled
-  - NOT_MODELED: No supported simulation calculation currently exists
-  - UNAVAILABLE: Data required for the metric is not collected or missing
-
-Includes inspectable Causal Audit Trails explaining the exact chain of events,
-rules, and state transitions driving each computed delta.
-"""
+"""Run comparison and metrics diffing."""
 import json
 import math
 from pathlib import Path
@@ -226,9 +215,7 @@ def compare_runs(baseline_run_id: str, scenario_run_id: str, window: Optional[tu
 
     s_audit = scen_meta.get("causal_audit", {})
 
-    # ------------------------------------------------------------------
-    # 1. Attendance & Lateness (Computed on Open School Days)
-    # ------------------------------------------------------------------
+
     b_att_mean = (sum(d["attendance_rate"] for d in b_open) / max(len(b_open), 1) * 100.0) if b_open else None
     s_att_mean = (sum(d["attendance_rate"] for d in s_open) / max(len(s_open), 1) * 100.0) if s_open else None
 
@@ -237,33 +224,27 @@ def compare_runs(baseline_run_id: str, scenario_run_id: str, window: Optional[tu
     b_late_mean = (b_late_tot / max(len(b_open), 1)) if b_open else None
     s_late_mean = (s_late_tot / max(len(s_open), 1)) if s_open else None
 
-    # ------------------------------------------------------------------
-    # 2. Staffing & Teaching Coverage (Computed across all series days)
-    # ------------------------------------------------------------------
+
     b_tch_abs_tot = sum(d.get("teachers_absent", 0) for d in b_common)
     s_tch_abs_tot = sum(d.get("teachers_absent", 0) for d in s_common)
 
     b_uncovered_tot = sum(d.get("uncovered", 0) for d in b_common)
     s_uncovered_tot = sum(d.get("uncovered", 0) for d in s_common)
 
-    # ------------------------------------------------------------------
-    # 3. Academic Learning Progress (Honest Modeling: No Invented Fallbacks)
-    # ------------------------------------------------------------------
+
     b_mastery = b_acad.get("average_subject_mastery")
     s_mastery = s_acad.get("average_subject_mastery")
 
     b_lost_hours = b_acad.get("lost_instructional_hours")
     s_lost_hours = s_acad.get("lost_instructional_hours")
 
-    # ------------------------------------------------------------------
-    # 4. Financials & Exact Ledger (Computed from double-entry records)
-    # ------------------------------------------------------------------
+
     # Same-basis rule: the reconciled ledger and the macro daily series are two
     # different accounting models; mixing them across sides produces artifact
     # deltas (e.g. ledger cash vs macro cash differ by design). The ledger is
     # used only when BOTH packs carry a reconciled summary — otherwise both
     # sides read the macro daily series, window-scoped like every other metric.
-    # Note: ledger summaries are full-run totals; they coincide with the window
+    # Ledger summaries are full-run totals; they coincide with the window
     # exactly for paired branches (both packs cover only the branch window).
     b_fin_sum = base_meta.get("financial_summary", {}) or {}
     s_fin_sum = scen_meta.get("financial_summary", {}) or {}
@@ -291,18 +272,14 @@ def compare_runs(baseline_run_id: str, scenario_run_id: str, window: Optional[tu
     b_closing_ar = b_ledger_ar if use_ledger else (b_common[-1].get("finance", {}).get("ar") if b_common else None)
     s_closing_ar = s_ledger_ar if use_ledger else (s_common[-1].get("finance", {}).get("ar") if s_common else None)
 
-    # ------------------------------------------------------------------
-    # 5. Transport Fleet Availability (Computed in Phase 3)
-    # ------------------------------------------------------------------
+
     b_fleet_avail = b_trans.get("fleet_availability_pct", 100.0)
     s_fleet_avail = s_trans.get("fleet_availability_pct", 100.0)
 
     b_maint_cost = b_trans.get("total_maintenance_expenditure_inr", 0)
     s_maint_cost = s_trans.get("total_maintenance_expenditure_inr", 0)
 
-    # ------------------------------------------------------------------
-    # 6. Incidents, Safety & Investigations (Computed)
-    # ------------------------------------------------------------------
+
 
     b_incidents_tot = sum(len(d.get("incidents", [])) for d in b_common)
     s_incidents_tot = sum(len(d.get("incidents", [])) for d in s_common)
@@ -316,18 +293,14 @@ def compare_runs(baseline_run_id: str, scenario_run_id: str, window: Optional[tu
         if e.get("event_type") == "suspected_prohibited_business"
     )
 
-    # ------------------------------------------------------------------
-    # 7. Wellbeing & Sentiment (Computed)
-    # ------------------------------------------------------------------
+
     b_mood_avg = sum(d.get("mood_avg", 0) for d in b_common) / max(len(b_common), 1)
     s_mood_avg = sum(d.get("mood_avg", 0) for d in s_common) / max(len(s_common), 1)
 
     b_low_mood_share = sum(d.get("mood_low_share", 0) for d in b_common) / max(len(b_common), 1) * 100.0
     s_low_mood_share = sum(d.get("mood_low_share", 0) for d in s_common) / max(len(s_common), 1) * 100.0
 
-    # ------------------------------------------------------------------
-    # 8. Scenario Configuration Levers (Configured)
-    # ------------------------------------------------------------------
+
     b_ov = base_meta.get("run", {}).get("overview", {})
     s_ov = scen_meta.get("run", {}).get("overview", {})
 
@@ -623,7 +596,7 @@ def _generate_feasible_solutions(metrics: List[Dict[str, Any]], scen_meta: Dict[
     """Synthesizes grounded, feasible solutions to observed operational/financial deficits without fabricating outcomes."""
     solutions = []
 
-    # 1. Staffing / Uncovered Lessons
+
     uncov = next((m for m in metrics if m["id"] == "uncovered_lessons_total"), None)
     if uncov and isinstance(uncov.get("scenario"), (int, float)) and uncov["scenario"] > 0:
         solutions.append({
@@ -636,7 +609,7 @@ def _generate_feasible_solutions(metrics: List[Dict[str, Any]], scen_meta: Dict[
             "tradeoff": "Adds modest short-term payroll expense but prevents academic syllabus lag and student disengagement."
         })
 
-    # 2. Transport Breakdown / Fleet Strain
+
     late_routes = next((m for m in metrics if m["id"] == "late_arrivals_mean"), None)
     if (late_routes and isinstance(late_routes.get("scenario"), (int, float))
             and isinstance(late_routes.get("baseline"), (int, float))
@@ -651,7 +624,7 @@ def _generate_feasible_solutions(metrics: List[Dict[str, Any]], scen_meta: Dict[
             "tradeoff": "Higher diesel/hire expenditure offset by zero morning prayer arrivals missed."
         })
 
-    # 3. Attendance Support / Heat Index / Seasonal Strain
+
     att = next((m for m in metrics if m["id"] == "attendance_rate"), None)
     if att and isinstance(att.get("abs_diff"), (int, float)) and att["abs_diff"] < 0:
         solutions.append({
@@ -664,7 +637,7 @@ def _generate_feasible_solutions(metrics: List[Dict[str, Any]], scen_meta: Dict[
             "tradeoff": "Administrative follow-up overhead for class teachers vs reduced dropout/chronic absenteeism."
         })
 
-    # 4. Financial Solvency / Accounts Receivable
+
     ar = next((m for m in metrics if m["id"] == "accounts_receivable_closing"), None)
     if ar and isinstance(ar.get("scenario"), (int, float)) and ar["scenario"] > 1000000:
         solutions.append({

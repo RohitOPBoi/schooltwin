@@ -36,7 +36,7 @@ def run_full_suite():
     idx = {d: i for i, d in enumerate(S.dates)}
     t0 = time.time()
 
-    # ------------------------------------------------------------ 1. anchor mode reproduces the story
+    # anchor mode reproduces the story
     E = Engine()
     E.run()
     ev = evaluate(E)
@@ -52,14 +52,14 @@ def run_full_suite():
         assert abs(cams[cam]) <= 15, (cam, cams[cam])
     ok("gate, bus bay, library and ground counters are within 15% of the story's")
 
-    # ------------------------------------------------------------ 2. realism invariants over the whole term
+    # realism invariants over the whole term
     op = [x for x in E.days if x["open"]]
     assert all(0.8 < x["attendance_rate"] < 0.99 for x in op)
     assert 0.02 < np.mean([x["mood_low_share"] for x in op]) < 0.15, "some students should be low on any day, but not most"
     assert np.mean([x["caught"] for x in op]) < 8, "hidden-area activity must stay rare"
     ok("attendance realistic; low mood present but not dominant; hidden-area activity rare")
 
-    # ------------------------------------------------------------ 3. events do what they say (one day at a time)
+    # events do what they say (one day at a time)
     def day_engine(date, **ov):
         e = Engine(dict({"start_day": idx[date], "end_day": idx[date]}, **ov))
         e.step(idx[date])
@@ -96,7 +96,7 @@ def run_full_suite():
     assert not ritu.present_today
     ok("a teacher who resigned is gone after her last day")
 
-    # ------------------------------------------------------------ 4. repeatable, and seeds matter in generate mode
+    # repeatable, and seeds matter in generate mode
     g1 = Engine({"mode": "generate", "seed": 5, "start_day": 20, "end_day": 40}); g1.run()
     g2 = Engine({"mode": "generate", "seed": 5, "start_day": 20, "end_day": 40}); g2.run()
     g3 = Engine({"mode": "generate", "seed": 6, "start_day": 20, "end_day": 40}); g3.run()
@@ -105,7 +105,7 @@ def run_full_suite():
     assert key(g1) != key(g3), "a different seed should give a different term"
     ok("same seed => identical run; different seed => different run")
 
-    # ------------------------------------------------------------ 5. forking leaves the past alone
+    # forking leaves the past alone
     base = Engine({"end_day": 70}); base.run()
     fork = Engine({"end_day": 70, "patches": [{"from_day": 60, "mode": "generate", "levers": {"tuition_fee_delta_pct": 10, "fee_change_approved": True, "additional_teachers": 3}}]})
     fork.run()
@@ -115,7 +115,7 @@ def run_full_suite():
     assert any(a.sid.startswith("STF-X") for a in fork.agents)
     ok("fork on day 61: the first 60 days are identical; the future differs; extra teachers hired")
 
-    # ------------------------------------------------------------ 6. the operator never sees the answer key
+    # the operator never sees the answer key
     tmp = Path(tempfile.mkdtemp())
     short = Engine({"start_day": 30, "end_day": 40}); pk = Packer(short, tmp / "blind", redact=True)
     short.run(on_day=pk.on_day); pk.finalize(evaluate(short))
@@ -129,7 +129,7 @@ def run_full_suite():
     assert any(f["vis"] == "author" for f in m2["flags"]) and "att" in m2["people"][0]
     ok("full pack: author view data present")
 
-    # ------------------------------------------------------------ 7. pack decodes: every path points at a real zone, in time order
+    # pack decodes: every path points at a real zone, in time order
     day = json.loads(next((tmp / "open" / "days").glob("d003*.json")).read_text(encoding="utf-8"))
     nz = len(m2["zones"])
     for aid, arr in day["paths"].items():

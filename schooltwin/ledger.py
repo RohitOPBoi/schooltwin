@@ -128,7 +128,7 @@ class FinancialLedger:
             source_event_id=source_event_id,
         )
 
-    # ---- Specialized Business Logic Transactions ----
+
 
     def bill_student_fees(self, date_str: str, tuition_inr: float, transport_inr: float, source_event_id: Optional[str] = None) -> List[Transaction]:
         """Bills student fees: Debits Accounts Receivable, Credits Tuition/Transport Revenue."""
@@ -266,7 +266,7 @@ class FinancialLedger:
             source_event_id=source_event_id,
         )
 
-    # ---- Balances and Reconciliation ----
+
 
     def balance_of(self, account: str, as_of_date: Optional[str] = None) -> float:
         """Calculates exact net balance of an account up to an optional date."""

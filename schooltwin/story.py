@@ -250,7 +250,7 @@ class Story:
             }
             self.days.append(day_dict)
 
-    # ---------------------------------------------------------------- calendar
+    # calendar
     def info(self, i):
         d = self.days[i]
         return {"date": d["date"], "dow": d["day_of_week"], "type": d["day_type"], "open": d["school_open_to_students"]}
@@ -258,7 +258,7 @@ class Story:
     def weekday(self, i):
         return date.fromisoformat(self.dates[i]).weekday()
 
-    # ----------------------------------------------------------------- students
+    # students
     def grade_on(self, s, iso):
         return s["grade_on_2026_04_01"] if iso >= APRIL_PROMOTION else s["grade"]
 
@@ -281,7 +281,7 @@ class Story:
         order = ["Nursery", "KG"] + [f"Class {i}" for i in range(1, 13)]
         return sorted(sizes.items(), key=lambda kv: (order.index(kv[0][0]), kv[0][1]))
 
-    # -------------------------------------------------------------- reference
+    # reference
     def cctv_samples(self):
         """The camera sample schedule: [(minute, camera_id, zone, label)] seen on typical days."""
         seen = {}

@@ -21,7 +21,7 @@ DEFAULT_MODEL = "llama3.2"
 
 
 def is_ollama_available() -> bool:
-    """Checks whether local Ollama service is reachable."""
+
     try:
         req = urllib.request.Request("http://127.0.0.1:11434/api/tags", method="GET")
         with urllib.request.urlopen(req, timeout=1.0) as resp:
@@ -31,7 +31,7 @@ def is_ollama_available() -> bool:
 
 
 def day_to_date(day_num: int, story: Optional[Story] = None) -> str:
-    """Maps a 1-indexed or 0-indexed day number to an ISO calendar date from the story timeline."""
+
     st = story or Story()
     idx = max(0, min(day_num, len(st.dates) - 1))
     return st.dates[idx]
@@ -48,7 +48,7 @@ def parse_with_rules(
     reopening_date: str = "2026-07-01",
     end_day: Optional[int] = None,
 ) -> Dict[str, Any]:
-    """Rule-based extractor that parses natural language scenario text into structured events and policies."""
+
     st = story or Story()
     cal = ExtensionCalendar(st, reopening_date=reopening_date)
     text_lower = text.lower()
@@ -60,7 +60,7 @@ def parse_with_rules(
         duration_days = max(1, end_day - start_day + 1)
     end_day = start_day + duration_days - 1
 
-    # 1. Look for explicit ISO dates first: "2026-04-10"
+
     iso_date_matches = list(re.finditer(r"\b(\d{4}-\d{2}-\d{2})\b", text))
 
     # Month name to number mapping
@@ -160,7 +160,7 @@ def parse_with_rules(
         def_d = start_day + default_offset
         return def_d, cal.date_for_day(def_d)
 
-    # 2. Check for Serious Fight
+
     fight_match = re.search(r"\b(fight|altercation|brawl|physical\s+conflict)\b", text_lower)
     if fight_match:
         # If in summer break without explicit date, default to reopening day where students are present
@@ -180,7 +180,7 @@ def parse_with_rules(
         })
         ambiguities.append(f"Physical altercation placed on {dt} (Day {d_num}) involving sample students STU-0012, STU-0015, STU-0021 in playground.")
 
-    # 3. Check for Bus Breakdown / Transport delay
+
     bus_match = re.search(r"\b(bus\b(?:[^.!?\n]*?)(?:breaks\s+down|breakdown|delayed|failure)|broken\s+down\s+bus|transport\s+delay)\b", text_lower)
     if bus_match:
         def_bus_off = (cal.day_for_date(reopening_date) - start_day) if (start_day == 151 and end_day >= 181) else 4
@@ -204,7 +204,7 @@ def parse_with_rules(
         })
         ambiguities.append(f"Bus breakdown placed on {dt} (Day {d_num}) for Route {route_num} with estimated 20-min delay.")
 
-    # 4. Check for Water Cooler Breakdown (WP1 & WP2)
+
     cooler_match = re.search(r"\b(water\s+cooler|cooler\s+breakdown|drinking\s+water|water\s+dispenser)\b", text_lower)
     if cooler_match:
         d_num, dt = resolve_date_for_pos(cooler_match.start(), 2)
@@ -224,7 +224,7 @@ def parse_with_rules(
         })
         ambiguities.append(f"Water cooler breakdown placed on {dt} (Day {d_num}) in {loc}.")
 
-    # 5. Check for Collective Strike (WP1 & WP2)
+
     strike_match = re.search(r"\b(collective\s+strike|staff\s+strike|teachers?\s+strike|faculty\s+strike)\b", text_lower)
     if strike_match:
         d_num, dt = resolve_date_for_pos(strike_match.start(), 3)
@@ -239,7 +239,7 @@ def parse_with_rules(
         })
         ambiguities.append(f"Staff collective strike placed on {dt} (Day {d_num}) at north_ground.")
 
-    # 6. Check for Prohibited Business / Policy Violation
+
     biz_match = re.search(r"\b(prohibited\s+business|unauthorized\s+sale|policy\s+violation|contraband|snack\s+resale)\b", text_lower)
     if biz_match:
         d_num, dt = resolve_date_for_pos(biz_match.start(), 6)
@@ -258,7 +258,7 @@ def parse_with_rules(
         })
         ambiguities.append(f"Allegation under review placed on {dt} (Day {d_num}) regarding student STU-0044.")
 
-    # 7. Check for Teacher Resignation
+
     resig_match = re.search(r"\b(teacher\s+resigns?|resignation|teacher\s+leaves?|faculty\s+resignation)\b", text_lower)
     if resig_match:
         d_num, dt = resolve_date_for_pos(resig_match.start(), 8)
@@ -275,7 +275,7 @@ def parse_with_rules(
         })
         ambiguities.append(f"Teacher resignation notice placed on {dt} (Day {d_num}) for Ritu Kapoor.")
 
-    # 8. Check for Fee Revision / Fee Increase
+
     fee_match = re.search(r"\b(fees?\s*(?:increase|hike|rise|revision|delta)|(?:increase|raise|hike|revise)\s*(?:the\s*)?fees?|\d+%\s*fees?)\b", text_lower)
     if fee_match:
         pct_match = re.search(r"(\d+(?:\.\d+)?)\s*%", text_lower)
@@ -296,7 +296,7 @@ def parse_with_rules(
         policy_overrides["fee_change_approved"] = True
         ambiguities.append(f"Fee increase of +{pct}% scheduled on {dt} (Day {d_num}); policy lever updated and governance approval enabled.")
 
-    # 9. Check for Additional Teacher Hired
+
     hire_match = re.search(r"\b(hire|recruit|appoint|extra\s+teacher|additional\s+teacher)\b", text_lower)
     if hire_match:
         count_m = re.search(r"(\d+)\s*(?:extra|additional|new)?\s*teachers?", text_lower)
@@ -316,7 +316,7 @@ def parse_with_rules(
         policy_overrides["additional_teachers"] = cnt
         ambiguities.append(f"Additional teacher recruitment ({cnt} faculty) applied from {dt} (Day {d_num}).")
 
-    # 10. Check for Weather Attendance Dip / Heat
+
     weather_match = re.search(r"\b(weather\s+dip|heat\s+wave|extreme\s+heat|heavy\s+rain|monsoon\s+storm|weather\s+disruption)\b", text_lower)
     if weather_match:
         d_num, dt = resolve_date_for_pos(weather_match.start(), 3)
@@ -330,7 +330,7 @@ def parse_with_rules(
         })
         ambiguities.append(f"Weather attendance dip event scheduled on {dt} (Day {d_num}).")
 
-    # 11. Check for Classroom Fan Failure
+
     fan_match = re.search(r"\b(fan\s+failure|broken\s+fan|classroom\s+fan|fan\s+stops?)\b", text_lower)
     if fan_match:
         d_num, dt = resolve_date_for_pos(fan_match.start(), 2)
@@ -345,7 +345,7 @@ def parse_with_rules(
         })
         ambiguities.append(f"Classroom fan failure placed on {dt} (Day {d_num}) in C8B.")
 
-    # 12. Check for Computer Lab Circuit Trip
+
     lab_match = re.search(r"\b(circuit\s+trip|lab\s+power\s+outage|computer\s+lab\s+trip|lab\s+closed)\b", text_lower)
     if lab_match:
         d_num, dt = resolve_date_for_pos(lab_match.start(), 3)
@@ -360,7 +360,7 @@ def parse_with_rules(
         })
         ambiguities.append(f"Computer lab circuit trip scheduled on {dt} (Day {d_num}) in comp_lab_1.")
 
-    # 13. Policy Overrides: Summer Maintenance Budget
+
     maint_match = re.search(
         r"(?:(?:summer\s+)?maint(?:enance)?\s+budget\s*(?:of\s*)?[₹rRs\.]*\s*(\d+(?:,\d+)*)|(?:[₹rRs\.]*\s*(\d+(?:,\d+)*)\s*(?:inr|rs)?\s*(?:for\s*)?(?:summer\s+)?maint(?:enance)?\s+budget))",
         text_lower
@@ -371,7 +371,7 @@ def parse_with_rules(
         policy_overrides["summer_maintenance_budget_inr"] = raw_val
         ambiguities.append(f"Summer maintenance budget updated to ₹{raw_val:,}.")
 
-    # 14. Policy Overrides: Backup Buses
+
     backup_bus_match = re.search(
         r"(?:(\d+)\s*(?:backup|standby)\s*buses?|bus\s+backup\s+capacity\s*(?:to\s*)?(\d+)|backup\s+capacity\s*(?:to\s*)?(\d+))",
         text_lower
@@ -381,7 +381,7 @@ def parse_with_rules(
         policy_overrides["bus_backup_capacity"] = min(b_cnt, 4)
         ambiguities.append(f"Standby backup bus capacity set to {min(b_cnt, 4)} buses.")
 
-    # 15. Policy Overrides: Attendance Support Budget
+
     support_match = re.search(r"\battendance\s+support\s*(?:budget)?\s*(?:of\s*)?[₹rRs\.]*\s*(\d+(?:,\d+)*)\b", text_lower)
     if support_match:
         s_val = int(support_match.group(1).replace(",", ""))

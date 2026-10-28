@@ -30,7 +30,7 @@ def evaluate(eng):
     op = [d for d in days if d.get("open")]
     ref = {d["date"]: d for d in story.days if isinstance(d, dict)}
     out = {"days": len(days), "open_days": len(op), "mode": eng.ov.get("mode", "generate")}
-    # ---- fidelity
+    # fidelity
     op_ref = [
         d for d in op
         if d.get("date") in ref
@@ -93,7 +93,7 @@ def evaluate(eng):
     mood_lows = [d["mood_low_share"] for d in op if d.get("mood_low_share") is not None]
     out["mood_low_share_mean"] = round(st.mean(mood_lows), 3) if mood_lows else None
 
-    # ---- detection
+    # detection
     mine, my_false = _recall(story, eng.alerts)
     theirs, their_false = _recall(story, [{"date": a["date"], "rule_code": a["rule_code"]} for a in story.alerts])
     out["detection"] = {

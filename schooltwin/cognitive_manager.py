@@ -23,7 +23,7 @@ from .cognitive import (
 
 
 class CognitivePopulationManager:
-    """Central manager for synthetic cognitive states across the school population."""
+
 
     MAX_MEMORIES_PER_AGENT = 12
 
@@ -44,12 +44,12 @@ class CognitivePopulationManager:
         self.agent_id_to_sid: Dict[int, str] = {}
 
     def initialize_population(self, agents: List[Any], story: Optional[Any] = None) -> None:
-        """Initializes Level 1 cognitive state and sparse relationships for all agents."""
+
         for a in agents:
             self.agent_sid_to_id[a.sid] = a.id
             self.agent_id_to_sid[a.id] = a.sid
 
-            # 1. Base cognitive state initialized from bounded agent attributes
+
             acad_conf = float(np.clip((getattr(a, "acad", 67.0) / 100.0), 0.3, 0.95))
             disc_risk = getattr(a, "disc_risk", 0.2)
             comp_tend = float(np.clip(1.0 - (disc_risk * 0.5), 0.4, 0.98))
@@ -119,7 +119,7 @@ class CognitivePopulationManager:
                 self.goals[g_id] = g
                 cs.current_goal_id = g_id
 
-        # 2. Build Sparse Relationship Graph
+
         self._build_sparse_relationships(agents)
 
     def _build_sparse_relationships(self, agents: List[Any]) -> None:
@@ -175,11 +175,9 @@ class CognitivePopulationManager:
                     self.relationships[sid1][int(sid2)] = rel
                     self.states[sid1].relationships[int(sid2)] = RelationshipType.COWORKER.value
 
-    # ------------------------------------------------------------------
-    # Bounded Epistemic Memory Management
-    # ------------------------------------------------------------------
+
     def add_memory(self, memory: AgentMemory) -> None:
-        """Stores a bounded memory for an agent, evicting lowest-importance entries when full."""
+
         aid = memory.agent_id
         if aid not in self.states:
             return
@@ -207,7 +205,7 @@ class CognitivePopulationManager:
         limit: int = 5,
         min_importance: float = 0.2,
     ) -> List[AgentMemory]:
-        """Retrieves top memories for an agent filtered by type, importance, and recency."""
+
         if agent_id not in self.memories:
             return []
 
@@ -219,24 +217,22 @@ class CognitivePopulationManager:
         mems.sort(key=lambda m: (m.importance, m.simulated_date), reverse=True)
         return mems[:limit]
 
-    # ------------------------------------------------------------------
-    # Goals Management
-    # ------------------------------------------------------------------
+
     def add_goal(self, goal: AgentGoal) -> None:
-        """Registers a goal for an agent."""
+
         self.goals[goal.goal_id] = goal
         if goal.agent_id in self.states:
             self.states[goal.agent_id].current_goal_id = goal.goal_id
 
     def get_active_goal(self, agent_id: int) -> Optional[AgentGoal]:
-        """Returns the current active goal for an agent."""
+
         cs = self.states.get(agent_id)
         if not cs or not cs.current_goal_id:
             return None
         return self.goals.get(cs.current_goal_id)
 
     def update_goal_progress(self, goal_id: str, delta: float, new_status: Optional[GoalStatus] = None) -> None:
-        """Updates progress on a goal."""
+
         g = self.goals.get(goal_id)
         if not g:
             return
@@ -246,9 +242,7 @@ class CognitivePopulationManager:
         elif new_status:
             g.status = new_status
 
-    # ------------------------------------------------------------------
-    # Event-Triggered Epistemic Perception Propagation
-    # ------------------------------------------------------------------
+
     def propagate_event_perception(
         self,
         event_id: str,
@@ -266,7 +260,7 @@ class CognitivePopulationManager:
         """
         counts = {"fact": 0, "witness": 0, "hearsay": 0}
 
-        # 1. Primary participants receive confirmed fact
+
         for aid in primary_agent_ids:
             if aid in self.states:
                 mem = AgentMemory(
@@ -286,7 +280,7 @@ class CognitivePopulationManager:
                 self.states[aid].stress_proxy = float(min(100.0, self.states[aid].stress_proxy + 25.0))
                 counts["fact"] += 1
 
-        # 2. Close friends of primary agents receive eyewitness or direct notice
+
         witness_ids: Set[int] = set()
         for aid in primary_agent_ids:
             for fid, rel in self.relationships.get(aid, {}).items():
@@ -310,7 +304,7 @@ class CognitivePopulationManager:
             self.states[wid].stress_proxy = float(min(100.0, self.states[wid].stress_proxy + 10.0))
             counts["witness"] += 1
 
-        # 3. Classmates receive bounded hearsay with explicitly marked rumor status
+
         if primary_agent_ids:
             first_aid = primary_agent_ids[0]
             for cid, rel in self.relationships.get(first_aid, {}).items():
@@ -332,9 +326,7 @@ class CognitivePopulationManager:
 
         return counts
 
-    # ------------------------------------------------------------------
-    # Daily Batch Step for Level 1 State
-    # ------------------------------------------------------------------
+
     def step_daily_states(
         self,
         date_str: str,

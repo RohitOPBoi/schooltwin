@@ -1,16 +1,4 @@
-"""Paired Simulation Orchestrator for SchoolTwin (Part B, C, F, H, I).
-
-When a user adds a custom event, this orchestrator runs two matched future simulations:
-- Simulation A (Control): Continues from baseline endpoint with pre-generated background events, WITHOUT the custom event.
-- Simulation B (Treatment): Continues from baseline endpoint with the exact same pre-generated background events, WITH the custom event.
-
-Core Invariants:
-1. Baseline Immutability: 'story_baseline' is never modified, deleted, or overwritten.
-2. Fair Comparison: Both branches share the identical background random-event schedule.
-3. Isolated RNG: Random seeds are isolated so branches do not drift unpredictably.
-4. Independent Mutable State: Engines, ledgers, cognitive states, and incident registers are isolated.
-5. Honest Modeling: Statuses are labeled Computed, Shared event, Custom event, Branch consequence, Configured, Not modeled, or Unavailable.
-"""
+"""Runs paired control and treatment simulations under matching background schedules."""
 from __future__ import annotations
 
 import copy
@@ -169,7 +157,7 @@ def run_paired_simulation(
     check_write_allowed(ctrl_dir)
     check_write_allowed(trt_dir)
 
-    # 1. Pre-generate canonical background schedule shared by both branches
+
     bg_schedule = generate_paired_background_schedule(
         story=story,
         start_day=start_day,
@@ -202,7 +190,7 @@ def run_paired_simulation(
     if levers:
         applied_levers.update(levers)
 
-    # 2. Configure Simulation A: Control
+
     end_day = min(len(story.days) - 1, start_day + duration_days - 1)
     ctrl_ov = {
         "name": ctrl_run_name,
@@ -227,7 +215,7 @@ def run_paired_simulation(
         },
     }
 
-    # 3. Configure Simulation B: Treatment
+
     trt_events_add = copy.deepcopy(tagged_bg) + [trt_custom]
     trt_ov = {
         "name": trt_run_name,
@@ -255,7 +243,7 @@ def run_paired_simulation(
 
     total_days = end_day - start_day + 1
 
-    # 4. Execute Simulation A (Control)
+
     if progress_cb:
         progress_cb("control", 0, total_days)
 
@@ -270,7 +258,7 @@ def run_paired_simulation(
     ctrl_eval = evaluate(ctrl_eng)
     ctrl_pk.finalize(ctrl_eval)
 
-    # 5. Execute Simulation B (Treatment)
+
     if progress_cb:
         progress_cb("treatment", 0, total_days)
 
@@ -285,7 +273,7 @@ def run_paired_simulation(
     trt_eval = evaluate(trt_eng)
     trt_pk.finalize(trt_eval)
 
-    # 6. Compute Paired Delta Report (restricted to the branch window: both
+
     # branches replay identical history before the branch point, so including
     # it would dilute divergence metrics)
     comp_report = compare_runs(ctrl_run_name, trt_run_name, window=(start_day, end_day))
@@ -294,7 +282,7 @@ def run_paired_simulation(
     # e.g. "Computed" / "Configured" / "Not modeled" / "Unavailable")
     comp_report["metrics"] = classify_comparison_metrics(comp_report)
 
-    # 7. Package Paired Manifest
+
     pair_manifest = {
         "pair_id": pair_id,
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),

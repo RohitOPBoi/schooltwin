@@ -106,7 +106,7 @@ SUPPORTED_ACTIONS = {
 
 
 class ActionValidator:
-    """Validates action proposals against supported schemas, bounds, and permissions."""
+
 
     @staticmethod
     def validate_action(
@@ -116,7 +116,7 @@ class ActionValidator:
         params: Dict[str, Any],
         known_student_sids: Optional[Set[str]] = None,
     ) -> Tuple[bool, List[str], ApprovalTier]:
-        """Validates action existence, role authorization, and required parameters."""
+
         errors = []
         if action_name not in SUPPORTED_ACTIONS:
             return False, [f"Action '{action_name}' is not in the canonical simulation catalog."], ApprovalTier.PROHIBITED
@@ -125,17 +125,17 @@ class ActionValidator:
         expected_role = schema["role"]
         tier = schema["approval_tier"]
 
-        # 1. Role permission check
+
         if agent_role != expected_role and not (agent_role == "principal" and expected_role in ("teacher", "principal")):
             errors.append(f"Agent {agent_id} (role: {agent_role}) is not authorized to execute {action_name} (requires {expected_role}).")
 
-        # 2. Parameter checks
+
         req_params = schema.get("params", [])
         for p in req_params:
             if p not in params:
                 errors.append(f"Missing required parameter '{p}' for action '{action_name}'.")
 
-        # 3. Entity reference validation if student IDs are passed
+
         if known_student_sids and "student_id" in params:
             sid = str(params["student_id"])
             if sid not in known_student_sids:
@@ -153,7 +153,7 @@ class ActionValidator:
 
 
 class RuleBasedReasoner:
-    """Deterministic, fast decision-making engine for routine and event-triggered agent choices."""
+
 
     def __init__(self, seed: int = 20261014):
         self.seed = seed
@@ -166,8 +166,8 @@ class RuleBasedReasoner:
         recent_memories: List[AgentMemory],
         date_str: str,
     ) -> AgentDecision:
-        """Determines the most appropriate student action using deterministic state rules."""
-        # 1. Check if student has high stress or recent incident memory
+
+
         incident_mems = [m for m in recent_memories if m.memory_type in ("serious_student_fight", "incident")]
         if incident_mems and state.stress_proxy > 40.0:
             top_mem = incident_mems[0]
@@ -189,7 +189,7 @@ class RuleBasedReasoner:
                     date=date_str,
                 )
 
-        # 2. Check if student has low academic confidence
+
         if state.academic_confidence < 0.55:
             return AgentDecision(
                 decision_id=f"DEC-{agent_id}-{date_str}-HELP",
@@ -204,7 +204,7 @@ class RuleBasedReasoner:
                 date=date_str,
             )
 
-        # 3. Default: Exam prep and assessment focus
+
         return AgentDecision(
             decision_id=f"DEC-{agent_id}-{date_str}-PREP",
             agent_id=agent_id,

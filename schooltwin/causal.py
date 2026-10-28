@@ -1,8 +1,4 @@
-"""Causal Simulation Engine, Versioned Event/Effect System, and Audit Trail for SchoolTwin.
-
-Provides deterministic causal mechanics connecting scenario inputs, events, and policy levers
-to state transitions, ledger mutations, and derived school-wide metrics with full auditability.
-"""
+"""Event and effect data records and audit trail."""
 from __future__ import annotations
 
 import copy
@@ -16,9 +12,7 @@ RULESET_VERSION = "3.0.0"
 ENGINE_VERSION = "3.0.0"
 
 
-# ----------------------------------------------------------------------
-# 1. Versioned Event & Effect Data Contracts
-# ----------------------------------------------------------------------
+
 
 @dataclass
 class EventRecord:
@@ -73,15 +67,10 @@ class CausalChainNode:
         return asdict(self)
 
 
-# ----------------------------------------------------------------------
-# 2. Causal Audit Trail & Provenance Tracker
-# ----------------------------------------------------------------------
+
 
 class CausalAuditTrail:
-    """Maintains an append-only, deterministic record of all events, evaluated rules,
 
-    state transitions, and the causal links required to explain any derived outcome.
-    """
 
     def __init__(self, run_id: str = "baseline", seed: int = 20261014):
         self.run_id = run_id
@@ -128,9 +117,7 @@ class CausalAuditTrail:
         }
 
 
-# ----------------------------------------------------------------------
-# 3. Investigation State Machine
-# ----------------------------------------------------------------------
+
 
 class InvestigationStatus:
     REPORTED = "reported"
@@ -173,9 +160,7 @@ class InvestigationRecord:
         return asdict(self)
 
 
-# ----------------------------------------------------------------------
-# 4. Bus & Fleet Availability State Machine
-# ----------------------------------------------------------------------
+
 
 class BusStatus:
     AVAILABLE = "available"

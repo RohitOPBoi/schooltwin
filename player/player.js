@@ -192,7 +192,7 @@
     }
     const btn = typeof $ === 'function' ? $('#btnThemeToggle') : null;
     if (btn) {
-      btn.textContent = isLight ? '☀️ Light' : '🌙 Dark';
+      btn.textContent = isLight ? 'Light' : 'Dark';
       btn.title = `Switch to ${isLight ? 'Dark' : 'Light'} Mode (Shortcut: T)`;
     }
     try { if (typeof localStorage !== 'undefined') localStorage.setItem('st-theme', theme); } catch (e) {}
@@ -207,7 +207,7 @@
     applyTheme(S.theme === 'light' ? 'dark' : 'light');
   }
 
-  // ------------------------------------------------------------------ data
+  // data
   async function getJSON(url) {
     const r = await fetch(url);
     if (!r.ok) throw new Error(url + ' ' + r.status);
@@ -351,7 +351,7 @@
   const curD = () => S.days.get(S.day) || null;
   const curMeta = () => S.meta.days[S.day];
 
-  // ------------------------------------------------------------------ flags
+  // flags
   function allFlags() {
     const f = S.meta.flags.filter(x => S.view === 'author' || x.vis !== 'author').concat(S.userFlags);
     return f.sort((a, b) => a.day - b.day || a.minute - b.minute);
@@ -385,7 +385,7 @@
     return f;
   }
 
-  // ------------------------------------------------------------------ time
+  // time
   function pause() { S.playing = false; syncPlay(); }
   function play() {
     if (S.mode === 'term' && S.day >= S.nDays - 1) {
@@ -398,9 +398,9 @@
     S.playing = true; S.last = performance.now(); syncPlay();
   }
   function syncPlay() {
-    $('#bPlay').textContent = S.playing ? '⏸' : '▶';
+    $('#bPlay').textContent = S.playing ? '⏸' : '';
     const sBtn = $('#scenBannerToggleBtn');
-    if (sBtn) sBtn.textContent = S.playing ? '⏸ Pause' : '▶ Resume';
+    if (sBtn) sBtn.textContent = S.playing ? '⏸ Pause' : 'Resume';
   }
   async function goTo(day, minute, opt) {
     day = clamp(Math.round(day), 0, S.nDays - 1);
@@ -489,7 +489,7 @@
   function toast(msg) { const t = $('#toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(toast.h); toast.h = setTimeout(() => { t.style.display = 'none'; }, 2600); }
   window.SchoolTwin = { S, goTo, zoneAt, moodAt, posIn, addUserFlag, stepFlag, boot, loadRun, play, pause, jumpToFlag, allFlags, advance, render, renderPanels, renderAll, setTab, buildOverview, runScenario };
 
-  // ------------------------------------------------------------------ map
+  // map
   function layout(W, H) {
     const f = S.floor, org = {};
     if (f !== 'all') {
@@ -932,7 +932,6 @@
         const nowMs = performance.now();
         const phase = animPhase(nowMs, 1800, 3600);
 
-        // 1. Expanding animated pulsing aura ring
         const maxR = Math.max(18, Math.min(ow, oh) * sc * 0.75);
         const pulseR = 8 + phase * (maxR - 8);
         ctx.beginPath();
@@ -942,7 +941,6 @@
         ctx.setLineDash([]);
         ctx.stroke();
 
-        // 2. High-contrast solid inner ring (origin = dot with two rings, §8.4)
         ctx.beginPath();
         ctx.arc(cx, cy, 9, 0, 6.2832);
         ctx.strokeStyle = isLight ? '#FFFFFF' : '#F4F6FA';
@@ -952,20 +950,17 @@
         ctx.lineWidth = 1.5;
         ctx.stroke();
 
-        // 3. Focal core dot
         ctx.beginPath();
         ctx.arc(cx, cy, 4, 0, 6.2832);
         ctx.fillStyle = CT().origin;
         ctx.fill();
 
-        // 4. Reticle crosshairs
         ctx.strokeStyle = isLight ? '#FFFFFF' : '#F4F6FA';
         ctx.lineWidth = 1.5;
         [[cx - 15, cy, cx - 10, cy], [cx + 10, cy, cx + 15, cy], [cx, cy - 15, cx, cy - 10], [cx, cy + 10, cx, cy + 15]].forEach(([x1, y1, x2, y2]) => {
           ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
         });
 
-        // 5. Origin category badge floating above
         const badgeTxt = activeIncident ? `⚑ ORIGIN: ${activeIncident.title.slice(0, 24)}` : `⚑ ORIGIN: ${oz.label}`;
         ctx.font = `700 10.5px ui-monospace, Menlo, Consolas, monospace`;
         const bw = ctx.measureText(badgeTxt).width + 14;
@@ -979,7 +974,7 @@
         ctx.textAlign = 'center';
         ctx.fillText(badgeTxt, cx, cy - 15);
 
-        // 6. Directional connector to responder zone (response = dotted teal trail, §7.2)
+        // connector to responder zone
         if (responderZoneId) {
           const rz = S.zones.find(z => z.id === responderZoneId);
           if (rz && L.org[rz.floor]) {
@@ -1071,7 +1066,7 @@
     return null;
   }
 
-  // ------------------------------------------------------------------ strips
+  // strips
   const DAYCOL = { instructional_day: '#cfe8d8', limited_school_day: '#bcdcc9', weekly_closure: '#e8eaf0', winter_break: '#d9e2f2', planned_closure: '#f4e0c8', summer_break_staff_only: '#e7dff2' };
   const BLKCOL = { arrival: '#eef1f7', assembly: '#fde9c8', class: '#dfeaff', break: '#d3efdf', lunch: '#d3efdf', dismissal: '#eef1f7' };
   function sizeCanvas(cv, h) {
@@ -1186,7 +1181,7 @@
     c.fillRect(px(S.minute) - 1, 0, 2.5, 34);
   }
 
-  // ------------------------------------------------------------------ panels
+  // panels
   const TYPES = [
     'serious_student_fight', 'suspected_prohibited_business', 'teacher_resignation_notice',
     'transport_lateness_spike', 'school_fee_increase', 'additional_teacher_hired',
@@ -1453,7 +1448,7 @@
     hooks.push(() => spark($('#ch-cash'), S.meta.days.map(x => x.finance.cash), { fmt: x => (x / 1e6).toFixed(2) + 'M', color: CT().better, marker: S.day, flags: true, h: 80, cmp: cmp ? cmp.days.map(x => x.finance.cash) : null, click: i => goTo(i, S.minute) }));
   }
 
-  // ------------------------------------------------------------------ run & scenario builder
+  // run & scenario builder
   const CHECKPOINTS = [
     { id: 'CKPT-DAY-00-OPENING', day: 0, date: '2026-01-01', title: 'Day 0: Term Opening Baseline' },
     { id: 'CKPT-DAY-30-JAN-CLOSE', day: 30, date: '2026-01-31', title: 'Day 30: End of January Review' },
@@ -1466,7 +1461,7 @@
   const PRESET_EVENTS = [
     {
       id: 'serious_student_fight',
-      icon: '🥊',
+      icon: '',
       title: 'Student Altercation',
       subtitle: 'Playground altercation involving 3 students',
       desc: 'Physical confrontation in playground during recess. Triggers infirmary response, disciplinary inquiry, parent notifications, and student mood dips.',
@@ -1478,7 +1473,7 @@
     },
     {
       id: 'transport_lateness_spike',
-      icon: '🚌',
+      icon: '',
       title: 'Bus Breakdown',
       subtitle: 'Route 3 delayed by 20 minutes',
       desc: 'Mechanical failure on Ring Road morning commute. Triggers late attendance spike, schedule rearrangement, and parent hotline inquiries.',
@@ -1490,7 +1485,7 @@
     },
     {
       id: 'school_fee_increase',
-      icon: '💰',
+      icon: '',
       title: 'Fee Revision (+10%)',
       subtitle: 'Tuition revision announced to community',
       desc: '10% tuition revision announcement. Impacts parent community sentiment, query volume, and school term cash projections.',
@@ -1502,7 +1497,7 @@
     },
     {
       id: 'suspected_prohibited_business',
-      icon: '🔍',
+      icon: '',
       title: 'Policy Violation',
       subtitle: 'Student inquiry under review',
       desc: 'Suspected unauthorized commercial exchange on campus. Disciplinarian conducts fact review under presumption of innocence.',
@@ -1515,7 +1510,7 @@
     },
     {
       id: 'teacher_resignation_notice',
-      icon: '📝',
+      icon: '',
       title: 'Teacher Resignation',
       subtitle: 'Notice from senior faculty Ritu Kapoor',
       desc: 'Senior teacher submits formal resignation notice. Triggers timetable substitute stress, workload redistribution, and faculty mood adjustment.',
@@ -1526,7 +1521,7 @@
     },
     {
       id: 'additional_teacher_hired',
-      icon: '👩‍🏫',
+      icon: '',
       title: 'New Teacher Hired',
       subtitle: 'Pooja Sharma joins for Social Science',
       desc: 'New educator joins the faculty. Relieves class clash risks, reduces teacher burden, and updates monthly payroll.',
@@ -1538,7 +1533,7 @@
     },
     {
       id: 'weather_attendance_dip',
-      icon: '🌧️',
+      icon: '',
       title: 'Severe Weather / Heat',
       subtitle: 'Delhi NCR weather alert and attendance dip',
       desc: 'Heavy rain or severe heat alert across Delhi NCR. Attendance drops across junior grades, afternoon buses slow down, and power utilities surge.',
@@ -1629,9 +1624,9 @@
       <div class="mut" style="margin-bottom:8px">Simulate custom incidents, policy shifts, and watch campus consequences.</div>
 
       <nav class="builder-subnav">
-        <button class="${bTab === 'events' ? 'on' : ''}" data-act="bTab" data-tab="events">⚡ Quick Event Simulator</button>
-        <button class="${bTab === 'levers' ? 'on' : ''}" data-act="bTab" data-tab="levers">🎛️ Policy Levers</button>
-        <button class="${bTab === 'nlp' ? 'on' : ''}" data-act="bTab" data-tab="nlp">💬 AI Assistant</button>
+        <button class="${bTab === 'events' ? 'on' : ''}" data-act="bTab" data-tab="events">Quick Event Simulator</button>
+        <button class="${bTab === 'levers' ? 'on' : ''}" data-act="bTab" data-tab="levers">Policy Levers</button>
+        <button class="${bTab === 'nlp' ? 'on' : ''}" data-act="bTab" data-tab="nlp">AI Assistant</button>
         <button class="${bTab === 'setup' ? 'on' : ''}" data-act="bTab" data-tab="setup">⚙️ Advanced & Checkpoints</button>
       </nav>
 
@@ -1641,7 +1636,7 @@
 
       ${bTab === 'setup' ? `
         <div style="margin:12px 0 6px;display:flex;gap:6px;flex-wrap:wrap">
-          <button class="primary" data-act="runScenarioTimeLapse" ${S.api ? '' : 'disabled'}>▶ Run & Watch Time-lapse</button>
+          <button class="primary" data-act="runScenarioTimeLapse" ${S.api ? '' : 'disabled'}>Run & Watch Time-lapse</button>
           <button data-act="validateScenario">✓ Validate</button>
           <button data-act="restoreBaseline">⏮ Restore Baseline</button>
           <button data-act="dlOverview">Export JSON</button>
@@ -1914,10 +1909,10 @@
           </div>
           <div style="display:flex;flex-direction:column;gap:8px">
             <button class="primary btn-hero-run" data-act="runPairedComparison" ${S.api ? '' : 'disabled'} style="background:var(--accent);box-shadow:var(--shadow-button-glow)">
-              ⚡ Run Paired Comparison (Control vs Treatment)
+              Run Paired Comparison (Control vs Treatment)
             </button>
             <button class="btn-subtle" data-act="addAndRunTimeLapse" ${S.api ? '' : 'disabled'} style="font-size:11.5px;padding:6px 12px">
-              ▶ Run Single Scenario Time-lapse
+              Run Single Scenario Time-lapse
             </button>
           </div>
           <div id="heroRunStatus" class="hero-status-pill">Ready. Will generate matched Control (no event) vs Treatment (with event) under identical background schedule.</div>
@@ -1950,7 +1945,7 @@
         ${F.add.length ? `
           <div style="display:flex;align-items:center;justify-content:space-between;margin:12px 0 6px">
             <h4 style="margin:0">Queued Scenario Events (${F.add.length})</h4>
-            <button class="primary" style="font-size:11.5px;padding:4px 10px" data-act="runScenarioTimeLapse" ${S.api ? '' : 'disabled'}>▶ Simulate All (${F.add.length}) & Watch</button>
+            <button class="primary" style="font-size:11.5px;padding:4px 10px" data-act="runScenarioTimeLapse" ${S.api ? '' : 'disabled'}>Simulate All (${F.add.length}) & Watch</button>
           </div>
           ${F.add.map((e, i) => `
             <div class="event-card">
@@ -2053,15 +2048,15 @@
 
         <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px">
           <span style="font-size:10.5px;color:var(--text-muted);align-self:center;margin-right:2px;font-weight:600">Quick Prompts:</span>
-          <button type="button" class="quick-day-btn" data-act="nlExample1" title="Facility incident during summer maintenance">🛠️ Summer Facility</button>
-          <button type="button" class="quick-day-btn" data-act="nlExample2" title="School reopening transport delay on Route 3">🚌 July Reopening</button>
-          <button type="button" class="quick-day-btn" data-act="nlExample3" title="Faculty recruitment and fee revision for new term">📚 Monsoon Staffing</button>
-          <button type="button" class="quick-day-btn" data-act="nlExample4" title="Physical altercation requiring safety protocol">⚡ Student Altercation</button>
+          <button type="button" class="quick-day-btn" data-act="nlExample1" title="Facility incident during summer maintenance">Summer Facility</button>
+          <button type="button" class="quick-day-btn" data-act="nlExample2" title="School reopening transport delay on Route 3">July Reopening</button>
+          <button type="button" class="quick-day-btn" data-act="nlExample3" title="Faculty recruitment and fee revision for new term">Monsoon Staffing</button>
+          <button type="button" class="quick-day-btn" data-act="nlExample4" title="Physical altercation requiring safety protocol">Student Altercation</button>
         </div>
 
         <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
-          <button class="primary" data-act="parsePrompt" style="padding:7px 14px">🔍 Interpret Prompt</button>
-          <button class="primary" data-act="applyAndSimulateNL" style="padding:7px 16px;background:var(--accent);border-color:var(--accent);box-shadow:var(--shadow-button-glow)" ${S.api ? '' : 'disabled'}>⚡ Simulate Immediately & Watch</button>
+          <button class="primary" data-act="parsePrompt" style="padding:7px 14px">Interpret Prompt</button>
+          <button class="primary" data-act="applyAndSimulateNL" style="padding:7px 16px;background:var(--accent);border-color:var(--accent);box-shadow:var(--shadow-button-glow)" ${S.api ? '' : 'disabled'}>Simulate Immediately & Watch</button>
         </div>
 
         ${F.nlStatus ? `<div class="card" style="margin:6px 0 10px;font-weight:600;font-size:11.5px;padding:8px 12px;background:var(--bg-subtle);border-color:var(--accent)">${esc(F.nlStatus)}</div>` : ''}
@@ -2107,7 +2102,7 @@
 
             <div style="margin-top:12px;display:flex;gap:8px">
               <button class="primary" data-act="applyNL" style="padding:6px 12px">✓ Apply to Event Builder</button>
-              <button data-act="applyAndSimulateNL" style="padding:6px 12px" ${S.api ? '' : 'disabled'}>⚡ Apply & Run Time-lapse</button>
+              <button data-act="applyAndSimulateNL" style="padding:6px 12px" ${S.api ? '' : 'disabled'}>Apply & Run Time-lapse</button>
             </div>
           </div>
         ` : ''}
@@ -2197,7 +2192,7 @@
     return '';
   }
 
-  // ------------------------------------------------------------------ comparison tab
+  // comparison tab
   async function renderCompare() {
     const p = $('#p-compare');
     if (!p) return;
@@ -2271,7 +2266,7 @@
       ${(pm.shared_background_events && pm.shared_background_events.length > 0) ? `
         <details style="margin-bottom:10px">
           <summary style="cursor:pointer;font-size:11px;font-weight:600;color:var(--control-sky)">
-            📅 View Shared Background Event Schedule (${pm.shared_background_events.length})
+            View Shared Background Event Schedule (${pm.shared_background_events.length})
           </summary>
           <div style="margin-top:6px;padding:8px;background:var(--bg-subtle);border-radius:6px">
             ${pm.shared_background_events.map(ev => `
@@ -2378,7 +2373,7 @@
             const explHtml = m.explanation ? `<div class="mut" style="font-size:10px;line-height:1.25;margin-top:2px">${esc(m.explanation)}</div>` : '';
             const chainHtml = (m.causal_chain && m.causal_chain.length > 0) ? `
               <details style="margin-top:4px">
-                <summary class="causal-toggle-btn">🔍 Trace Causal Chain (${m.causal_chain.length} step${m.causal_chain.length > 1 ? 's' : ''})</summary>
+                <summary class="causal-toggle-btn">Trace Causal Chain (${m.causal_chain.length} step${m.causal_chain.length > 1 ? 's' : ''})</summary>
                 <div class="causal-chain-container">
                   ${m.causal_chain.map(node => `
                     <div class="causal-node">
@@ -2425,8 +2420,8 @@
                 <span class="solution-feasibility">${esc(sol.feasibility)}</span>
               </div>
               <div class="solution-title">${esc(sol.title)}</div>
-              <div class="solution-trigger">⚡ <b>Observed Trigger:</b> ${esc(sol.trigger_evidence)}</div>
-              <div class="solution-action">🛠️ <b>Action:</b> ${esc(sol.recommended_action)}</div>
+              <div class="solution-trigger"><b>Observed Trigger:</b> ${esc(sol.trigger_evidence)}</div>
+              <div class="solution-action"><b>Action:</b> ${esc(sol.recommended_action)}</div>
               <div class="solution-tradeoff">
                 <b>Budget Delta:</b> ₹${(sol.projected_cost_inr || 0).toLocaleString()} · <b>Trade-off:</b> ${esc(sol.tradeoff)}
               </div>
@@ -2533,21 +2528,21 @@
       const loc = ($('#evCoolerLoc') && $('#evCoolerLoc').value) || F.coolerLoc || 'corridor_1';
       evObj.location = loc;
       evObj.params = { location: loc };
-      evObj.title = '🚰 Water cooler breakdown (' + loc + ')';
+      evObj.title = 'Water cooler breakdown (' + loc + ')';
     } else if (etype === 'classroom_fan_failure') {
       const loc = ($('#evFanLoc') && $('#evFanLoc').value) || F.fanLoc || 'C9A';
       evObj.location = loc;
       evObj.params = { location: loc };
-      evObj.title = '🌬️ Classroom fan failure (' + loc + ')';
+      evObj.title = 'Classroom fan failure (' + loc + ')';
     } else if (etype === 'computer_lab_circuit_trip') {
       const loc = ($('#evLabLoc') && $('#evLabLoc').value) || F.labLoc || 'comp_lab_1';
       evObj.location = loc;
       evObj.params = { location: loc };
-      evObj.title = '⚡ Computer lab circuit trip (' + loc + ')';
+      evObj.title = 'Computer lab circuit trip (' + loc + ')';
     } else if (etype === 'weather_attendance_dip') {
       const dip = +($('#evWeatherDip') && $('#evWeatherDip').value) || F.weatherDip || 15;
       evObj.params = { attendance_dip_pct: dip };
-      evObj.title = '🌧️ Weather & heat attendance disruption (-' + dip + '%)';
+      evObj.title = 'Weather & heat attendance disruption (-' + dip + '%)';
     } else if (etype === 'serious_student_fight') {
       const sVal = ($('#evFightStudents') && $('#evFightStudents').value) || F.fightStudents || 'STU-0012, STU-0015, STU-0021';
       const sids = sVal.split(',').map(s => s.trim()).filter(Boolean);
@@ -2555,7 +2550,7 @@
       evObj.student_ids = sids.length >= 3 ? sids.slice(0, 3) : ['STU-0012', 'STU-0015', 'STU-0021'];
       evObj.location = loc;
       evObj.params = { student_ids: evObj.student_ids, location: loc };
-      evObj.title = '🥊 Student altercation (3 students)';
+      evObj.title = 'Student altercation (3 students)';
     } else if (etype === 'suspected_prohibited_business') {
       const sVal = ($('#evBizStudent') && $('#evBizStudent').value) || F.bizStudent || 'STU-0044';
       const sids = [sVal.trim() || 'STU-0044'];
@@ -2565,33 +2560,33 @@
       evObj.investigation_status = status;
       evObj.location = loc;
       evObj.params = { student_ids: sids, investigation_status: status, location: loc };
-      evObj.title = '🔍 Policy violation inquiry';
+      evObj.title = 'Policy violation inquiry';
     } else if (etype === 'teacher_resignation_notice') {
       const tname = ($('#evResigTeacher') && $('#evResigTeacher').value) || F.resigTeacher || 'Ritu Kapoor';
       evObj.teacher_name = tname;
       evObj.params = { name: tname };
-      evObj.title = '📝 Teacher resignation (' + tname + ')';
+      evObj.title = 'Teacher resignation (' + tname + ')';
     } else if (etype === 'transport_lateness_spike' || etype === 'bus_breakdown') {
       const r = +($('#evBusRoute') && $('#evBusRoute').value) || F.busRoute || 3;
       const d = +($('#evBusDelay') && $('#evBusDelay').value) || F.busDelay || 20;
       evObj.type = 'transport_lateness_spike';
       evObj.route_number = r;
       evObj.params = { routes: r, delay: [d, d + 12] };
-      evObj.title = '🚌 School bus breakdown (Route ' + r + ')';
+      evObj.title = 'School bus breakdown (Route ' + r + ')';
     } else if (etype === 'school_fee_increase') {
       const cat = ($('#evFeeCat') && $('#evFeeCat').value) || F.feeCategory || 'tuition';
       const delta = +($('#evFeeDelta') && $('#evFeeDelta').value) || F.feeDelta || 10;
       evObj.fee_category = cat;
       evObj.delta_pct = delta;
       evObj.params = { fee_category: cat, delta_pct: delta };
-      evObj.title = '💰 Fee revision (+' + delta + '%)';
+      evObj.title = 'Fee revision (+' + delta + '%)';
     } else if (etype === 'additional_teacher_hired') {
       const tname = ($('#evHireTeacher') && $('#evHireTeacher').value) || F.hiredTeacher || 'Pooja Sharma';
       const role = ($('#evHireRole') && $('#evHireRole').value) || F.hiredRole || 'Social Science';
       evObj.teacher_name = tname;
       evObj.subject_or_role = role;
       evObj.params = { teacher_name: tname, subject_or_role: role };
-      evObj.title = '👩‍🏫 New teacher hired (' + tname + ' · ' + role + ')';
+      evObj.title = 'New teacher hired (' + tname + ' · ' + role + ')';
     } else {
       evObj.title = etype.replace(/_/g, ' ');
     }
@@ -2611,7 +2606,7 @@
       S.day = Math.max(0, ev.day - 1);
       S.dayF = S.day;
     }
-    toast('⚡ Compiling & starting time-lapse simulation...');
+    toast('Compiling & starting time-lapse simulation...');
     await runScenario({ watchTimeLapse: true, eventDay: ev.day, eventTitle: ev.title });
   }
 
@@ -2625,7 +2620,7 @@
     if (ov.name === 'story_baseline') {
       if (st) st.textContent = 'Error: Cannot overwrite protected baseline.';
       if (heroSt) heroSt.textContent = 'Error: Cannot overwrite protected baseline.';
-      if (heroBtn) { heroBtn.disabled = false; heroBtn.textContent = '⚡ Add & Watch in Time-lapse'; }
+      if (heroBtn) { heroBtn.disabled = false; heroBtn.textContent = 'Add & Watch in Time-lapse'; }
       toast('Cannot overwrite protected baseline');
       return;
     }
@@ -2636,7 +2631,7 @@
       if (!j.ok) {
         if (st) st.textContent = j.error || 'could not start';
         if (heroSt) heroSt.textContent = j.error || 'could not start';
-        if (heroBtn) { heroBtn.disabled = false; heroBtn.textContent = '⚡ Add & Watch in Time-lapse'; }
+        if (heroBtn) { heroBtn.disabled = false; heroBtn.textContent = 'Add & Watch in Time-lapse'; }
         return;
       }
       const poll = async () => {
@@ -2648,7 +2643,7 @@
           // permanently disabled hero button.
           if (st) st.textContent = 'Lost contact with the server.';
           if (heroSt) heroSt.textContent = '❌ Lost contact with the server while running.';
-          if (heroBtn) { heroBtn.disabled = false; heroBtn.textContent = '⚡ Add & Watch in Time-lapse'; }
+          if (heroBtn) { heroBtn.disabled = false; heroBtn.textContent = 'Add & Watch in Time-lapse'; }
           return;
         }
         if (s.running) {
@@ -2662,12 +2657,12 @@
         if (s.error) {
           if (st) st.textContent = 'Failed: ' + s.error;
           if (heroSt) heroSt.textContent = '❌ Failed: ' + s.error;
-          if (heroBtn) { heroBtn.disabled = false; heroBtn.textContent = '⚡ Add & Watch in Time-lapse'; }
+          if (heroBtn) { heroBtn.disabled = false; heroBtn.textContent = 'Add & Watch in Time-lapse'; }
           return;
         }
         if (st) st.textContent = 'Completed successfully!';
         if (heroSt) heroSt.textContent = '✓ Simulation complete! Launching time-lapse…';
-        if (heroBtn) { heroBtn.disabled = false; heroBtn.textContent = '⚡ Simulate Event & Watch Time-lapse'; }
+        if (heroBtn) { heroBtn.disabled = false; heroBtn.textContent = 'Simulate Event & Watch Time-lapse'; }
         try {
           S.index = await getJSON(S.base + 'index.json');
           const runSel = $('#runSel');
@@ -2698,7 +2693,7 @@
             await goTo(targetDay, S.snapMinute || 630);
             play();
             showScenarioBanner(ov.name, opts.eventTitle || 'Custom Scenario', targetDay, opts.eventDay);
-            toast('⚡ Playing scenario time-lapse from Day ' + (targetDay + 1));
+            toast('Playing scenario time-lapse from Day ' + (targetDay + 1));
           } else {
             setTab('compare');
           }
@@ -2711,7 +2706,7 @@
     } catch (e) {
       if (st) st.textContent = 'Run error: server offline';
       if (heroSt) heroSt.textContent = 'Run error: server offline';
-      if (heroBtn) { heroBtn.disabled = false; heroBtn.textContent = '⚡ Simulate Event & Watch Time-lapse'; }
+      if (heroBtn) { heroBtn.disabled = false; heroBtn.textContent = 'Simulate Event & Watch Time-lapse'; }
     }
   }
 
@@ -2736,7 +2731,7 @@
 
     if (heroBtn) { heroBtn.disabled = true; heroBtn.textContent = '⏳ Preparing Matched Pair…'; }
     if (heroSt) { heroSt.textContent = '⏳ Pre-generating common background random schedule…'; heroSt.style.color = ''; }
-    toast('⚡ Launching Matched Control vs Treatment Paired Simulation...');
+    toast('Launching Matched Control vs Treatment Paired Simulation...');
 
     const body = {
       custom_event: {
@@ -2762,7 +2757,7 @@
       const j = await res.json();
       if (!j.ok) {
         if (heroSt) heroSt.textContent = '❌ ' + (j.error || 'Failed to start pair run');
-        if (heroBtn) { heroBtn.disabled = false; heroBtn.textContent = '⚡ Run Paired Comparison (Control vs Treatment)'; }
+        if (heroBtn) { heroBtn.disabled = false; heroBtn.textContent = 'Run Paired Comparison (Control vs Treatment)'; }
         toast(j.error || 'Failed to start paired run');
         return;
       }
@@ -2780,13 +2775,13 @@
           }
           if (s.error) {
             if (heroSt) heroSt.textContent = '❌ Failed: ' + s.error;
-            if (heroBtn) { heroBtn.disabled = false; heroBtn.textContent = '⚡ Run Paired Comparison (Control vs Treatment)'; }
+            if (heroBtn) { heroBtn.disabled = false; heroBtn.textContent = 'Run Paired Comparison (Control vs Treatment)'; }
             toast('Paired run failed: ' + s.error);
             return;
           }
           if (s.result) {
             if (heroSt) heroSt.textContent = '✓ Paired simulation completed! Loading synchronized dual cockpit…';
-            if (heroBtn) { heroBtn.disabled = false; heroBtn.textContent = '⚡ Run Paired Comparison (Control vs Treatment)'; }
+            if (heroBtn) { heroBtn.disabled = false; heroBtn.textContent = 'Run Paired Comparison (Control vs Treatment)'; }
             try {
               S.index = await getJSON(S.base + 'index.json');
               const runSel = $('#runSel');
@@ -2800,13 +2795,13 @@
         } catch (pollErr) {
           console.error('[SchoolTwin paired poll error]', pollErr);
           toast('Error loading paired comparison: ' + pollErr.message);
-          if (heroBtn) { heroBtn.disabled = false; heroBtn.textContent = '⚡ Run Paired Comparison (Control vs Treatment)'; }
+          if (heroBtn) { heroBtn.disabled = false; heroBtn.textContent = 'Run Paired Comparison (Control vs Treatment)'; }
         }
       };
       pollPair();
     } catch (e) {
       if (heroSt) heroSt.textContent = 'Run error: server offline';
-      if (heroBtn) { heroBtn.disabled = false; heroBtn.textContent = '⚡ Run Paired Comparison (Control vs Treatment)'; }
+      if (heroBtn) { heroBtn.disabled = false; heroBtn.textContent = 'Run Paired Comparison (Control vs Treatment)'; }
     }
   }
 
@@ -2877,7 +2872,7 @@
     }
     await goTo(targetDay, 525, { pause: true });
     setTab('compare');
-    toast(`⚡ Synchronized Paired Comparison Active: Day ${targetDay + 1}`);
+    toast(`Synchronized Paired Comparison Active: Day ${targetDay + 1}`);
     renderAll();
   }
 
@@ -2905,7 +2900,7 @@
     const sEl = $('#scenBannerSub');
     if (sEl) sEl.textContent = `Day ${S.day + 1} of ${S.nDays}${eventDay != null ? ` · Event on Day ${eventDay + 1}` : ''}`;
     const btn = $('#scenBannerToggleBtn');
-    if (btn) btn.textContent = S.playing ? '⏸ Pause' : '▶ Resume';
+    if (btn) btn.textContent = S.playing ? '⏸ Pause' : 'Resume';
     S.scenBannerData = { runId, title, fromDay, eventDay };
   }
 
@@ -2915,7 +2910,7 @@
     S.scenBannerData = null;
   }
 
-  // ------------------------------------------------------------------ wiring
+  // wiring
   function setOn(sel, btn) { $$(sel + ' button').forEach(b => b.classList.toggle('on', b === btn)); }
   function fillSpeeds() {
     const list = SPEEDS[S.mode], sel = $('#speedSel');
@@ -2941,7 +2936,7 @@
       S.dayF = S.day;
       if (S.mode === 'term') {
         $('#chkPause').checked = false;
-        toast('Time-lapse mode: press ▶ to play through the term');
+        toast('Time-lapse mode: press to play through the term');
       } else {
         $('#chkPause').checked = true;
       }
@@ -2977,7 +2972,7 @@
       if (typeof document !== 'undefined' && document.body) {
         document.body.className = v === 'off' ? 'motion-off' : v === 'reduced' ? 'reduced-motion' : '';
       }
-      if (bMot) bMot.textContent = v === 'off' ? '✨ Motion: Off' : v === 'reduced' ? '✨ Motion: Reduced' : '✨ Motion: Full';
+      if (bMot) bMot.textContent = v === 'off' ? 'Motion: Off' : v === 'reduced' ? 'Motion: Reduced' : 'Motion: Full';
       if (persist) { try { localStorage.setItem('st-motion-setting', v); } catch (e) {} }
       S.dirty = true;
     };
@@ -3164,7 +3159,7 @@
           const idx = S.meta.days.findIndex(d => d.date === e.date);
           return idx >= 0 ? Math.min(min, idx) : min;
         }, S.day);
-        toast('⚡ Running simulation for scenario...');
+        toast('Running simulation for scenario...');
         await runScenario({ watchTimeLapse: true, eventDay: earliestDay });
       }
       else if (act === 'rmEvent') { S.form.add.splice(+a.dataset.i, 1); renderRun(); }
@@ -3247,7 +3242,7 @@
             if (po.transport_fee_delta_pct != null) S.form.transportFee = po.transport_fee_delta_pct;
           }
           if (act === 'applyAndSimulateNL') {
-            toast('⚡ Simulating altered scenario from Day 151...');
+            toast('Simulating altered scenario from Day 151...');
             const earliestDay = S.form.add.reduce((min, e) => {
               const idx = (S.meta.days || []).findIndex(d => d.date === e.date);
               return idx >= 0 ? Math.min(min, idx) : min;

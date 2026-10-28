@@ -1,13 +1,4 @@
-"""Controlled Random Event Scheduler and Profiles for SchoolTwin (Part D).
-
-Provides deterministic, reproducible background event schedules shared across
-paired simulations (Control vs. Treatment):
-- Preset Profiles: Calm, Balanced (default), Stress-test, Custom.
-- Controlled Event Scheduler: Enforces daily/weekly caps, category weights, cooldowns,
-  valid zone IDs, and reproducible isolated random seeds.
-- Pre-generates one shared background schedule so that only the user's custom event
-  drives divergence between paired branches.
-"""
+"""Random event profiles and shared background schedule generation."""
 from __future__ import annotations
 
 import copy
@@ -19,9 +10,7 @@ import numpy as np
 from .events import make_event
 from .schema import EVENT_CATALOG, get_valid_zones
 
-# ----------------------------------------------------------------------
-# Profile Definitions
-# ----------------------------------------------------------------------
+
 RANDOM_PROFILES: Dict[str, Dict[str, Any]] = {
     "calm": {
         "id": "calm",
@@ -77,9 +66,7 @@ RANDOM_PROFILES: Dict[str, Dict[str, Any]] = {
     },
 }
 
-# ----------------------------------------------------------------------
-# Category Event Catalogs & Zone Assignments
-# ----------------------------------------------------------------------
+
 CATEGORY_CATALOG: Dict[str, List[Dict[str, Any]]] = {
     "facility": [
         {"type": "water_cooler_breakdown", "locations": ["corridor_1", "corridor_2", "canteen"], "cost_range": [6000, 10000]},
@@ -129,7 +116,6 @@ CATEGORY_CATALOG: Dict[str, List[Dict[str, Any]]] = {
 
 
 def get_profile_config(profile_name: str, custom_cfg: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """Retrieves profile configuration with optional custom overrides."""
     p_name = profile_name.lower().replace("-", "_") if profile_name else "balanced"
     base = copy.deepcopy(RANDOM_PROFILES.get(p_name, RANDOM_PROFILES["balanced"]))
     if p_name == "custom" and custom_cfg:
@@ -145,15 +131,7 @@ def generate_paired_background_schedule(
     seed: int = 20261014,
     custom_cfg: Optional[Dict[str, Any]] = None,
 ) -> List[Dict[str, Any]]:
-    """Generates a canonical, reproducible background event schedule shared by Control & Treatment.
-
-    Enforces:
-    1. Isolated deterministic RNG keyed on pair seed and configuration hash.
-    2. Daily and weekly frequency caps.
-    3. Event category cooldowns to prevent unrealistic clustering.
-    4. Valid campus location IDs.
-    5. Realistic operational context (open days vs closed periods).
-    """
+    """Generates background schedule shared by Control & Treatment."""
     cfg = get_profile_config(profile_name, custom_cfg)
     end_day = min(len(story.days) - 1, start_day + duration_days - 1)
 
