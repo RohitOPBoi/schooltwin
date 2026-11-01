@@ -376,6 +376,27 @@ class TestClosedDayBackgroundCatalog(unittest.TestCase):
         self.assertEqual(student_dep, [],
                          "no student-dependent event may be scheduled on a closed day")
 
+    def test_paired_simulation_auto_extends_horizon_for_late_event(self):
+        """Verifies that an event scheduled beyond duration_days auto-extends horizon safely."""
+        from schooltwin.paired_simulation import run_paired_simulation
+        late_ev = {
+            "type": "water_cooler_breakdown",
+            "date": "2026-07-10",  # Day 190 -> requires at least 40+ days from Day 151
+            "params": {"location": "corridor_1"},
+            "severity": "low",
+        }
+        # Pass duration_days=5 (which would normally end Day 155 and fail)
+        res = run_paired_simulation(custom_event=late_ev, start_day=151, duration_days=5)
+        self.assertGreaterEqual(res["end_day"], 190, "Horizon must auto-extend past the event day")
+        # Clean up generated test packs
+        import shutil
+        from schooltwin.config import ROOT
+        for r_name in (res["control_run"], res["treatment_run"]):
+            p = ROOT / "pack" / r_name
+            if p.is_dir():
+                shutil.rmtree(p, ignore_errors=True)
+
+
 
 if __name__ == "__main__":
     unittest.main()

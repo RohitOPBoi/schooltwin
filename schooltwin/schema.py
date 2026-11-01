@@ -23,6 +23,16 @@ MAX_DATE = "2026-12-31"
 TOTAL_DAYS = MAX_SIMULATION_DAYS
 
 
+def day_for_date(iso_str: str) -> int:
+    """Returns 0-indexed day for ISO date string relative to BASELINE_START_DATE."""
+    try:
+        y, m, d = map(int, str(iso_str).split("-"))
+        dt = date(y, m, d)
+        return (dt - date(2026, 1, 1)).days
+    except Exception:
+        return 0
+
+
 POLICY_DEFINITIONS: Dict[str, Dict[str, Any]] = {
     "additional_teachers": {
         "title": "Additional Teachers",

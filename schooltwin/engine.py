@@ -87,6 +87,8 @@ class Engine:
         self.cam_hist = defaultdict(list)             # camera -> past observed counts, for the 'expected' reference
         self.effects_active = []                      # approved decisions that change the simulation
         self.extra_teachers = 0
+        self.active_fee_delta_pct = 0.0
+        self.active_transport_fee_delta_pct = 0.0
         self.days = []                                # one summary per day
         self.alerts, self.decisions, self.flags = [], [], []
         self.canteen_service = self.bh["canteen_service_per_minute"]
@@ -299,8 +301,17 @@ class Engine:
                 bkp = min(int(self.lever(i, "bus_backup_capacity") or 0), 4)
                 self.causal_registry.handle_bus_breakdown(ev_rec, iso, backup_capacity=bkp)
             elif etype == "school_fee_increase":
-                ok = self.lever(i, "fee_change_approved")
-                self.causal_registry.handle_fee_increase(ev_rec, iso, is_approved=bool(ok))
+                p = ev.get("params", {})
+                cat = p.get("fee_category", ev.get("fee_category", "tuition"))
+                delta = float(p.get("delta_pct", ev.get("delta_pct", 10.0)))
+                lever_appr = self.lever(i, "fee_change_approved")
+                is_appr = True if (lever_appr is True or lever_appr is None or ev.get("source") == "user" or ev.get("comparison_tag") == "custom_intervention") else False
+                self.causal_registry.handle_fee_increase(ev_rec, iso, is_approved=is_appr)
+                if is_appr:
+                    if cat in ("tuition", "all"):
+                        self.active_fee_delta_pct = delta
+                    if cat in ("transport", "all"):
+                        self.active_transport_fee_delta_pct = delta
             elif etype == "additional_teacher_hired":
                 self.causal_registry.handle_additional_teacher_hired(ev_rec, iso)
                 tname = ev.get("params", {}).get("teacher_name") or ev.get("params", {}).get("name") or ev.get("teacher_name") or f"Additional teacher {self.extra_teachers + 1}"
@@ -389,7 +400,9 @@ class Engine:
             present = {a.id for a in self.students if a.sid in ids}
             n_late = row["student_enrollment"].get("late_arrivals", 0)
         else:
-            fee = (self.lever(day["i"], "tuition_fee_delta_pct") or 0) / 100.0 if self.lever(day["i"], "fee_change_approved") else 0.0
+            lev_fee = self.lever(day["i"], "tuition_fee_delta_pct") or 0
+            act_fee = self.active_fee_delta_pct or lev_fee
+            fee = act_fee / 100.0 if (self.lever(day["i"], "fee_change_approved") is not False) else 0.0
             support = (self.lever(day["i"], "attendance_support_budget_inr_per_month") or 0) / 300000.0
             mult = day["absence_mult"] * (1 + g["fee_stress_absence"] * max(fee, 0)) * (1 - 0.06 * support ** 0.7)
             noise = rng.normal(0, g["absence_noise_sd"] * K)
@@ -495,7 +508,8 @@ class Engine:
             for a in teachers:
                 if a.name == nm:
                     out.add(a.id)
-        k = row["staffing"]["teachers_absent"] if anchor else int(rng.binomial(len(teachers), min(g["teacher_absence_base"] + (0.0), 0.5)))
+        p_abs = max(0.0, min(0.5, float(g["teacher_absence_base"])))
+        k = row["staffing"]["teachers_absent"] if anchor else (int(rng.binomial(len(teachers), p_abs)) if teachers else 0)
         pool = [a.id for a in teachers if a.id not in out and a.subrole == "teacher" and not a.sid.startswith("STF-X")]
         rng.shuffle(pool)
         while len(out) < max(k, len(out)) and pool:
@@ -667,9 +681,10 @@ class Engine:
         if a.zone == zid:
             return
         ri = ROLE_IDX[a.role]
-        if a.zone != OUTSIDE and a.zone in self.members:
-            self.members[a.zone].discard(a.id)
-            self.counts[a.zone][ri] -= 1
+        if a.zone != OUTSIDE:
+            if a.id in self.members[a.zone]:
+                self.members[a.zone].remove(a.id)
+                self.counts[a.zone][ri] = max(0, self.counts[a.zone][ri] - 1)
         a.zone = zid
         self._log_move(a, zid, t)
         if zid == OUTSIDE:
@@ -679,9 +694,8 @@ class Engine:
             return
         a.floor = z.floor
         a.x, a.y = z.sample_point(self.rng)
-        if zid in self.members:
-            self.members[zid].add(a.id)
-            self.counts[zid][ri] += 1
+        self.members[zid].add(a.id)
+        self.counts[zid][ri] += 1
         if z.measure.startswith("entries") and (a.role == "student" or zid not in ("main_gate", "bus_bay")):
             self.entries[zid].append(t)
         if zid == "canteen" and a.role == "student" and a.away_until < 0:
@@ -710,7 +724,7 @@ class Engine:
         self.queue[int(self.canteen_last + self.rng.integers(5, 12))].append(("eat_done", a.id))
 
     def _queue_len(self, t):
-        return len(self.canteen_finish) - bisect.bisect_right(self.canteen_finish, t)
+        return max(0, len(self.canteen_finish) - bisect.bisect_right(self.canteen_finish, t))
 
     def _start_block(self, t, block, bi):
         lo, hi = self.D["transit_minutes"]
@@ -838,11 +852,13 @@ class Engine:
         self._patrols(t)
 
     def _students_in_class(self):
-        return sum(self.counts[z][0] for z in self.class_ids)
+        return max(0, sum(max(0, self.counts[z][0]) for z in self.class_ids))
 
     def _pick_in_class(self, _=None):
         """A random present student who is currently sitting in their own classroom (rejection sampling: fast)."""
         pl = self.pres_list
+        if not pl:
+            return None
         for _ in range(8):
             a = pl[int(self.rng.integers(len(pl)))]
             if a.zone == a.home_zone and a.away_until < 0:
@@ -851,10 +867,13 @@ class Engine:
 
     def _errands(self, t):
         e, K = self.bh["errands"], self.ov["randomness"]["intensity"]
-        n = self._students_in_class()
-        if n == 0:
+        n = max(0, self._students_in_class())
+        if n <= 0:
             return
-        for _ in range(int(self.rng.binomial(n, e["trip_prob_per_student_per_class_minute"] * K))):
+        prob = max(0.0, min(1.0, float(e["trip_prob_per_student_per_class_minute"]) * float(K)))
+        if prob <= 0.0:
+            return
+        for _ in range(int(self.rng.binomial(n, prob))):
             a = self._pick_in_class()
             if a and a.away_until <= t and a.zone == a.home_zone:
                 dur = int(self.rng.integers(*e["duration"]))
@@ -863,16 +882,19 @@ class Engine:
 
     def _library(self, t):
         lv = self.bh["library_visits"]
-        if self._students_in_class() == 0:
+        if self._students_in_class() <= 0:
             return
-        for _ in range(int(self.rng.poisson(lv["per_class_minute"]))):
+        lam = max(0.0, float(lv["per_class_minute"]))
+        if lam <= 0.0:
+            return
+        for _ in range(int(self.rng.poisson(lam))):
             a = self._pick_in_class()
             if a and a.away_until <= t and a.zone == a.home_zone and a.grade not in ("Nursery", "KG"):
                 self._away_via_corridor(a, "library", t, int(self.rng.integers(*lv["stay"])))
 
     def _blind(self, t, block):
         c, K, btype = self.bh["blind_spots"], self.ov["randomness"]["intensity"], block["type"]
-        self.stats["blind_minutes"] += sum(self.counts[s][0] for s in self.blind_ids)
+        self.stats["blind_minutes"] += sum(max(0, self.counts[s][0]) for s in self.blind_ids)
         if btype not in ("class", "break", "lunch"):
             return
         for i in sorted(self.knowers):
@@ -920,7 +942,8 @@ class Engine:
                 for k, z in enumerate(self.p_dest):
                     if self.world.zones[z].blind_spot:
                         w[k] *= cfg["principal_blind_spot_factor"]
-            dest = self.p_dest[int(self.rng.choice(len(w), p=w / w.sum()))]
+            w_sum = w.sum()
+            dest = self.p_dest[int(self.rng.choice(len(w), p=(w / w_sum) if w_sum > 0 else None))]
             self._go_away(a, dest, t, int(self.rng.integers(*cfg["stay_minutes"])))
             if self.world.zones[dest].blind_spot:
                 self._catch(t, dest)
@@ -1015,16 +1038,16 @@ class Engine:
     def _reading(self, z, t):
         rng, m = self.rng, z.measure
         if m == "occupancy":
-            n = sum(self.counts[z.id])
+            n = max(0, sum(max(0, c) for c in self.counts[z.id]))
             return n, observe(z, n, rng)
         if m == "queue":
-            n = self._queue_len(t)
+            n = max(0, self._queue_len(t))
             return n, int(rng.binomial(n, 0.95)) if n > 0 else 0
         e = self.entries[z.id]
         if m == "entries_window":
-            n = bisect.bisect_right(e, t) - bisect.bisect_right(e, t - 15)
+            n = max(0, bisect.bisect_right(e, t) - bisect.bisect_right(e, t - 15))
             return n, int(rng.binomial(n, 0.97)) if n > 0 else 0
-        n = bisect.bisect_right(e, t)
+        n = max(0, bisect.bisect_right(e, t))
         return n, int(rng.binomial(n, 0.985)) if n > 0 else 0
 
     def _record(self, camera, zone, t, label, measure, true, observed):
@@ -1247,9 +1270,10 @@ class Engine:
             backup = 14000 * min(int(self.lever(i, "bus_backup_capacity") or 0), 4) / 30.0
             summer = (self.lever(i, "summer_maintenance_budget_inr") or 0) / 16.0 if day["type"] == "summer_break_staff_only" else 0.0
             extra += [("attendance_support", support), ("transport_operations", backup), ("maintenance", summer)]
-            ok = self.lever(i, "fee_change_approved")
-            fee = (self.lever(i, "tuition_fee_delta_pct") or 0) / 100.0 if ok else 0.0
-            tfee = (self.lever(i, "transport_fee_delta_pct") or 0) / 100.0 if ok else 0.0
+            lev_ok = self.lever(i, "fee_change_approved")
+            is_ok = bool(self.active_fee_delta_pct) or bool(self.active_transport_fee_delta_pct) or (lev_ok is True) or (lev_ok is None and (self.lever(i, "tuition_fee_delta_pct") or self.lever(i, "transport_fee_delta_pct")))
+            fee = ((self.active_fee_delta_pct or self.lever(i, "tuition_fee_delta_pct") or 0) / 100.0) if is_ok else 0.0
+            tfee = ((self.active_transport_fee_delta_pct or self.lever(i, "transport_fee_delta_pct") or 0) / 100.0) if is_ok else 0.0
             fin = self.fin.model_day(iso, 0, extra, payroll_extra=48000.0 * self.extra_teachers, fee_delta=fee, transport_delta=tfee)
         # Step Phase 3 Learning progression model
         eff = self.lever(i, "instructional_effectiveness") or 1.0
@@ -1273,8 +1297,10 @@ class Engine:
         # Record Phase 3 Financial ledger transactions
         mc = next((v for v in self.fin.mca.values() if v["month"] == iso[:7]), None)
         if mc and (iso.endswith("-01") or i == 0):
-            fee_pct = (self.lever(i, "tuition_fee_delta_pct") or 0) / 100.0 if self.lever(i, "fee_change_approved") else 0.0
-            tfee_pct = (self.lever(i, "transport_fee_delta_pct") or 0) / 100.0 if self.lever(i, "fee_change_approved") else 0.0
+            lev_ok = self.lever(i, "fee_change_approved")
+            is_ok = bool(self.active_fee_delta_pct) or bool(self.active_transport_fee_delta_pct) or (lev_ok is True) or (lev_ok is None and (self.lever(i, "tuition_fee_delta_pct") or self.lever(i, "transport_fee_delta_pct")))
+            fee_pct = ((self.active_fee_delta_pct or self.lever(i, "tuition_fee_delta_pct") or 0) / 100.0) if is_ok else 0.0
+            tfee_pct = ((self.active_transport_fee_delta_pct or self.lever(i, "transport_fee_delta_pct") or 0) / 100.0) if is_ok else 0.0
             self.ledger.bill_student_fees(iso, mc["tuition_due"] * (1 + fee_pct), mc["transport_due"] * (1 + tfee_pct))
         if fin.get("inflow", 0) > 0:
             self.ledger.collect_fees(iso, float(fin["inflow"]))

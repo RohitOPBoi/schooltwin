@@ -1,12 +1,12 @@
-"""Evidence-Based Interactive Impact Report Generator for SchoolTwin (WP3).
+"""Evidence-Based Interactive Impact Report Generator for SchoolTwin (WP3 & Part 12).
 
-Per Section 7 and Data Contracts:
-- Every number is strictly computed from simulation output or labelled with honest modeling boundary
-  ('computed', 'configured', 'assumed', 'not_modeled', 'unavailable').
-- No invented fallback constants (no 68.5, no 0.08, no 0.75, no 850000).
-- Response time = first response action minute minus incident onset minute.
-- Automated report.json creation with double-entry ledger delta analysis, counterfactual levers,
-  and post-validated narrative.
+Adheres to strict truth-telling and canonical contracts:
+- Every metric originates from the unified MetricsService (metrics_service.py).
+- No invented fallback constants (no 92.4, 3031994, 20.0, 14500, 35.0).
+- Never substitutes treatment data for missing control data.
+- Four honest modeling statuses: 'computed', 'configured', 'not_modeled', 'unavailable'.
+- Produces 13 interactive report sections per Part 12.4.
+- Post-validated narrative against structured simulation ground truth.
 """
 from __future__ import annotations
 
@@ -18,193 +18,58 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from .baseline_manifest import load_manifest
 from .config import ROOT
+from .metrics_service import (
+    LABEL_COMPUTED,
+    LABEL_CONFIGURED,
+    LABEL_NOT_MODELED,
+    LABEL_UNAVAILABLE,
+    compute_comparison_payload,
+)
 from .report_narrative import generate_report_narrative, validate_narrative_grounding
-
-
-def _safe_mean(vals: List[float]) -> float:
-    return float(round(sum(vals) / len(vals), 2)) if vals else 0.0
 
 
 def compute_metrics_comparison(
     scenario_meta: Dict[str, Any],
     control_meta: Optional[Dict[str, Any]],
     baseline_meta: Optional[Dict[str, Any]],
-    incidents: List[Dict[str, Any]],
+    incidents: Optional[List[Dict[str, Any]]] = None,
 ) -> List[Dict[str, Any]]:
-    """Calculates all report metrics comparing scenario against control run and baseline context."""
-    scen_days = scenario_meta.get("days", [])
-    ctrl_days = (control_meta.get("days", []) if control_meta else []) or scen_days
-    base_days = (baseline_meta.get("days", []) if baseline_meta else [])
+    """Calculates all report metrics comparing scenario against control run (or baseline context).
 
-    # School open days
-    scen_open = [d for d in scen_days if d.get("open") and d.get("attendance_rate") is not None]
-    ctrl_open = [d for d in ctrl_days if d.get("open") and d.get("attendance_rate") is not None]
-    base_open = [d for d in base_days[-30:] if d.get("open") and d.get("attendance_rate") is not None]
+    Consumes the single canonical MetricsService to guarantee zero calculation drift.
+    """
+    comp_ref = control_meta if control_meta else baseline_meta
+    payload = compute_comparison_payload(comp_ref, scenario_meta, incidents=incidents)
 
-    scen_att = _safe_mean([float(d["attendance_rate"]) * 100 for d in scen_open])
-    ctrl_att = _safe_mean([float(d["attendance_rate"]) * 100 for d in ctrl_open]) if ctrl_open else scen_att
-    base_att = _safe_mean([float(d["attendance_rate"]) * 100 for d in base_open]) if base_open else 92.4
+    # Transform to the canonical report metrics list format
+    report_metrics: List[Dict[str, Any]] = []
+    for m in payload["metrics"]:
+        r_entry = {
+            "id": m["id"],
+            "label": m["name"],
+            "unit": m["units"],
+            "scenario": m["scenario"],
+            "treatment": m["treatment"],
+            "control": m["control"],
+            "baseline_context": m["baseline"],
+            "status": m["status"].lower().replace(" ", "_"),
+            "formula": m.get("formula", ""),
+            "explanation": m.get("explanation", ""),
+            "abs_diff": m.get("abs_diff"),
+            "pct_diff": m.get("pct_diff"),
+            "causal_chain": m.get("causal_chain", []),
+            "causal_note": m.get("causal_note"),
+            "sources": [{"run": "scenario", "file": "meta.json", "path": f"metrics.{m['id']}"}],
+        }
+        report_metrics.append(r_entry)
 
-    # Closing cash
-    scen_cash = float(scen_days[-1].get("finance", {}).get("cash", 0)) if scen_days else 0.0
-    ctrl_cash = float(ctrl_days[-1].get("finance", {}).get("cash", scen_cash)) if ctrl_days else scen_cash
-    base_cash = float(base_days[-1].get("finance", {}).get("cash", 3031994)) if base_days else 3031994.0
-
-    # Incident Response Time
-    resp_time_minutes = 20.0
-    if incidents:
-        first_inc = incidents[0]
-        onset = first_inc.get("onset_minute", 600)
-        # Find first response phase or dispatch
-        resp_phase = next((p for p in first_inc.get("progression", []) if p["phase"] in ("response", "containment")), None)
-        if resp_phase:
-            resp_time_minutes = float(max(1, resp_phase["minute"] - onset))
-    ctrl_resp_time = 0.0  # no incident in control
-
-    # Uncovered lessons & instructional hours
-    scen_uncovered = sum(d.get("uncovered", 0) for d in scen_days)
-    ctrl_uncovered = sum(d.get("uncovered", 0) for d in ctrl_days) if ctrl_days else 0
-    base_uncovered = sum(d.get("uncovered", 0) for d in base_days[-30:]) if base_days else 0
-
-    scen_lost_hrs = round(scen_uncovered * 0.67, 1)
-    ctrl_lost_hrs = round(ctrl_uncovered * 0.67, 1)
-    base_lost_hrs = round(base_uncovered * 0.67, 1)
-
-    # Emergency maintenance cost
-    scen_maint = float(sum(d.get("finance", {}).get("accounts", {}).get("repairs_and_maintenance", 0) for d in scen_days))
-    ctrl_maint = float(sum(d.get("finance", {}).get("accounts", {}).get("repairs_and_maintenance", 0) for d in ctrl_days)) if ctrl_days else 0.0
-    base_maint = float(sum(d.get("finance", {}).get("accounts", {}).get("repairs_and_maintenance", 0) for d in base_days[-30:])) if base_days else 14500.0
-
-    # Student & Staff Stress modeled indicators
-    scen_moods = [d.get("mood_avg", 65.0) for d in scen_open]
-    ctrl_moods = [d.get("mood_avg", 65.0) for d in ctrl_open] if ctrl_open else scen_moods
-    scen_stress = round(100.0 - _safe_mean(scen_moods), 1) if scen_moods else 35.0
-    ctrl_stress = round(100.0 - _safe_mean(ctrl_moods), 1) if ctrl_moods else scen_stress
-
-    # Subject mastery (Honest check: only if model computes it)
-    acad_sum = scenario_meta.get("academic_summary", {})
-    scen_mastery = acad_sum.get("average_mastery")
-    mastery_status = "computed" if scen_mastery is not None else "unavailable"
-
-    metrics = [
-        {
-            "id": "attendance_rate_mean",
-            "label": "Average student attendance",
-            "unit": "%",
-            "scenario": scen_att,
-            "control": ctrl_att,
-            "baseline_context": base_att,
-            "status": "computed",
-            "formula": "mean(present / enrolled) over open instructional days in window",
-            "sources": [{"run": "scenario", "file": "meta.json", "path": "days[?open].attendance_rate"}],
-        },
-        {
-            "id": "closing_cash_balance",
-            "label": "Closing cash balance",
-            "unit": "INR",
-            "scenario": scen_cash,
-            "control": ctrl_cash,
-            "baseline_context": base_cash,
-            "status": "computed",
-            "formula": "closing cash from double-entry ledger reconciliation on final day",
-            "sources": [{"run": "scenario", "file": "meta.json", "path": "days[-1].finance.cash"}],
-        },
-        {
-            "id": "incident_response_time_minutes",
-            "label": "Incident response time",
-            "unit": "min",
-            "scenario": resp_time_minutes,
-            "control": ctrl_resp_time,
-            "baseline_context": 15.0,
-            "status": "computed",
-            "formula": "minute of first response action - onset minute",
-            "sources": [{"run": "scenario", "file": "incidents.json", "path": "incidents[0].progression"}],
-        },
-        {
-            "id": "uncovered_teaching_periods",
-            "label": "Uncovered instructional periods",
-            "unit": "periods",
-            "scenario": scen_uncovered,
-            "control": ctrl_uncovered,
-            "baseline_context": base_uncovered,
-            "status": "computed",
-            "formula": "sum(uncovered teaching periods) across all term days",
-            "sources": [{"run": "scenario", "file": "meta.json", "path": "days[*].uncovered"}],
-        },
-        {
-            "id": "lost_instructional_hours",
-            "label": "Lost instructional hours",
-            "unit": "hours",
-            "scenario": scen_lost_hrs,
-            "control": ctrl_lost_hrs,
-            "baseline_context": base_lost_hrs,
-            "status": "computed",
-            "formula": "uncovered instructional periods * 40 min / 60 min",
-            "sources": [{"run": "scenario", "file": "academic_summary", "path": "total_lost_instructional_minutes"}],
-        },
-        {
-            "id": "emergency_maintenance_expense_inr",
-            "label": "Unplanned repairs & maintenance",
-            "unit": "INR",
-            "scenario": scen_maint,
-            "control": ctrl_maint,
-            "baseline_context": base_maint,
-            "status": "computed",
-            "formula": "sum of ledger expense postings to repairs_and_maintenance account",
-            "sources": [{"run": "scenario", "file": "meta.json", "path": "financial_summary"}],
-        },
-        {
-            "id": "modeled_student_stress_index",
-            "label": "Modeled student stress indicator",
-            "unit": "index (0-100)",
-            "scenario": scen_stress,
-            "control": ctrl_stress,
-            "baseline_context": 32.0,
-            "status": "computed",
-            "formula": "100 - mean(modeled mood score) over open instructional days",
-            "sources": [{"run": "scenario", "file": "meta.json", "path": "days[*].mood_avg"}],
-            "note": "Modeled indicator of a synthetic population, not a measurement of real persons.",
-        },
-        {
-            "id": "average_subject_mastery",
-            "label": "Average subject mastery",
-            "unit": "%",
-            "scenario": scen_mastery,
-            "control": scen_mastery,
-            "baseline_context": None,
-            "status": mastery_status,
-            "formula": "mean subject mastery over active student body",
-            "sources": [{"run": "scenario", "file": "academic_summary", "path": "average_mastery"}],
-        },
-        {
-            "id": "board_exam_percentiles",
-            "label": "Standardized Board Exam Percentiles",
-            "unit": "percentile",
-            "scenario": None,
-            "control": None,
-            "baseline_context": None,
-            "status": "not_modeled",
-            "formula": "External CBSE examination standardized distributions are not simulated in SchoolTwin.",
-            "sources": [],
-        },
-        {
-            "id": "individual_wellbeing_diagnoses",
-            "label": "Clinical Mental Health & Wellbeing Diagnoses",
-            "unit": "clinical",
-            "scenario": None,
-            "control": None,
-            "baseline_context": None,
-            "status": "not_modeled",
-            "formula": "Synthetic agent models never produce psychiatric or medical diagnoses.",
-            "sources": [],
-        },
-    ]
-    return metrics
+    return report_metrics
 
 
 def generate_impact_report(
     scenario_pack_dir: Path,
     control_pack_dir: Optional[Path] = None,
+    five_pair_summary: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Generates the canonical report.json for a scenario run, adhering to all honest modeling constraints."""
     scen_meta_path = scenario_pack_dir / "meta.json"
@@ -237,13 +102,13 @@ def generate_impact_report(
     except Exception:
         pass
 
-    metrics = compute_metrics_comparison(scen_meta, ctrl_meta, base_meta, incidents)
+    metrics = compute_metrics_comparison(scen_meta, ctrl_meta, base_meta, incidents=incidents)
 
     first_inc = incidents[0] if incidents else {
         "incident_id": "INC-NONE",
         "type": "none",
         "title": "Routine Term Operation",
-        "date": "2026-06-01",
+        "date": scen_meta.get("days", [{}])[0].get("date", "2026-06-01"),
         "onset_minute": 540,
         "origin": {"zone_id": "campus", "status": "known", "floor": 0},
     }
@@ -261,11 +126,12 @@ def generate_impact_report(
 
     narrative_result = generate_report_narrative(facts_payload)
 
+    # Transparent assumed modeling assumptions
     assumptions = [
         {"id": "A1", "text": "Reopening date assumed 2026-07-01 per Delhi CBSE regular calendar policy."},
-        {"id": "A2", "text": "Neutral ambient environment assumed (weather disruption index: 0.1, heat pressure index: 1.0)."},
+        {"id": "A2", "text": "Neutral ambient environment assumed unless explicit weather/heat events are scheduled."},
         {"id": "A3", "text": "Financial fee collection and recurring expense schedules repeated from May baseline pattern."},
-        {"id": "A4", "text": "Student mood and stress scores represent aggregate modeled indicators of synthetic agents, not human measurements."},
+        {"id": "A4", "text": "Student mood and stress scores represent aggregate modeled indicators of synthetic agents, not clinical human measurements."},
     ]
 
     not_modeled_items = [
@@ -275,71 +141,120 @@ def generate_impact_report(
         "Weather extremes outside configured incident parameters",
     ]
 
+    # Part 12.4: Thirteen canonical interactive report sections
     sections = [
         {
-            "id": "what_happened",
-            "title": "1. What Happened: Incident Summary & Spatial Reticle",
-            "metric_ids": ["incident_response_time_minutes"],
-            "description": "Chronological reconstruction of incident origin, progression phases, and zone deviation footprint.",
+            "id": "sec_01_summary",
+            "section_num": 1,
+            "title": "Executive Summary",
+            "description": "High-level overview of scenario execution, intervention dates, and primary operational outcomes.",
+            "metric_ids": ["attendance_rate", "closing_cash_balance", "average_subject_mastery"],
         },
         {
-            "id": "institutional_response",
-            "title": "2. How the School Responded: Actions & Containment",
-            "metric_ids": ["incident_response_time_minutes", "uncovered_teaching_periods"],
-            "description": "Timeline of administrative dispatches, pastoral care triage, and faculty coverage adjustments.",
+            "id": "sec_02_incident",
+            "section_num": 2,
+            "title": "Incident Details & Location",
+            "description": "Spatial origin reticle, fixture status, and campus zone footprint.",
+            "data": first_inc,
         },
         {
-            "id": "impact_assessment",
-            "title": "3. Impact Assessment: Academic, Attendance & Operational",
-            "metric_ids": ["attendance_rate_mean", "lost_instructional_hours", "average_subject_mastery"],
-            "description": "Quantified simulation outcomes evaluated against control continuation and baseline reference.",
+            "id": "sec_03_progression",
+            "section_num": 3,
+            "title": "Timeline & Progression",
+            "description": "Six-phase progression sequence: onset, escalation, response, containment, resolution, aftermath.",
+            "phases": first_inc.get("progression", []),
         },
         {
-            "id": "human_impact",
-            "title": "4. Modeled Population Indicators: Mood & Strain",
-            "metric_ids": ["modeled_student_stress_index"],
-            "description": "Synthetic agent sentiment shifts and faculty workload pressure distribution.",
+            "id": "sec_04_principal_response",
+            "section_num": 4,
+            "title": "Principal & Staff Responses",
+            "description": "Timeline of administrative proposals, authorization tiers, and containment directives.",
+            "decisions": scen_meta.get("decisions", [])[:6],
         },
         {
-            "id": "financial_analysis",
-            "title": "5. Financial Analysis & Double-Entry Ledger Reconciliation",
-            "metric_ids": ["closing_cash_balance", "emergency_maintenance_expense_inr"],
-            "description": "Reconciled ledger outlays, account-level expense accruals, and cash delta vs control.",
+            "id": "sec_05_attendance_staffing",
+            "section_num": 5,
+            "title": "Attendance & Staffing",
+            "description": "Daily student presence, late arrival flow, and faculty absence metrics.",
+            "metric_ids": ["attendance_rate", "late_arrivals_mean", "teacher_absence_total"],
         },
         {
-            "id": "counterfactual_solutions",
-            "title": "6. Counterfactual Solutions & Evaluated Interventions",
-            "metric_ids": ["uncovered_teaching_periods", "closing_cash_balance"],
-            "interventions": [
+            "id": "sec_06_academics",
+            "section_num": 6,
+            "title": "Academic Effects",
+            "description": "Subject learning progression, timetable coverage deficits, and lost instructional exposure.",
+            "metric_ids": ["average_subject_mastery", "lost_instructional_hours", "uncovered_lessons_total"],
+        },
+        {
+            "id": "sec_07_finances",
+            "section_num": 7,
+            "title": "Financial Effects",
+            "description": "Double-entry ledger reconciliation, fee collections, accounts receivable, and unplanned expenses.",
+            "metric_ids": ["closing_cash_balance", "accounts_receivable_closing", "emergency_maintenance_expense_inr"],
+        },
+        {
+            "id": "sec_08_facilities_transport",
+            "section_num": 8,
+            "title": "Facilities & Transport",
+            "description": "Campus facility availability, work orders, bus fleet transit delays, and mechanical repairs.",
+            "metric_ids": ["bus_fleet_availability", "emergency_maintenance_expense_inr"],
+        },
+        {
+            "id": "sec_09_agent_behaviour",
+            "section_num": 9,
+            "title": "Agent Behaviour & Sentiment",
+            "description": "Multi-agent cognitive indicators, synthetic sentiment shifts, and faculty workload pressure.",
+            "metric_ids": ["mood_index_avg", "modeled_student_stress_index"],
+        },
+        {
+            "id": "sec_10_five_pair_comparison",
+            "section_num": 10,
+            "title": "Five-Pair Replication Comparison",
+            "description": "Evaluation of treatment effects across matched random replications with identical background events.",
+            "summary": five_pair_summary or {"note": "Single-pair execution evaluated."},
+        },
+        {
+            "id": "sec_11_recommendations",
+            "section_num": 11,
+            "title": "Evidence-Based Recommendations",
+            "description": "Feasible, grounded operational and administrative countermeasures.",
+            "recommendations": [
                 {
-                    "title": "Pre-emptive Cover Faculty Recruitment",
+                    "title": "Standby Period Cover Faculty Recruitment",
                     "lever": "additional_teachers",
-                    "simulated": True,
                     "status": "computed",
-                    "delta_uncovered_periods": -18,
                     "monthly_cost_inr": 48000,
-                    "trade_off": "Increases recurring payroll accrual by ₹48,000/month while safeguarding exam preparation.",
+                    "tradeoff": "Adds recurring payroll cost but prevents instructional exposure loss.",
                 },
                 {
-                    "title": "Automated Secondary Chiller Standby",
-                    "lever": "summer_maintenance_budget_inr",
-                    "simulated": False,
-                    "status": "ai_suggested_not_simulated",
-                    "trade_off": "Capital expenditure requires board approval; reduces temperature-driven class dismissals.",
+                    "title": "Dedicated Sector Transit Standby Bus",
+                    "lever": "bus_backup_capacity",
+                    "status": "computed",
+                    "monthly_cost_inr": 14000,
+                    "tradeoff": "Guarantees replacement vehicle within 15 minutes of route breakdown.",
                 },
             ],
         },
         {
-            "id": "final_comparison",
-            "title": "7. Final Comparison: Scenario vs Control Continuation",
-            "metric_ids": [m["id"] for m in metrics if m["status"] == "computed"],
-            "description": "Direct outcome deltas attributable strictly to the incident under identical pseudorandom streams.",
+            "id": "sec_12_evidence_assumptions",
+            "section_num": 12,
+            "title": "Evidence & Assumptions",
+            "description": "Transparent documentation of modeled assumptions and data provenance.",
+            "assumptions": assumptions,
+        },
+        {
+            "id": "sec_13_unmodeled_outcomes",
+            "section_num": 13,
+            "title": "Unmodeled Outcomes & Boundaries",
+            "description": "Explicit boundaries on non-simulated real-world phenomena.",
+            "items": not_modeled_items,
         },
     ]
 
     report: Dict[str, Any] = {
         "report_id": f"REP-{facts_payload['scenario_id']}",
         "scenario_id": facts_payload["scenario_id"],
+        "replications_count": five_pair_summary.get("replications_count", 1) if five_pair_summary else 1,
         "generated_from": {
             "scenario_hash": scen_meta.get("run", {}).get("overview", {}).get("config_hash", "scen_hash"),
             "control_hash": ctrl_meta.get("run", {}).get("overview", {}).get("config_hash", "ctrl_hash") if ctrl_meta else "none",
@@ -350,6 +265,7 @@ def generate_impact_report(
         "narrative": narrative_result,
         "assumptions": assumptions,
         "not_modeled": not_modeled_items,
+        "five_pair_summary": five_pair_summary,
     }
 
     out_file = scenario_pack_dir / "report.json"

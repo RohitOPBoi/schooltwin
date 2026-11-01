@@ -137,14 +137,23 @@ class TestAuditBugReproduction(unittest.TestCase):
 
     def test_serve_docs_routing(self):
         """Defect 7: Local server must route /docs to docs/index.html without 404."""
+        import threading
         import urllib.request
+        from http.server import ThreadingHTTPServer
+        from scripts.serve import H
+
+        server = ThreadingHTTPServer(("127.0.0.1", 0), H)
+        port = server.server_port
+        th = threading.Thread(target=server.serve_forever, daemon=True)
+        th.start()
         try:
-            resp = urllib.request.urlopen("http://127.0.0.1:8765/docs", timeout=2.0)
+            resp = urllib.request.urlopen(f"http://127.0.0.1:{port}/docs", timeout=3.0)
             self.assertEqual(resp.status, 200)
             body = resp.read()
             self.assertIn(b"SchoolTwin", body)
-        except urllib.error.URLError:
-            self.skipTest("Local server not running on port 8765")
+        finally:
+            server.shutdown()
+            server.server_close()
 
 
 if __name__ == "__main__":

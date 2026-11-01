@@ -31,9 +31,33 @@ weekly_pattern:
 # Delhi Gazetted National & Festival Holidays 2026 (assumed)
 planned_closures:
   "2026-08-15": "Independence Day"
-  "2026-10-02": "Gandhi Jayanti"
+  "2026-08-28": "Raksha Bandhan"
+  "2026-09-04": "Janmashtami"
+  "2026-10-02": "Mahatma Gandhi Jayanti"
+  "2026-10-19": "Maha Navami"
   "2026-10-20": "Dussehra / Vijayadashami"
-  "2026-11-08": "Diwali Holiday"
+  "2026-11-08": "Diwali (Deepavali)"
+  "2026-11-09": "Govardhan Puja"
+  "2026-11-10": "Bhai Dooj"
+  "2026-11-24": "Guru Nanak Jayanti"
+  "2026-12-25": "Christmas Day"
+  "2026-12-26": "Winter Break"
+  "2026-12-27": "Winter Break"
+  "2026-12-28": "Winter Break"
+  "2026-12-29": "Winter Break"
+  "2026-12-30": "Winter Break"
+  "2026-12-31": "Winter Break"
+
+# Delhi CBSE Academic Milestones 2026 (Instructional Days)
+academic_milestones:
+  "2026-07-01": "School Reopening (Term 2 Begins)"
+  "2026-09-05": "Teachers' Day Celebrations"
+  "2026-09-14": "CBSE Mid-Term / Half-Yearly Examinations Begin"
+  "2026-09-26": "CBSE Mid-Term / Half-Yearly Examinations Conclude"
+  "2026-11-14": "Children's Day & Annual Sports Carnival"
+  "2026-12-14": "Class 10 & 12 Pre-Board Examinations Begin"
+  "2026-12-22": "Class 10 & 12 Pre-Board Examinations Conclude"
+  "2026-12-23": "Annual Day Cultural Gala & Winter Exhibition"
 
 # Environmental Defaults (Neutral baseline end-state)
 # No invented climate; heatwaves/storms must be explicitly injected as scenarios

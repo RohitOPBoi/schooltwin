@@ -29,6 +29,22 @@ class TestEngineSmoke(unittest.TestCase):
         self.assertTrue(days[0]["open"])
         self.assertGreater(days[0]["present"], 800)
 
+    def test_zone_counts_and_errands_never_negative(self):
+        """Verifies that classroom zone counts and errands never produce negative counts or n < 0."""
+        e = Engine({
+            "name": "test_counts_nonnegative",
+            "start_day": 151,
+            "end_day": 185,
+            "mode": "generate",
+            "checkpoint_id": "CKPT-DAY-150-TERM-CLOSE",
+            "randomness": {"intensity": 1.5},
+        })
+        days = e.run()
+        self.assertGreater(len(days), 0)
+        for zid, counts in e.counts.items():
+            for role_idx, c in enumerate(counts):
+                self.assertGreaterEqual(c, 0, f"Zone {zid} role {role_idx} count was negative: {c}")
+
 
 def run_full_suite():
     ok = lambda msg: print("  ok  ", msg)

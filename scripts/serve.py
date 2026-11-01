@@ -66,20 +66,30 @@ def run_job(ov, redact):
         check_write_allowed(out)
         eng = Engine(ov)
         pk = Packer(eng, out, redact=redact)
-        STATE.update(total=ov["end_day"] + 1, day=0)
-        eng.run(on_day=pk.on_day, progress=lambda i, n: STATE.update(day=i + 1))
+        with LOCK:
+            STATE.update(total=ov["end_day"] + 1, day=0, running=True, error=None)
+
+        def on_prog(i, n):
+            with LOCK:
+                STATE.update(day=i + 1, total=n)
+
+        eng.run(on_day=pk.on_day, progress=on_prog)
         pk.finalize(evaluate(eng))
     except Exception as e:
         traceback.print_exc()
-        STATE["error"] = str(e)
+        with LOCK:
+            STATE["error"] = str(e)
     finally:
-        STATE["running"] = False
+        with LOCK:
+            STATE["running"] = False
 
 
 PAIR_STATE = {
     "running": False,
     "pair_id": None,
     "branch": "idle",
+    "replication": 1,
+    "replications_total": 1,
     "day": 0,
     "total": 0,
     "error": None,
@@ -88,23 +98,54 @@ PAIR_STATE = {
 
 
 def run_paired_job(body):
-    from schooltwin.paired_simulation import run_paired_simulation
+    from schooltwin.paired_simulation import run_five_pair_experiment, run_paired_simulation
     try:
-        def prog_cb(branch, d, total):
-            with LOCK:
-                PAIR_STATE.update(branch=branch, day=d, total=total)
+        mode = body.get("mode", "quick")
+        reps = int(body.get("replications_count", 5 if mode == "standard" else 1))
 
-        res = run_paired_simulation(
-            custom_event=body.get("custom_event", {}),
-            start_day=int(body.get("start_day", 151)),
-            duration_days=int(body.get("duration_days", 30)),
-            profile_name=str(body.get("profile", "balanced")),
-            seed=int(body.get("seed", 20261014)),
-            custom_cfg=body.get("custom_cfg"),
-            levers=body.get("levers"),
-            scenario_name=body.get("scenario_name"),
-            progress_cb=prog_cb,
-        )
+        if reps > 1 or mode == "standard":
+            with LOCK:
+                PAIR_STATE.update(replications_total=reps, replication=1)
+
+            def rep_prog_cb(branch, d, total):
+                with LOCK:
+                    rep_m = re.search(r"_r(\d+)", branch)
+                    rep_num = int(rep_m.group(1)) if rep_m else 1
+                    PAIR_STATE.update(branch=branch, day=d, total=total, replication=rep_num)
+
+            res = run_five_pair_experiment(
+                custom_event=body.get("custom_event", {}),
+                start_day=int(body.get("start_day", 151)),
+                duration_days=int(body.get("duration_days", 30)),
+                profile_name=str(body.get("profile", "balanced")),
+                base_seed=int(body.get("seed", 20261014)),
+                custom_cfg=body.get("custom_cfg"),
+                levers=body.get("levers"),
+                scenario_name=body.get("scenario_name"),
+                checkpoint_id=body.get("checkpoint_id"),
+                replications_count=reps,
+                progress_cb=rep_prog_cb,
+            )
+        else:
+            with LOCK:
+                PAIR_STATE.update(replications_total=1, replication=1)
+
+            def prog_cb(branch, d, total):
+                with LOCK:
+                    PAIR_STATE.update(branch=branch, day=d, total=total)
+
+            res = run_paired_simulation(
+                custom_event=body.get("custom_event", {}),
+                start_day=int(body.get("start_day", 151)),
+                duration_days=int(body.get("duration_days", 30)),
+                profile_name=str(body.get("profile", "balanced")),
+                seed=int(body.get("seed", 20261014)),
+                custom_cfg=body.get("custom_cfg"),
+                levers=body.get("levers"),
+                scenario_name=body.get("scenario_name"),
+                checkpoint_id=body.get("checkpoint_id"),
+                progress_cb=prog_cb,
+            )
         with LOCK:
             PAIR_STATE.update(running=False, result=res, branch="completed")
     except Exception as e:
@@ -134,7 +175,8 @@ class H(BaseHTTPRequestHandler):
         u = urlparse(self.path)
 
         if u.path == "/api/status":
-            return self._json(200, dict(STATE))
+            with LOCK:
+                return self._json(200, dict(STATE))
 
         if u.path == "/api/flags":
             run = re.sub(r"[^A-Za-z0-9_-]", "", parse_qs(u.query).get("run", [""])[0])
@@ -214,6 +256,34 @@ class H(BaseHTTPRequestHandler):
             except Exception as e:
                 return self._json(400, {"ok": False, "error": str(e)})
 
+        if u.path == "/api/report":
+            params = parse_qs(u.query)
+            run_id = _clean_run_id(params.get("run", [""])[0])
+            if not run_id:
+                return self._json(400, {"ok": False, "error": "Query param 'run' is required"})
+            rep_f = ROOT / "pack" / run_id / "report.json"
+            if rep_f.is_file():
+                try:
+                    rep_data = json.loads(rep_f.read_text(encoding="utf-8"))
+                    return self._json(200, {"ok": True, "report": rep_data})
+                except Exception as e:
+                    return self._json(500, {"ok": False, "error": f"Failed to parse report: {e}"})
+            return self._json(404, {"ok": False, "error": "report.json not found for run"})
+
+        if u.path == "/api/pair/experiment":
+            params = parse_qs(u.query)
+            run_id = _clean_run_id(params.get("run", [""])[0])
+            if not run_id:
+                return self._json(400, {"ok": False, "error": "Query param 'run' is required"})
+            exp_f = ROOT / "pack" / run_id / "experiment_meta.json"
+            if exp_f.is_file():
+                try:
+                    exp_meta = json.loads(exp_f.read_text(encoding="utf-8"))
+                    return self._json(200, {"ok": True, "experiment_meta": exp_meta})
+                except Exception:
+                    return self._json(500, {"ok": False, "error": "Invalid experiment_meta.json"})
+            return self._json(404, {"ok": False, "error": "experiment_meta.json not found for run"})
+
         if u.path == "/api/pair/profiles":
             from schooltwin.random_scheduler import RANDOM_PROFILES
             return self._json(200, {"ok": True, "profiles": RANDOM_PROFILES})
@@ -228,12 +298,20 @@ class H(BaseHTTPRequestHandler):
             if not run_id:
                 return self._json(400, {"ok": False, "error": "Query param 'run' is required"})
             pair_f = ROOT / "pack" / run_id / "pair_meta.json"
+            exp_f = ROOT / "pack" / run_id / "experiment_meta.json"
+            res_obj = {"ok": True}
             if pair_f.is_file():
                 try:
-                    pair_meta = json.loads(pair_f.read_text(encoding="utf-8"))
+                    res_obj["pair_meta"] = json.loads(pair_f.read_text(encoding="utf-8"))
                 except ValueError:
                     return self._json(500, {"ok": False, "error": f"pair_meta.json for '{run_id}' is not valid JSON"})
-                return self._json(200, {"ok": True, "pair_meta": pair_meta})
+            if exp_f.is_file():
+                try:
+                    res_obj["experiment_meta"] = json.loads(exp_f.read_text(encoding="utf-8"))
+                except Exception:
+                    pass
+            if "pair_meta" in res_obj or "experiment_meta" in res_obj:
+                return self._json(200, res_obj)
             return self._json(404, {"ok": False, "error": "pair_meta.json not found for run"})
 
         # Static file delivery
@@ -307,10 +385,19 @@ class H(BaseHTTPRequestHandler):
             # Validate synchronously so the player gets an immediate, actionable
             # error (e.g. student event on a closed day) instead of a silently
             # near-identical pair.
-            from schooltwin.schema import validate_paired_custom_event
+            from schooltwin.schema import validate_paired_custom_event, day_for_date
             try:
                 start_day_v = int(body.get("start_day", 151))
                 duration_v = max(1, int(body.get("duration_days", 30)))
+                ev_date = custom_event.get("date")
+                if ev_date:
+                    ev_day = day_for_date(ev_date)
+                    if ev_day is not None and ev_day >= start_day_v:
+                        min_needed = (ev_day - start_day_v + 1) + 5
+                        if duration_v < min_needed:
+                            duration_v = min(364 - start_day_v + 1, min_needed)
+                            body["duration_days"] = duration_v
+
                 v_ok, v_errors, v_warnings = validate_paired_custom_event(
                     custom_event, start_day=start_day_v, end_day=start_day_v + duration_v - 1
                 )
@@ -321,7 +408,7 @@ class H(BaseHTTPRequestHandler):
             with LOCK:
                 if PAIR_STATE["running"]:
                     return self._json(409, {"ok": False, "error": "a paired simulation is already running"})
-                PAIR_STATE.update(running=True, error=None, result=None, branch="starting", day=0, total=int(body.get("duration_days", 30)))
+                PAIR_STATE.update(running=True, error=None, result=None, branch="starting", day=0, total=duration_v)
             threading.Thread(target=run_paired_job, args=(body,), daemon=True).start()
             return self._json(200, {"ok": True, "message": "Paired simulation started"})
 

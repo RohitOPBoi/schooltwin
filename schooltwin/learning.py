@@ -11,6 +11,8 @@ from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 
+from .story import room_id
+
 CORE_SUBJECTS = ["Mathematics", "Science", "English", "Social Science"]
 
 
@@ -97,8 +99,7 @@ class LearningModel:
 
         for sid, st in self.students.items():
             is_present = sid in present_student_ids
-            # room format typically room_id e.g. C8B
-            room_key = f"C{st.grade.replace('Class ', '')}{st.section}"
+            room_key = room_id(st.grade, st.section)
             uncovered_count = uncovered_by_room.get(room_key, 0)
 
             if is_present:

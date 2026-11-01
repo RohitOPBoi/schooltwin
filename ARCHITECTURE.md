@@ -95,45 +95,44 @@ schooltwin/agents.py         people from the roster             detect.py     ru
 schooltwin/engine.py         plan / play / close                decide.py     AI principal (proposes; people approve)
 schooltwin/finance.py        ledger (story) or model            pack.py       writes the playback pack
 schooltwin/overview.py       the overview and forking           evaluate.py   fidelity and detection scores
-schooltwin/extension_calendar.py  CBSE calendar for Days 151+   control_run.py content-addressed control run generator
-schooltwin/snapshots.py      bit-for-bit state snapshot cache   spatial_incidents.py spatial deviation & progression
-schooltwin/report.py         evidence-based impact report gen   report_narrative.py grounded narrative post-validator
-schooltwin/baseline_manifest.py SHA-256 baseline protection     checkpoints.py pack-derived baseline checkpoints
-player/                      index.html · player.js · player.css (no dependencies, works offline)
+schooltwin/extension_calendar.py  CBSE calendar for Days 151+   metrics_service.py canonical metrics & comparison
+schooltwin/snapshots.py      bit-for-bit state snapshot cache   paired_simulation.py multi-pair matched experiments
+schooltwin/report.py         13-section impact report generator learning.py   CBSE subject learning progression
+schooltwin/baseline_manifest.py SHA-256 baseline protection     ledger.py     double-entry financial ledger
+player/                      index.html · player.js · player.css (3 workspaces, offline-first)
 scripts/run_story.py         run and write a pack               serve.py      local server + scenario runner
-tests/                       Python pytest suites (69 tests)    test_player.js (simulated browser in jsdom)
-pack/                        story_baseline/ · whatif_fee_up_apr/   (ready to play)
+tests/                       Python pytest suites (110 tests)   test_player.js (simulated browser in jsdom)
+pack/                        story_baseline/ · scenarios/       (ready to play)
 ```
 
 ## Core Architecture Systems
 
 ### 1. Foundation & Baseline Immutability
 - `pack/story_baseline/MANIFEST.sha256`: SHA-256 cryptographic manifest verified before runs, on server startup, and in test suites. The server unconditionally refuses write operations targeting the baseline directory.
-- `schooltwin/checkpoints.py`: Derived dynamically from `meta.json` records (eliminating typed/fabricated balances).
-- `schooltwin/compare.py`: Strict date-based and day-index alignment across runs, replacing fabricated fallback constants with explicit `not_modeled` or `unavailable` statuses.
+- `schooltwin/checkpoints.py`: Derived dynamically from baseline snapshot checkpoints (Days 0, 30, 60, 90, 120, 150).
+- `schooltwin/metrics_service.py`: Single canonical source of truth for metric calculation across runs, classifying metrics into `Computed`, `Configured`, `Not modeled`, or `Unavailable`.
 
-### 2. Timeline Branching & Duration
-- Scenarios start by default on **Day 151 (Monday 1 June 2026)** without re-simulating Days 0–150.
-- Instant branch resumption powered by serialized end-of-baseline state snapshots (`schooltwin/snapshots.py`).
-- Transparent Extension Calendar (`schooltwin/extension_calendar.py`) explicitly labelling CBSE summer break and assumed reopening dates (default `2026-07-01`).
-- Content-addressed control continuation (`schooltwin/control_run.py`) providing an unperturbed baseline partner (`ctrl_<hash>`) over the scenario window.
+### 2. Timeline Branching & Multi-Pair Experiments
+- Scenarios branch by default from Day 151 (Monday 1 June 2026) or earlier saved checkpoints, extending dynamically up to Day 364 without silent truncation.
+- `schooltwin/paired_simulation.py`: Runs matched Control/Treatment experiments in Quick Mode (1 pair) or Standard Mode (5 pairs). Replications derive keyed deterministic seeds (`sha256(f"{base_seed}:rep_{r}")`) and share identical pre-generated background event schedules.
+- `schooltwin/extension_calendar.py`: Single source of truth for post-Day 150 open school dates, summer break, and monsoon reopening (default `2026-07-01`).
 
-### 3. Spatial Incident Visualization
-- Derives affected areas dynamically by comparing minute-by-minute zone occupancy deviation against the control run.
-- Classifies zones into exclusive roles: `origin`, `directly_affected`, `secondary`.
+### 3. Spatial Incident Visualization & Dual Cockpit
+- Computes zone occupancy deviations dynamically from simulated agent paths between runs.
+- Classifies zones into `origin`, `directly_affected`, and `secondary`, with vermilion concentric reticles.
 - Produces 6-phase progression timeline: `onset`, `escalation`, `response`, `containment`, `resolution`, `aftermath`.
-- Enforces honest location reporting: unconfigured origins render an explicit warning banner with zero guessed markers.
+- Dual comparison viewport allows toggling between `Spatial Diff` (zone occupancy deltas) and `Metric Diff` (side-by-side metric HUD).
 
-### 4. Interactive Evidence-Based Impact Report
-- `report.json`: Deterministically computed deltas with complete formulas, source files, and JSON paths.
-- Strict narrative post-validator (`schooltwin/report_narrative.py`): Rejects any hallucinated numbers not present in the facts payload and uncited causal claims, falling back to an offline deterministic template.
-- Simulates counterfactual intervention branches for policy levers.
+### 4. Interactive 13-Section Impact Report
+- `report.json`: Deterministically generated 13-section report covering Executive Summary, Incident Footprint, Progression, Principal Directives, Attendance, Academics, Finance, Fleet, Sentiment, 5-Pair Replication Stats, Feasible Recommendations, Assumptions, and Non-Modeled Boundaries.
+- Step-by-step Causal Provenance chains link Events → Applied Rules → State Transitions → Impacted Metrics.
+- Strict sample size disclaimer on 5-pair distributions (variance indicator, not a statistical significance claim).
 
 ### 5. Cockpit & Player Controls
-- Quiet-instrument digital twin cockpit (design system v7): tonal dark surfaces (`#0E1014` → `#171C23` → `#202630`), meaning colours with shape partners (see `docs/design-system.md`), and tabular numerals (`font-variant-numeric: tabular-nums`).
-- 6-step workflow rail: `Replay` · `Create` · `Run` · `Explore` · `Report` · `Compare`.
-- Signature motion engine: Linear interpolation agent gliding (eliminating teleportation), concentric origin reticle pulsing, animated spread ripple, and easing camera pans.
-- In-app Motion settings: `Full` / `Reduced` / `Off` respecting `prefers-reduced-motion` and persisting locally.
+- Three dedicated High-Order Workspaces: `Historical School` (baseline inspection), `Experiment Workspace` (paired sandbox & dual cockpit), and `Impact & Decisions` (13-section report viewer).
+- Quiet-instrument design system: tonal dark surfaces (`#0E1014` → `#171C23` → `#202630`), meaning colours with shape partners, and tabular numerals (`font-variant-numeric: tabular-nums`).
+- Horizontally scrollable timeline container (`#dayStrip`) with responsive width for any duration.
+- In-app Motion settings: `Full` / `Reduced` / `Off` respecting `prefers-reduced-motion`.
 
 ## Storage
 
@@ -146,8 +145,7 @@ Host `player/` and `pack/` on any static host (GitHub Pages, Netlify, Cloudflare
 ## Known limits (honest)
 
 - Corridor B counter averages about 18 against the story's 42, and room 8B about 20 against 30. The story's counters read higher than the rooms' actual rolls allow; the engine keeps them physically consistent rather than inflate them. The other counters are within about 13%.
-- Movement is room to room; no pathfinding, stairs, or walking time between buildings.
-- Timetable is a weekly rota without subjects. Lab sessions are scheduled, not planned by syllabus.
-- Fee sensitivity is a simple multiplier on absence, with no model of withdrawals or competing schools.
-- Money in generate mode follows the story's own cost calendar scaled by changes; it is not a full ledger.
-- The player's styling was checked through drawn images and text output, not in a real browser; expect small visual tweaks.
+- Movement is room to room; no fine pathfinding, stairs, or walking time between buildings.
+- Academic model simulates 6 CBSE core subjects with exposure-retention curves; external board exam percentile distributions are not simulated.
+- Financial model reconciles liquid cash and receivables via double-entry ledger postings in integer paise; external credit lines or judicial lawsuits are not modeled.
+- Five-pair replication statistics illustrate variance across random streams; they do not assert clinical or statistical significance.

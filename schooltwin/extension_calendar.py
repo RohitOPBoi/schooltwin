@@ -103,7 +103,8 @@ class ExtensionCalendar:
             # Post-reopening term rules
             planned_closures = self.cfg.get("planned_closures", {})
             if iso in planned_closures:
-                day_type = "planned_closure"
+                closure_title = planned_closures[iso]
+                day_type = "winter_break" if "Winter Break" in closure_title else "planned_closure"
                 is_open = False
             elif wday == 6:  # Sunday
                 day_type = "weekly_closure"
@@ -120,12 +121,14 @@ class ExtensionCalendar:
                 day_type = "instructional_day"
                 is_open = True
 
+        closure_name = self.cfg.get("planned_closures", {}).get(iso, "") or self.cfg.get("academic_milestones", {}).get(iso, "")
         out = {
             "i": day_idx,
             "date": iso,
             "dow": dow,
             "type": day_type,
             "open": is_open,
+            "title": closure_name,
             "source": "assumed",
         }
         self._cache_info[day_idx] = out

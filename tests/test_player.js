@@ -56,7 +56,7 @@ const ok = m => console.log('  ok  ', m);
   const before = T.allFlags().length; T.addUserFlag('Check the canteen queue'); assert(T.allFlags().length === before + 1); ok('you can flag a moment and it joins the timeline');
 
   // every panel renders
-  for (const t of ['now', 'flags', 'stats', 'money', 'run', 'compare']) { T.setTab(t); assert(doc.getElementById('p-' + t).innerHTML.length > 200, t); } ok('all seven panels render (including scenario comparison)');
+  for (const t of ['now', 'flags', 'stats', 'money', 'run', 'compare', 'report']) { T.setTab(t); assert(doc.getElementById('p-' + t).innerHTML.length > 200, t); } ok('all eight panels render (including scenario comparison and 13-section report)');
 
   // author view reveals hidden causes, and only then
   S.view = 'author'; assert(T.allFlags().filter(f => f.kind === 'event').length === 18); S.view = 'operator'; ok('author view reveals the 18 hidden causes');
@@ -79,6 +79,23 @@ const ok = m => console.log('  ok  ', m);
   doc.getElementById('btnStepReplay').click();
   assert(S.tab === 'now');
   ok('step rail: Replay transitions to baseline playback step');
+
+  // Workspace Switcher (Historical School -> Experiment Workspace -> Impact & Decisions)
+  const wsBtns = doc.querySelectorAll('#workspaceSwitcher button');
+  assert(wsBtns.length === 3, 'Workspace switcher must have 3 high-order workspaces');
+  doc.getElementById('wsBtnExp').click();
+  assert(S.tab === 'run', 'Experiment workspace must open run builder');
+  ok('workspace switcher: Experiment Workspace opens builder');
+  doc.getElementById('wsBtnImpact').click();
+  await wait(150);
+  assert(S.tab === 'report', 'Impact workspace must open report viewer');
+  assert(doc.getElementById('p-report').innerHTML.length > 500, 'Report viewer must render content');
+  assert(doc.getElementById('p-report').textContent.includes('Executive Summary'), 'Report must include Executive Summary');
+  assert(doc.getElementById('p-report').textContent.includes('Evidence-Based Recommendations'), 'Report must include Recommendations');
+  ok('workspace switcher: Impact & Decisions renders 13-section report');
+  doc.getElementById('wsBtnHist').click();
+  assert(S.tab === 'now', 'Historical workspace must return to now playback');
+  ok('workspace switcher: Historical School restores baseline view');
 
   // Motion Engine & Setting Toggle
   const bMot = doc.getElementById('btnMotionToggle');
@@ -154,6 +171,121 @@ const ok = m => console.log('  ok  ', m);
   assert(S.form.curEvDate === '2026-07-01', 'date must auto-move to first open day, got ' + S.form.curEvDate);
   assert(+S.form.evalDuration === 60, 'horizon must extend to cover July, got ' + S.form.evalDuration);
   ok('builder: student preset on closed day auto-moves date to 2026-07-01 and extends horizon to 60d');
+
+  // Event Details Pop-up Modal Verification
+  const testFlag = fl.find(f => f.kind === 'incident' || f.kind === 'alert') || fl[0];
+  assert(testFlag != null, 'at least one test flag must exist');
+  T.showEventModal(testFlag);
+  const evModal = doc.getElementById('eventModal');
+  assert(evModal.style.display === 'flex', 'Event modal must be visible on showEventModal');
+  assert(doc.getElementById('evModalTitle').textContent.length > 0, 'Event modal must populate title');
+  assert(doc.getElementById('evModalDesc').textContent.length > 0, 'Event modal must populate narrative');
+  doc.getElementById('evModalClose').click();
+  assert(evModal.style.display === 'none', 'Event modal must close on close button click');
+  ok('event modal: showEventModal populates title, narrative, and closes cleanly');
+
+  // Scenario Comparison UI Overhaul (Cards View, Table Scroll Wrapper, Financial Spotlight)
+  T.setTab('compare'); await wait(200);
+  const pCmp = doc.getElementById('p-compare');
+  assert(pCmp.querySelector('.financial-spotlight-card') !== null, 'Comparison must render financial spotlight card');
+  assert(pCmp.querySelector('.compare-view-seg') !== null, 'Comparison must provide view toggle (cards vs table)');
+  assert(pCmp.querySelector('.compare-filters') !== null, 'Comparison must provide category filter chips');
+  const cardCount = pCmp.querySelectorAll('.compare-metric-card').length;
+  assert(cardCount > 0, 'Card view must render responsive metric cards for 380px drawer');
+  
+  // Test Table View Switcher
+  const btnTableView = pCmp.querySelector('.compare-view-btn[data-view="table"]');
+  if (btnTableView) {
+    btnTableView.click();
+    assert(pCmp.querySelector('.compare-table-wrapper') !== null, 'Table view must be wrapped in scrollable wrapper');
+  }
+  // Restore cards view
+  const btnCardView = pCmp.querySelector('.compare-view-btn[data-view="cards"]');
+  if (btnCardView) btnCardView.click();
+  ok('scenario comparison: responsive cards view, horizontal table wrapper, and financial spotlight verified');
+
+  // Direct Financial Comparison in Money Tab
+  T.setTab('money');
+  S.pairedMode = true; S.ctrlMeta = S.meta; S.trtMeta = S.meta;
+  S.pairMeta = {
+    control_run: 'ctrl_test_run',
+    treatment_run: 'trt_test_run',
+    shared_background_events: [],
+    custom_event: { type: 'school_fee_increase', date: '2026-07-24', title: 'Fee revision (+10%)' },
+    metrics: [
+      { id: 'closing_cash_balance', category: 'Financial Ledger', name: 'Closing Cash Balance', units: 'INR', baseline: 14979148, scenario: 16119463, control: 14979148, treatment: 16119463, abs_diff: 1140315, pct_diff: 7.61, status: 'Computed' },
+      { id: 'policy_tuition_fee_delta', category: 'Configured Policies', name: 'Tuition Fee Revision', units: '%', baseline: 0, scenario: 10, control: 0, treatment: 10, abs_diff: 10, pct_diff: null, status: 'Configured' }
+    ]
+  };
+  T.renderPanels(true);
+  const pMoney = doc.getElementById('p-money');
+  assert(pMoney.querySelector('.financial-spotlight-card') !== null, 'Money tab must render dual comparison HUD in paired mode');
+  assert(pMoney.querySelector('.account-diff-table') !== null, 'Money tab must render account-by-account cost divergence table');
+  ok('financial comparison: dual-cockpit HUD and account-by-account divergence rendered in #p-money');
+
+  // Matched Paired Comparison in Compare Tab
+  T.setTab('compare');
+  await T.renderPanels(true);
+  const pCmpPaired = doc.getElementById('p-compare');
+  const selPaired = pCmpPaired.querySelector('#cmpRunSel');
+  assert(selPaired !== null && selPaired.value === 'ctrl_test_run', 'Paired comparison dropdown must default to Control run');
+  const finCard = pCmpPaired.querySelector('.financial-spotlight-card');
+  assert(finCard !== null, 'Paired comparison must render financial spotlight card');
+  assert(finCard.textContent.includes('Control (Sim A) Cash'), 'Must label Sim A as Control (Sim A)');
+  assert(finCard.textContent.includes('Treatment (Sim B) Cash'), 'Must label Sim B as Treatment (Sim B)');
+  assert(!finCard.textContent.includes('— No divergence'), 'Divergent cash must not display "No divergence"');
+  assert(finCard.querySelector('.diff-pos') !== null, 'Positive cash divergence must have .diff-pos class');
+  ok('paired comparison: authentic divergence between Control and Treatment rendered in #p-compare');
+
+  S.pairedMode = false; S.ctrlMeta = null; S.trtMeta = null; S.pairMeta = null; S.cmpRun = null;
+  T.renderPanels(true);
+
+  // Timeline Horizontal Scroll & Navigation Toolbar
+  const dayStripScroll = doc.getElementById('dayStripScroll');
+  assert(dayStripScroll !== null, 'Day strip must be enclosed in horizontal scroll container #dayStripScroll');
+  const tlDayStrip = doc.getElementById('dayStrip');
+  assert(tlDayStrip !== null && dayStripScroll.contains(tlDayStrip), '#dayStrip must be child of #dayStripScroll');
+  const btnJumpStart = doc.getElementById('tlJumpStart');
+  const btnJumpSeam = doc.getElementById('tlJumpSeam');
+  const btnJumpActive = doc.getElementById('tlJumpActive');
+  const btnJumpEnd = doc.getElementById('tlJumpEnd');
+  const btnZoomIn = doc.getElementById('tlZoomIn');
+  const btnZoomOut = doc.getElementById('tlZoomOut');
+  assert(btnJumpStart && btnJumpSeam && btnJumpActive && btnJumpEnd && btnZoomIn && btnZoomOut, 'Timeline navigation toolbar must provide jump and zoom controls');
+  btnZoomIn.click();
+  assert(S.timelineZoom > 1.0, 'Clicking zoom in must increase S.timelineZoom');
+  const zoomDisplay = doc.getElementById('tlZoomLevel');
+  assert(zoomDisplay && zoomDisplay.textContent.includes('×'), 'Zoom display must render multiplier');
+  ok('timeline: horizontal scroll container and zoom/jump navigation toolbar verified');
+
+  // Full 12-Month 2026 CBSE School Calendar Verification
+  T.setTab('run');
+  const pRun = doc.getElementById('p-run');
+  assert(pRun !== null, '#p-run container must exist');
+  // Check that calendar month navigation exists
+  const monthTabs = pRun.querySelectorAll('.cal-month-tab');
+  assert(monthTabs.length === 12, 'Calendar must provide all 12 months of 2026, found ' + monthTabs.length);
+  // Pick a December date (e.g. 2026-12-25 Christmas or 2026-12-14 Pre-Boards)
+  const decTab = Array.from(monthTabs).find(t => t.dataset.month === '2026-12');
+  assert(decTab !== null, 'December 2026 tab must be available');
+  decTab.click();
+  assert(S.form.calMonth === '2026-12', 'Clicking December tab must update S.form.calMonth to 2026-12');
+  const evDateInput = doc.getElementById('evDateInput');
+  assert(evDateInput !== null, '#evDateInput date picker must exist');
+  assert(evDateInput.getAttribute('max') === '2026-12-31', 'Date picker max must allow full calendar year up to 2026-12-31');
+  // Verify holiday badges render for Indian CBSE holidays
+  const holidayBadges = pRun.querySelectorAll('.cal-day-badge');
+  assert(holidayBadges.length > 0, 'Calendar must render holiday badges for CBSE 2026 dates');
+  ok('calendar: full 12-month 2026 CBSE school calendar with holidays & Dec 31 range verified');
+
+  // Event Modal Escape Key Dismissal
+  T.showEventModal({ type: 'school_fee_increase', date: '2026-07-24', title: 'Fee revision (+10%)' });
+  const evModalEsc = doc.getElementById('eventModal');
+  assert(evModalEsc.style.display !== 'none', 'Event modal must be open');
+  // Dispatch Escape key event
+  w.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape' }));
+  assert(evModalEsc.style.display === 'none', 'Pressing Escape must close the event modal');
+  ok('event modal: Escape key closes modal cleanly');
 
   // Performance Budget Verification (frame work <= 8ms for 1,300 agents)
   await at('2026-01-20', 515); // Prayer assembly with peak density (900+ agents on ground)

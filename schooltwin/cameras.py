@@ -9,7 +9,8 @@ def observe(zone, n, rng, occlusion_start=0.6, max_loss=0.35):
     loss = 0.0
     if density > occlusion_start:                  # crowds hide people from each other
         loss = min(max_loss * (density - occlusion_start) / (1 - occlusion_start), 0.6)
-    return int(rng.binomial(n, zone.camera * (1 - loss)))
+    p = max(0.0, min(1.0, float(zone.camera * (1 - loss))))
+    return int(rng.binomial(max(0, int(n)), p))
 
 
 def estimate(zone, camera_count):

@@ -21,6 +21,22 @@
       </div>
     </div>
 
+    <!-- Three High-Order Workspaces (Editorial Civic-Operations Navigation) -->
+    <div class="workspace-switcher" id="workspaceSwitcher" role="tablist" aria-label="High-order Workspaces">
+      <button class="ws-btn active" id="wsBtnHist" data-ws="historical" role="tab" aria-selected="true" title="Workspace A: Historical School (Replay 151-day baseline and checkpoints)">
+        <span class="ws-icon">🏛️</span>
+        <span class="ws-title">Historical School</span>
+      </button>
+      <button class="ws-btn" id="wsBtnExp" data-ws="experiment" role="tab" aria-selected="false" title="Workspace B: Experiment Workspace (Paired sandbox, 5-pair runs, dual map)">
+        <span class="ws-icon">🔬</span>
+        <span class="ws-title">Experiment Workspace</span>
+      </button>
+      <button class="ws-btn" id="wsBtnImpact" data-ws="impact" role="tab" aria-selected="false" title="Workspace C: Impact & Decisions (13-section report, causal provenance & recommendations)">
+        <span class="ws-icon">📊</span>
+        <span class="ws-title">Impact & Decisions</span>
+      </button>
+    </div>
+
     <!-- Step Rail (Replay -> Create -> Run -> Explore -> Report -> Compare) -->
     <nav id="stepRail" class="step-rail" aria-label="Simulation Workflow Steps">
       <button data-step="replay" class="step-btn active" id="btnStepReplay" title="Inspect baseline historical playback">
@@ -96,6 +112,10 @@
           <button data-v="mood">Mood</button>
           <button data-v="role">Role</button>
         </div>
+        <div class="seg" id="cmpModeSeg" style="display:none" title="Switch between Spatial and Metric comparison view">
+          <button data-v="spatial" class="on">Spatial Diff</button>
+          <button data-v="metric">Metric Diff</button>
+        </div>
       </div>
 
       <canvas id="map"></canvas>
@@ -161,6 +181,7 @@
         <button data-t="money">Money</button>
         <button data-t="run">Builder</button>
         <button data-t="compare">Compare</button>
+        <button data-t="report">Report</button>
       </nav>
       <div class="panel on" id="p-now"></div>
       <div class="panel" id="p-inspect"></div>
@@ -169,6 +190,7 @@
       <div class="panel" id="p-money"></div>
       <div class="panel" id="p-run"></div>
       <div class="panel" id="p-compare"></div>
+      <div class="panel" id="p-report"></div>
     </aside>
   </main>
 
@@ -189,8 +211,25 @@
       <label class="chk"><input type="checkbox" id="chkSkip" checked> skip closed days</label>
       <button id="bFlag" class="btn-subtle" title="Flag this moment  F">⚑ Flag moment</button>
     </div>
+    <div class="timeline-nav-bar">
+      <div class="timeline-nav-group">
+        <button id="tlJumpStart" class="btn-timeline-jump" title="Jump to Day 1 (Term Start)">⏮ Day 1</button>
+        <button id="tlJumpSeam" class="btn-timeline-jump" title="Jump to Day 151 (Baseline / Future Seam)">⚡ Day 151 Seam</button>
+        <button id="tlJumpActive" class="btn-timeline-jump" title="Center timeline on active playhead">🎯 Active Day</button>
+        <button id="tlJumpEnd" class="btn-timeline-jump" title="Jump to Final Day">⏭ End Day</button>
+      </div>
+      <div class="timeline-zoom-group">
+        <span class="timeline-zoom-label">Timeline Zoom:</span>
+        <button id="tlZoomOut" class="btn-timeline-zoom" title="Zoom out timeline">−</button>
+        <span id="tlZoomLevel" class="timeline-zoom-val">1.0×</span>
+        <button id="tlZoomIn" class="btn-timeline-zoom" title="Zoom in timeline">+</button>
+        <button id="tlZoomReset" class="btn-timeline-zoom" title="Reset zoom">Reset</button>
+      </div>
+    </div>
     <div class="timeline-canvases">
-      <canvas id="dayStrip" height="64" title="Term Timeline (Days 0–150 Baseline | Day 151+ Scenario)"></canvas>
+      <div class="day-strip-scroll-wrap" id="dayStripScroll">
+        <canvas id="dayStrip" height="64" title="Term Timeline (Days 0–150 Baseline | Day 151+ Scenario) — Scroll horizontally or use jump controls"></canvas>
+      </div>
       <canvas id="minStrip" height="34" title="Day Minute Strip (8:00 AM – 3:00 PM)"></canvas>
     </div>
   </footer>
@@ -221,6 +260,70 @@
       </div>
       <div class="modal-foot-note">
         <b>Deterministic & Offline:</b> Runs 100% locally with reproducible random seeds. No paid API keys or cloud dependencies.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Interactive Event / Incident Detail Modal -->
+<div id="eventModal" class="modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="evModalTitle">
+  <div class="modal-box event-modal-box">
+    <div class="modal-header">
+      <div class="event-modal-title-group">
+        <span id="evModalIcon" class="event-type-icon">⚠️</span>
+        <div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span id="evModalKind" class="badge badge-configured">Incident</span>
+            <span id="evModalSev" class="badge">Medium</span>
+          </div>
+          <h2 id="evModalTitle" style="margin-top:4px">Event Title</h2>
+        </div>
+      </div>
+      <button class="modal-close" id="evModalClose" title="Close (Esc)">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Timestamp & Location strip -->
+      <div class="event-meta-strip">
+        <div class="event-meta-item">
+          <span class="event-meta-label">Time & Date</span>
+          <span id="evModalTime" class="event-meta-val tabular-nums">2026-03-12 · 10:45 AM (Day 71)</span>
+        </div>
+        <div class="event-meta-item">
+          <span class="event-meta-label">Campus Origin</span>
+          <span id="evModalZone" class="event-meta-val">Main Campus</span>
+        </div>
+        <button id="evModalSpotlightBtn" class="btn-subtle spotlight-btn" title="Highlight this location on campus map">
+          📍 Spotlight on Map
+        </button>
+      </div>
+
+      <!-- Narrative Section -->
+      <div class="event-section-card">
+        <div class="event-section-heading">Detailed Event Narrative</div>
+        <div id="evModalDesc" class="event-narrative-text">Description goes here...</div>
+      </div>
+
+      <!-- Specifics Grid: Evidence & Actions -->
+      <div id="evModalDetailsGrid" class="event-details-grid">
+        <div class="event-section-card">
+          <div class="event-section-heading">Sensory / Audit Evidence</div>
+          <div id="evModalEvidence" class="event-detail-content">No sensor anomalies detected.</div>
+        </div>
+        <div class="event-section-card">
+          <div class="event-section-heading">Administrative Action</div>
+          <div id="evModalResponse" class="event-detail-content">Standard protocol applied.</div>
+        </div>
+      </div>
+
+      <!-- Paired Mode Divergence (if comparing) -->
+      <div id="evModalPairedDiff" class="event-section-card event-paired-card" style="display:none">
+        <div class="event-section-heading" style="color:var(--scenario-violet)">Paired Counterfactual Outcome (Control vs Treatment)</div>
+        <div id="evModalPairedText" class="event-detail-content">Paired outcome...</div>
+      </div>
+
+      <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+        <button id="evModalGoBtn" class="primary" style="font-size:12px;padding:6px 14px">Jump to Moment</button>
+        <button id="evModalDismissBtn" class="btn-subtle" style="font-size:12px;padding:6px 14px">Close</button>
       </div>
     </div>
   </div>
