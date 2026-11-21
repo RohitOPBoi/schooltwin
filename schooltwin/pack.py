@@ -13,8 +13,6 @@ import tempfile
 import threading
 from pathlib import Path
 
-import numpy as np
-
 from .mood import CODE, DRIVERS
 
 HIDDEN_PERSON = ("att", "disc", "acad")
@@ -177,8 +175,9 @@ class Packer:
         idx_path = self.dir.parent / "index.json"
         with _IDX_LOCK:
             idx = json.loads(idx_path.read_text(encoding="utf-8")) if idx_path.exists() else {"runs": []}
-            idx["runs"] = [r for r in idx["runs"] if r["id"] != self.dir.name]
-            idx["runs"].append({"id": self.dir.name, "name": e.ov["name"], "mode": e.ov["mode"], "days": len(e.days),
+            valid_runs = [r for r in idx.get("runs", []) if r.get("id") != self.dir.name and (self.dir.parent / r.get("id", "") / "meta.json").is_file()]
+            valid_runs.append({"id": self.dir.name, "name": e.ov["name"], "mode": e.ov["mode"], "days": len(e.days),
                                 "school": e.story.name, "redacted": self.redact})
+            idx["runs"] = valid_runs
             _dump_atomic(idx_path, idx)
         return self.dir

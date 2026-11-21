@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -24,15 +24,41 @@
     <!-- Three High-Order Workspaces (Editorial Civic-Operations Navigation) -->
     <div class="workspace-switcher" id="workspaceSwitcher" role="tablist" aria-label="High-order Workspaces">
       <button class="ws-btn active" id="wsBtnHist" data-ws="historical" role="tab" aria-selected="true" title="Workspace A: Historical School (Replay 151-day baseline and checkpoints)">
-        <span class="ws-icon">🏛️</span>
+        <span class="ws-icon">
+          <svg class="px-icon anim-sprite" width="14" height="14" viewBox="0 0 16 16" shape-rendering="crispEdges">
+            <polygon points="8,1 1,5 15,5" fill="currentColor"/>
+            <rect x="1" y="5" width="14" height="2" fill="currentColor"/>
+            <rect x="2" y="7" width="2" height="6" fill="currentColor"/>
+            <rect x="6" y="7" width="2" height="6" fill="currentColor"/>
+            <rect x="10" y="7" width="2" height="6" fill="currentColor"/>
+            <rect x="14" y="7" width="2" height="6" fill="currentColor"/>
+            <rect x="1" y="13" width="14" height="2" fill="currentColor"/>
+          </svg>
+        </span>
         <span class="ws-title">Historical School</span>
       </button>
       <button class="ws-btn" id="wsBtnExp" data-ws="experiment" role="tab" aria-selected="false" title="Workspace B: Experiment Workspace (Paired sandbox, 5-pair runs, dual map)">
-        <span class="ws-icon">🔬</span>
+        <span class="ws-icon">
+          <svg class="px-icon anim-sprite" width="14" height="14" viewBox="0 0 16 16" shape-rendering="crispEdges">
+            <rect x="4" y="1" width="3" height="4" fill="currentColor"/>
+            <rect x="6" y="5" width="3" height="3" fill="currentColor"/>
+            <rect x="3" y="10" width="7" height="2" fill="currentColor"/>
+            <rect x="9" y="5" width="2" height="8" fill="currentColor"/>
+            <rect x="2" y="13" width="12" height="2" fill="currentColor"/>
+          </svg>
+        </span>
         <span class="ws-title">Experiment Workspace</span>
       </button>
       <button class="ws-btn" id="wsBtnImpact" data-ws="impact" role="tab" aria-selected="false" title="Workspace C: Impact & Decisions (13-section report, causal provenance & recommendations)">
-        <span class="ws-icon">📊</span>
+        <span class="ws-icon">
+          <svg class="px-icon anim-sprite" width="14" height="14" viewBox="0 0 16 16" shape-rendering="crispEdges">
+            <rect x="2" y="1" width="2" height="13" fill="currentColor"/>
+            <rect x="2" y="13" width="13" height="2" fill="currentColor"/>
+            <rect x="5" y="9" width="2" height="4" fill="currentColor"/>
+            <rect x="8" y="6" width="2" height="7" fill="currentColor"/>
+            <rect x="11" y="3" width="2" height="10" fill="var(--pop-highlight)"/>
+          </svg>
+        </span>
         <span class="ws-title">Impact & Decisions</span>
       </button>
     </div>
@@ -67,6 +93,22 @@
 
     <!-- Top Action Toolbar -->
     <div class="header-right">
+      <!-- Arcade Telemetry HUD Marquee -->
+      <div class="arcade-hud-counters">
+        <div class="hud-box hud-coin" title="Campus Treasury Reserves">
+          <svg class="px-icon anim-sprite" width="12" height="12" viewBox="0 0 10 10" shape-rendering="crispEdges">
+            <rect x="3" y="1" width="4" height="8" fill="#ffb800"/>
+            <rect x="2" y="2" width="6" height="6" fill="#ffb800"/>
+            <rect x="4" y="3" width="2" height="4" fill="#ede8d5"/>
+          </svg>
+          <span class="hud-val" id="hudCoinVal">+₹14.28 L</span>
+        </div>
+        <div class="hud-box hud-score" title="Operational Reliability Score">
+          <span class="hud-label">SCORE</span>
+          <span class="hud-val">98,400</span>
+        </div>
+      </div>
+
       <div class="entry-actions">
         <button id="btnExitComparison" class="btn-entry btn-exit-cmp" style="display:none" title="Exit comparison and return to baseline playback">Exit Comparison</button>
         <button id="btnReplayBaseline" class="btn-entry primary" title="Replay the pre-generated 151-day historical baseline">Replay Baseline</button>
@@ -78,7 +120,8 @@
         <button data-v="author">Author</button>
       </div>
       <button id="btnMotionToggle" class="btn-toggle" title="Toggle Motion: Full / Reduced / Off (Shortcut: M)">Motion: Full</button>
-      <button id="btnThemeToggle" class="btn-toggle" title="Switch Theme: Dark / Light (Shortcut: T)">Dark</button>
+      <button id="btnCrtToggle" class="btn-toggle btn-crt" title="Toggle 8-Bit CRT Scanlines Overlay (Shortcut: C)">CRT: ON</button>
+      <button id="btnThemeToggle" class="btn-toggle" title="Active Theme: Light (Ivory). Click to switch (Shortcut: T)">☀️ Light</button>
       <div id="clock">
         <b id="clkDate">—</b>
         <span id="clkTime">—</span>
@@ -119,13 +162,15 @@
       </div>
 
       <canvas id="map"></canvas>
+      <!-- CRT Scanlines Overlay on Stage Screen -->
+      <div id="crtOverlay" class="scanlines-overlay"></div>
 
       <!-- Synchronized Dual Comparison Canvas Viewport -->
       <div id="mapDualContainer" class="map-dual-container" style="display:none">
         <div class="map-half map-half-ctrl">
           <div class="map-half-header">
             <div class="map-half-title">
-              <span class="badge-branch badge-branch-ctrl">Simulation A · Control</span>
+              <span class="badge-branch badge-branch-ctrl">1P · Control</span>
               <span id="ctrlRunTitle" class="map-run-sub">No Custom Event · Shared Background</span>
             </div>
             <div class="map-half-metrics" id="ctrlQuickMetrics">
@@ -139,7 +184,7 @@
         <div class="map-half map-half-trt">
           <div class="map-half-header">
             <div class="map-half-title">
-              <span class="badge-branch badge-branch-trt">Simulation B · Treatment</span>
+              <span class="badge-branch badge-branch-trt">2P · Treatment</span>
               <span id="trtRunTitle" class="map-run-sub">With Custom Event</span>
             </div>
             <div class="map-half-metrics" id="trtQuickMetrics">
@@ -161,9 +206,17 @@
           <span id="scenBannerSub">Watching simulated campus</span>
         </div>
         <div class="scen-banner-ctrls">
-          <button id="scenBannerToggleBtn" type="button" class="scen-banner-btn">⏸ Pause</button>
-          <button id="scenBannerReplayBtn" type="button" class="scen-banner-btn">↺ Replay</button>
-          <button id="scenBannerCloseBtn" type="button" class="scen-banner-close" title="Dismiss">✕</button>
+          <button id="scenBannerToggleBtn" type="button" class="scen-banner-btn">
+            <svg class="px-icon" width="10" height="10" viewBox="0 0 10 10" shape-rendering="crispEdges"><rect x="1" y="1" width="3" height="8" fill="currentColor"/><rect x="6" y="1" width="3" height="8" fill="currentColor"/></svg>
+            Pause
+          </button>
+          <button id="scenBannerReplayBtn" type="button" class="scen-banner-btn">
+            <svg class="px-icon" width="10" height="10" viewBox="0 0 10 10" shape-rendering="crispEdges"><polygon points="8,1 3,5 8,9" fill="currentColor"/></svg>
+            Replay
+          </button>
+          <button id="scenBannerCloseBtn" type="button" class="scen-banner-close" title="Dismiss">
+            <svg class="px-icon" width="10" height="10" viewBox="0 0 10 10" shape-rendering="crispEdges"><polygon points="1,2 2,1 5,4 8,1 9,2 6,5 9,8 8,9 5,6 2,9 1,8 4,5" fill="currentColor"/></svg>
+          </button>
         </div>
       </div>
 
@@ -197,11 +250,21 @@
   <!-- Timeline Dock -->
   <footer id="dock">
     <div id="transport">
-      <button id="bPrevFlag" title="Previous flag  [">⏮</button>
-      <button id="bBack" title="Back 1 min  ←">⏪</button>
-      <button id="bPlay" title="Play / pause  Space" class="primary">▶</button>
-      <button id="bFwd" title="Forward 1 min  →">⏩</button>
-      <button id="bNextFlag" title="Next flag  ]">⏭</button>
+      <button id="bPrevFlag" title="Previous flag  [">
+        <svg class="px-icon" width="12" height="12" viewBox="0 0 12 12" shape-rendering="crispEdges"><rect x="1" y="2" width="2" height="8" fill="currentColor"/><polygon points="10,2 4,6 10,10" fill="currentColor"/></svg>
+      </button>
+      <button id="bBack" title="Back 1 min  ←">
+        <svg class="px-icon" width="12" height="12" viewBox="0 0 12 12" shape-rendering="crispEdges"><polygon points="9,2 3,6 9,10" fill="currentColor"/></svg>
+      </button>
+      <button id="bPlay" title="Play / pause  Space" class="primary">
+        <svg class="px-icon" width="12" height="12" viewBox="0 0 12 12" shape-rendering="crispEdges"><polygon points="3,2 10,6 3,10" fill="currentColor"/></svg>
+      </button>
+      <button id="bFwd" title="Forward 1 min  →">
+        <svg class="px-icon" width="12" height="12" viewBox="0 0 12 12" shape-rendering="crispEdges"><polygon points="3,2 9,6 3,10" fill="currentColor"/></svg>
+      </button>
+      <button id="bNextFlag" title="Next flag  ]">
+        <svg class="px-icon" width="12" height="12" viewBox="0 0 12 12" shape-rendering="crispEdges"><polygon points="2,2 8,6 2,10" fill="currentColor"/><rect x="9" y="2" width="2" height="8" fill="currentColor"/></svg>
+      </button>
       <select id="modeSel" class="select-field" title="What advances while playing">
         <option value="day">Watch the day</option>
         <option value="term">Time-lapse the term</option>
@@ -209,14 +272,29 @@
       <select id="speedSel" class="select-field" title="Replay speed"></select>
       <label class="chk"><input type="checkbox" id="chkPause" checked> pause at flags</label>
       <label class="chk"><input type="checkbox" id="chkSkip" checked> skip closed days</label>
-      <button id="bFlag" class="btn-subtle" title="Flag this moment  F">⚑ Flag moment</button>
+      <button id="bFlag" class="btn-subtle" title="Flag this moment  F">
+        <svg class="px-icon" width="12" height="12" viewBox="0 0 12 12" shape-rendering="crispEdges"><rect x="2" y="1" width="2" height="10" fill="currentColor"/><polygon points="4,2 10,4 4,6" fill="var(--pop-highlight)"/></svg>
+        Flag moment
+      </button>
     </div>
     <div class="timeline-nav-bar">
       <div class="timeline-nav-group">
-        <button id="tlJumpStart" class="btn-timeline-jump" title="Jump to Day 1 (Term Start)">⏮ Day 1</button>
-        <button id="tlJumpSeam" class="btn-timeline-jump" title="Jump to Day 151 (Baseline / Future Seam)">⚡ Day 151 Seam</button>
-        <button id="tlJumpActive" class="btn-timeline-jump" title="Center timeline on active playhead">🎯 Active Day</button>
-        <button id="tlJumpEnd" class="btn-timeline-jump" title="Jump to Final Day">⏭ End Day</button>
+        <button id="tlJumpStart" class="btn-timeline-jump" title="Jump to Day 1 (Term Start)">
+          <svg class="px-icon" width="10" height="10" viewBox="0 0 10 10" shape-rendering="crispEdges"><rect x="1" y="1" width="2" height="8" fill="currentColor"/><polygon points="8,1 3,5 8,9" fill="currentColor"/></svg>
+          Day 1
+        </button>
+        <button id="tlJumpSeam" class="btn-timeline-jump" title="Jump to Day 151 (Baseline / Future Seam)">
+          <svg class="px-icon" width="10" height="10" viewBox="0 0 10 10" shape-rendering="crispEdges"><polygon points="6,1 2,5 5,5 4,9 8,4 5,4" fill="var(--pop-gold)"/></svg>
+          Day 151 Seam
+        </button>
+        <button id="tlJumpActive" class="btn-timeline-jump" title="Center timeline on active playhead">
+          <svg class="px-icon" width="10" height="10" viewBox="0 0 10 10" shape-rendering="crispEdges"><rect x="1" y="4" width="8" height="2" fill="var(--pop-highlight)"/><rect x="4" y="1" width="2" height="8" fill="var(--pop-highlight)"/></svg>
+          Active Day
+        </button>
+        <button id="tlJumpEnd" class="btn-timeline-jump" title="Jump to Final Day">
+          End Day
+          <svg class="px-icon" width="10" height="10" viewBox="0 0 10 10" shape-rendering="crispEdges"><polygon points="2,1 7,5 2,9" fill="currentColor"/><rect x="7" y="1" width="2" height="8" fill="currentColor"/></svg>
+        </button>
       </div>
       <div class="timeline-zoom-group">
         <span class="timeline-zoom-label">Timeline Zoom:</span>
@@ -270,7 +348,13 @@
   <div class="modal-box event-modal-box">
     <div class="modal-header">
       <div class="event-modal-title-group">
-        <span id="evModalIcon" class="event-type-icon">⚠️</span>
+        <span id="evModalIcon" class="event-type-icon">
+          <svg class="px-icon anim-sprite" width="18" height="18" viewBox="0 0 16 16" shape-rendering="crispEdges">
+            <polygon points="8,1 1,14 15,14" fill="var(--pop-highlight)"/>
+            <rect x="7" y="5" width="2" height="5" fill="#000"/>
+            <rect x="7" y="11" width="2" height="2" fill="#000"/>
+          </svg>
+        </span>
         <div>
           <div style="display:flex;align-items:center;gap:6px">
             <span id="evModalKind" class="badge badge-configured">Incident</span>
@@ -293,7 +377,11 @@
           <span id="evModalZone" class="event-meta-val">Main Campus</span>
         </div>
         <button id="evModalSpotlightBtn" class="btn-subtle spotlight-btn" title="Highlight this location on campus map">
-          📍 Spotlight on Map
+          <svg class="px-icon" width="12" height="12" viewBox="0 0 12 12" shape-rendering="crispEdges">
+            <circle cx="6" cy="4" r="3" fill="var(--pop-highlight)"/>
+            <polygon points="3,5 9,5 6,11" fill="var(--pop-highlight)"/>
+          </svg>
+          Spotlight on Map
         </button>
       </div>
 

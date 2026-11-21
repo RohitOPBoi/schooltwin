@@ -15,3 +15,5 @@ pack/benchmark_3month/
 *.pyo
 .DS_Store
 *.log
+.superpowers/
+.pytest_cache/

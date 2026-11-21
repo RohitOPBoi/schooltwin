@@ -34,6 +34,7 @@ sys.path.insert(0, str(ROOT))
 STATE = {"running": False, "day": 0, "total": 0, "error": None, "name": None}
 LOCK = threading.Lock()
 GZ = {}
+SESSION_FLAGS = {}  # In-memory ephemeral storage: (session_id, run_id) -> list of flag dicts
 
 # /api/scenario_timing builds an ExtensionCalendar per request (~100 ms); the
 # calendar is immutable, so one shared instance serves every request.
@@ -179,14 +180,12 @@ class H(BaseHTTPRequestHandler):
                 return self._json(200, dict(STATE))
 
         if u.path == "/api/flags":
-            run = re.sub(r"[^A-Za-z0-9_-]", "", parse_qs(u.query).get("run", [""])[0])
-            # Server-saved baseline flags live in pack/user_flags_baseline.json
-            # (same alias the static route serves); read them back from there.
-            if run == "story_baseline":
-                f = ROOT / "pack" / "user_flags_baseline.json"
-            else:
-                f = ROOT / "pack" / run / "user_flags.json"
-            return self._json(200, json.loads(f.read_text(encoding="utf-8")) if f.exists() else [])
+            qs = parse_qs(u.query)
+            run = re.sub(r"[^A-Za-z0-9_-]", "", qs.get("run", [""])[0])
+            sess = re.sub(r"[^A-Za-z0-9_-]", "", qs.get("session", [""])[0])
+            key = f"{sess}:{run}" if sess else run
+            with LOCK:
+                return self._json(200, list(SESSION_FLAGS.get(key, [])))
 
         if u.path == "/api/checkpoints":
             from schooltwin.checkpoints import list_checkpoints
@@ -325,10 +324,19 @@ class H(BaseHTTPRequestHandler):
             f = (base / rel[7:]).resolve()
         elif rel.startswith("pack/"):
             base = ROOT / "pack"
-            if rel == "pack/story_baseline/user_flags.json" and (ROOT / "pack" / "user_flags_baseline.json").is_file():
-                f = (ROOT / "pack" / "user_flags_baseline.json").resolve()
-            else:
-                f = (base / rel[5:]).resolve()
+            if rel in ("pack/story_baseline/user_flags.json", "pack/user_flags_baseline.json"):
+                # Baseline is immutable; never serve mutated baseline flags
+                return self._json(200, [])
+            if rel == "pack/index.json":
+                idx_file = ROOT / "pack" / "index.json"
+                if idx_file.is_file():
+                    try:
+                        idx_data = json.loads(idx_file.read_text(encoding="utf-8"))
+                        idx_data["runs"] = [r for r in idx_data.get("runs", []) if (ROOT / "pack" / r.get("id", "") / "meta.json").is_file()]
+                        return self._json(200, idx_data)
+                    except Exception:
+                        pass
+            f = (base / rel[5:]).resolve()
             if not f.is_file() and "/days/d" in rel:
                 m_day = re.search(r"/days/(d\d{4}\.json)$", rel)
                 if m_day:
@@ -419,13 +427,11 @@ class H(BaseHTTPRequestHandler):
             flag = body.get("flag")
             if not isinstance(flag, dict) or not flag.get("id"):
                 return self._json(400, {"ok": False, "error": "flag must be an object with an 'id'"})
-            if run == "story_baseline":
-                f = ROOT / "pack" / "user_flags_baseline.json"
-            else:
-                f = ROOT / "pack" / run / "user_flags.json"
-            cur = json.loads(f.read_text(encoding="utf-8")) if f.exists() else []
-            cur = [x for x in cur if x.get("id") != flag.get("id")] + [flag]
-            f.write_text(json.dumps(cur), encoding="utf-8")
+            sess = re.sub(r"[^A-Za-z0-9_-]", "", str(body.get("session", "")))
+            key = f"{sess}:{run}" if sess else run
+            with LOCK:
+                cur = SESSION_FLAGS.setdefault(key, [])
+                SESSION_FLAGS[key] = [x for x in cur if x.get("id") != flag.get("id")] + [flag]
             return self._json(200, {"ok": True})
 
         if self.path == "/api/scenarios":
@@ -496,5 +502,5 @@ if __name__ == "__main__":
     ap.add_argument("--port", type=int, default=8765)
     ap.add_argument("--host", default="127.0.0.1")
     a = ap.parse_args()
-    print(f"SchoolTwin player: http://{a.host}:{a.port}   (Ctrl+C to stop)")
+    print(f"SchoolTwin player: http://{a.host}:{a.port}   (Ctrl+C to stop)", flush=True)
     ThreadingHTTPServer((a.host, a.port), H).serve_forever()

@@ -333,6 +333,22 @@ class TestPhase3CausalEngine(unittest.TestCase):
         self.assertTrue(rec2["reconciled"], f"Ledger reconciliation failed on run 2: {rec2}")
 
 
+    def test_collective_strike_and_uncovered_periods(self):
+        ev = EventRecord(
+            event_id="EV-2026-02-10-STRIKE",
+            event_type="collective_strike",
+            effective_date="2026-02-10",
+            target_entities=["faculty_body"],
+            params={"uncovered_periods": 24, "location": "north_ground"},
+        )
+        self.audit.register_event(ev)
+        res = self.registry.handle_collective_strike(ev, "2026-02-10")
+        self.assertEqual(res["status"], "resolved")
+        self.assertEqual(res["uncovered_periods"], 24)
+        self.assertEqual(self.learning.total_uncovered_periods, 24)
+        self.assertEqual(self.learning.total_lost_instructional_minutes, 24 * 45)
+
+
 if __name__ == "__main__":
     unittest.main()
 

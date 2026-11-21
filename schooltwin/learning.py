@@ -6,9 +6,8 @@ assessment difficulty, and deterministic PRNG assessment variance.
 """
 from __future__ import annotations
 
-import copy
-from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from dataclasses import dataclass, field
+from typing import Any, Dict, List
 import numpy as np
 
 from .story import room_id
@@ -70,6 +69,18 @@ class LearningModel:
         )
         self.students[student_id] = state
         return state
+
+    def record_uncovered_period(self, grade: str = "All", section: str = "All", count: int = 1) -> None:
+        """Records uncovered instructional periods for a grade/section or school-wide."""
+        count = int(count)
+        self.total_uncovered_periods += count
+        self.total_lost_instructional_minutes += count * 45
+        for sid, st in self.students.items():
+            if (grade == "All" or st.grade == grade) and (section == "All" or st.section == section):
+                st.instructional_periods_lost += count
+                decay = 0.02 * count
+                for subj in CORE_SUBJECTS:
+                    st.subject_mastery[subj] = float(np.clip(st.subject_mastery[subj] - decay, 15.0, 100.0))
 
     def step_day(
         self,

@@ -1,1 +1,356 @@
-{"runs":[{"id":"story_baseline","name":"story_baseline","mode":"anchor","days":151,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"whatif_fee_up_apr","name":"whatif_fee_up_apr","mode":"anchor","days":151,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"ctrl_c251439577","name":"ctrl_c251439577","mode":"generate","days":156,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"ctrl_f7c51f215c","name":"ctrl_f7c51f215c","mode":"generate","days":156,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"ctrl_98f46c5f69","name":"ctrl_98f46c5f69","mode":"generate","days":156,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"scen_teacher_d202","name":"scen_teacher_d202","mode":"anchor","days":241,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"ctrl_water_cooler_20260615_747a9d","name":"ctrl_water_cooler_20260615_747a9d","mode":"generate","days":181,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"scen_water_cooler_20260615_747a9d","name":"scen_water_cooler_20260615_747a9d","mode":"generate","days":181,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"scen_water_cooler_20260605_096a51","name":"scen_water_cooler_20260605_096a51","mode":"generate","days":181,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"ctrl_water_cooler_20260605_096a51","name":"ctrl_water_cooler_20260605_096a51","mode":"generate","days":181,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"scen_water_d156","name":"scen_water_d156","mode":"generate","days":181,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"ctrl_teacher_resi_20260605_52d477","name":"ctrl_teacher_resi_20260605_52d477","mode":"generate","days":181,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"scen_teacher_resi_20260605_52d477","name":"scen_teacher_resi_20260605_52d477","mode":"generate","days":181,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"ctrl_teacher_resi_20260605_bd9ab3","name":"ctrl_teacher_resi_20260605_bd9ab3","mode":"generate","days":166,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"scen_teacher_resi_20260605_bd9ab3","name":"scen_teacher_resi_20260605_bd9ab3","mode":"generate","days":166,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"ctrl_school_fee_i_20260707_d2d7f7","name":"ctrl_school_fee_i_20260707_d2d7f7","mode":"generate","days":211,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"scen_school_fee_i_20260707_d2d7f7","name":"scen_school_fee_i_20260707_d2d7f7","mode":"generate","days":211,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"ctrl_suspected_pr_20260723_cb5945","name":"ctrl_suspected_pr_20260723_cb5945","mode":"generate","days":241,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"scen_suspected_pr_20260723_cb5945","name":"scen_suspected_pr_20260723_cb5945","mode":"generate","days":241,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"benchmark_3month","name":"benchmark_3month","mode":"generate","days":90,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"scen_teacher_d20","name":"scen_teacher_d20","mode":"anchor","days":151,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"ctrl_weather_atte_20260813_ec9a7e","name":"ctrl_weather_atte_20260813_ec9a7e","mode":"generate","days":241,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"scen_weather_atte_20260813_ec9a7e","name":"scen_weather_atte_20260813_ec9a7e","mode":"generate","days":241,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"ctrl_teacher_resi_20260603_5d82a8","name":"ctrl_teacher_resi_20260603_5d82a8","mode":"generate","days":156,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"scen_teacher_resi_20260603_5d82a8","name":"scen_teacher_resi_20260603_5d82a8","mode":"generate","days":156,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"ctrl_serious_stud_20260901_86254a","name":"ctrl_serious_stud_20260901_86254a","mode":"generate","days":246,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"scen_serious_stud_20260901_86254a","name":"scen_serious_stud_20260901_86254a","mode":"generate","days":246,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"ctrl_school_fee_i_20260707_2237ae","name":"ctrl_school_fee_i_20260707_2237ae","mode":"generate","days":211,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"scen_school_fee_i_20260707_2237ae","name":"scen_school_fee_i_20260707_2237ae","mode":"generate","days":211,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"ctrl_school_fee_i_20260707_755e81_r2","name":"ctrl_school_fee_i_20260707_755e81_r2","mode":"generate","days":211,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"scen_school_fee_i_20260707_755e81_r2","name":"scen_school_fee_i_20260707_755e81_r2","mode":"generate","days":211,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"ctrl_school_fee_i_20260707_f76d56_r3","name":"ctrl_school_fee_i_20260707_f76d56_r3","mode":"generate","days":211,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"scen_school_fee_i_20260707_f76d56_r3","name":"scen_school_fee_i_20260707_f76d56_r3","mode":"generate","days":211,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"ctrl_school_fee_i_20260707_625251_r4","name":"ctrl_school_fee_i_20260707_625251_r4","mode":"generate","days":211,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"scen_school_fee_i_20260707_625251_r4","name":"scen_school_fee_i_20260707_625251_r4","mode":"generate","days":211,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"ctrl_school_fee_i_20260707_98ddb8_r5","name":"ctrl_school_fee_i_20260707_98ddb8_r5","mode":"generate","days":211,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"scen_school_fee_i_20260707_98ddb8_r5","name":"scen_school_fee_i_20260707_98ddb8_r5","mode":"generate","days":211,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"ctrl_teacher_resi_20260603_9831ed","name":"ctrl_teacher_resi_20260603_9831ed","mode":"generate","days":159,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"scen_teacher_resi_20260603_9831ed","name":"scen_teacher_resi_20260603_9831ed","mode":"generate","days":159,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"ctrl_weather_atte_20260724_8c12ed","name":"ctrl_weather_atte_20260724_8c12ed","mode":"generate","days":241,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"scen_weather_atte_20260724_8c12ed","name":"scen_weather_atte_20260724_8c12ed","mode":"generate","days":241,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"ctrl_school_fee_i_20260724_a8647e","name":"ctrl_school_fee_i_20260724_a8647e","mode":"generate","days":241,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"scen_school_fee_i_20260724_a8647e","name":"scen_school_fee_i_20260724_a8647e","mode":"generate","days":241,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"ctrl_school_fee_i_20260724_4b5970","name":"ctrl_school_fee_i_20260724_4b5970","mode":"generate","days":210,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"scen_school_fee_i_20260724_4b5970","name":"scen_school_fee_i_20260724_4b5970","mode":"generate","days":210,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"ctrl_school_fee_i_20260708_36b1bf","name":"ctrl_school_fee_i_20260708_36b1bf","mode":"generate","days":211,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"scen_school_fee_i_20260708_36b1bf","name":"scen_school_fee_i_20260708_36b1bf","mode":"generate","days":211,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"ctrl_school_fee_i_20260724_8e65bc","name":"ctrl_school_fee_i_20260724_8e65bc","mode":"generate","days":210,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"scen_school_fee_i_20260724_8e65bc","name":"scen_school_fee_i_20260724_8e65bc","mode":"generate","days":210,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"ctrl_water_cooler_20260601_1fc31a","name":"ctrl_water_cooler_20260601_1fc31a","mode":"generate","days":157,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"test_quick_exp_r1","name":"test_quick_exp_r1","mode":"generate","days":157,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"ctrl_water_cooler_20260710_960b49","name":"ctrl_water_cooler_20260710_960b49","mode":"generate","days":196,"school":"Saraswati Heights Senior Secondary School","redacted":false},{"id":"scen_water_cooler_20260710_960b49","name":"scen_water_cooler_20260710_960b49","mode":"generate","days":196,"school":"Saraswati Heights Senior Secondary School","redacted":false}]}
+{
+  "runs": [
+    {
+      "id": "story_baseline",
+      "name": "story_baseline",
+      "mode": "anchor",
+      "days": 151,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "whatif_fee_up_apr",
+      "name": "whatif_fee_up_apr",
+      "mode": "anchor",
+      "days": 151,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "ctrl_f7c51f215c",
+      "name": "ctrl_f7c51f215c",
+      "mode": "generate",
+      "days": 156,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "ctrl_98f46c5f69",
+      "name": "ctrl_98f46c5f69",
+      "mode": "generate",
+      "days": 156,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "ctrl_teacher_resi_20260605_329429",
+      "name": "ctrl_teacher_resi_20260605_329429",
+      "mode": "generate",
+      "days": 161,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "scen_teacher_resi_20260605_329429",
+      "name": "scen_teacher_resi_20260605_329429",
+      "mode": "generate",
+      "days": 161,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "ctrl_teacher_resi_20260605_015333",
+      "name": "ctrl_teacher_resi_20260605_015333",
+      "mode": "generate",
+      "days": 161,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "scen_teacher_resi_20260605_015333",
+      "name": "scen_teacher_resi_20260605_015333",
+      "mode": "generate",
+      "days": 161,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "ctrl_school_fee_i_20260605_d8b0f4",
+      "name": "ctrl_school_fee_i_20260605_d8b0f4",
+      "mode": "generate",
+      "days": 161,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "scen_school_fee_i_20260605_d8b0f4",
+      "name": "scen_school_fee_i_20260605_d8b0f4",
+      "mode": "generate",
+      "days": 161,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "ctrl_additional_t_20260605_47f7af",
+      "name": "ctrl_additional_t_20260605_47f7af",
+      "mode": "generate",
+      "days": 161,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "scen_additional_t_20260605_47f7af",
+      "name": "scen_additional_t_20260605_47f7af",
+      "mode": "generate",
+      "days": 161,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "ctrl_water_cooler_20260605_f583f4",
+      "name": "ctrl_water_cooler_20260605_f583f4",
+      "mode": "generate",
+      "days": 161,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "scen_water_cooler_20260605_f583f4",
+      "name": "scen_water_cooler_20260605_f583f4",
+      "mode": "generate",
+      "days": 161,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "ctrl_lab_inventor_20260605_79224f",
+      "name": "ctrl_lab_inventor_20260605_79224f",
+      "mode": "generate",
+      "days": 161,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "scen_lab_inventor_20260605_79224f",
+      "name": "scen_lab_inventor_20260605_79224f",
+      "mode": "generate",
+      "days": 161,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "ctrl_serious_stud_20260706_b231da",
+      "name": "ctrl_serious_stud_20260706_b231da",
+      "mode": "generate",
+      "days": 157,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "scen_serious_stud_20260706_b231da",
+      "name": "scen_serious_stud_20260706_b231da",
+      "mode": "generate",
+      "days": 157,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "ctrl_suspected_pr_20260706_b24540",
+      "name": "ctrl_suspected_pr_20260706_b24540",
+      "mode": "generate",
+      "days": 157,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "scen_suspected_pr_20260706_b24540",
+      "name": "scen_suspected_pr_20260706_b24540",
+      "mode": "generate",
+      "days": 157,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "ctrl_teacher_resi_20260706_0517ff",
+      "name": "ctrl_teacher_resi_20260706_0517ff",
+      "mode": "generate",
+      "days": 157,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "scen_teacher_resi_20260706_0517ff",
+      "name": "scen_teacher_resi_20260706_0517ff",
+      "mode": "generate",
+      "days": 157,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "ctrl_teacher_resi_20260706_589a95",
+      "name": "ctrl_teacher_resi_20260706_589a95",
+      "mode": "generate",
+      "days": 157,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "scen_teacher_resi_20260706_589a95",
+      "name": "scen_teacher_resi_20260706_589a95",
+      "mode": "generate",
+      "days": 157,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "ctrl_bus_breakdow_20260706_682315",
+      "name": "ctrl_bus_breakdow_20260706_682315",
+      "mode": "generate",
+      "days": 157,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "scen_bus_breakdow_20260706_682315",
+      "name": "scen_bus_breakdow_20260706_682315",
+      "mode": "generate",
+      "days": 157,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "ctrl_school_fee_i_20260706_a13381",
+      "name": "ctrl_school_fee_i_20260706_a13381",
+      "mode": "generate",
+      "days": 157,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "scen_school_fee_i_20260706_a13381",
+      "name": "scen_school_fee_i_20260706_a13381",
+      "mode": "generate",
+      "days": 157,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "ctrl_additional_t_20260706_b40604",
+      "name": "ctrl_additional_t_20260706_b40604",
+      "mode": "generate",
+      "days": 157,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "scen_additional_t_20260706_b40604",
+      "name": "scen_additional_t_20260706_b40604",
+      "mode": "generate",
+      "days": 157,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "ctrl_water_cooler_20260706_ea86c1",
+      "name": "ctrl_water_cooler_20260706_ea86c1",
+      "mode": "generate",
+      "days": 157,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "scen_water_cooler_20260706_ea86c1",
+      "name": "scen_water_cooler_20260706_ea86c1",
+      "mode": "generate",
+      "days": 157,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "ctrl_collective_s_20260706_500b4c",
+      "name": "ctrl_collective_s_20260706_500b4c",
+      "mode": "generate",
+      "days": 157,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "scen_collective_s_20260706_500b4c",
+      "name": "scen_collective_s_20260706_500b4c",
+      "mode": "generate",
+      "days": 157,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "ctrl_weather_atte_20260706_880bbe",
+      "name": "ctrl_weather_atte_20260706_880bbe",
+      "mode": "generate",
+      "days": 157,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "scen_weather_atte_20260706_880bbe",
+      "name": "scen_weather_atte_20260706_880bbe",
+      "mode": "generate",
+      "days": 157,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "ctrl_student_teac_20260706_44adde",
+      "name": "ctrl_student_teac_20260706_44adde",
+      "mode": "generate",
+      "days": 157,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "scen_student_teac_20260706_44adde",
+      "name": "scen_student_teac_20260706_44adde",
+      "mode": "generate",
+      "days": 157,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "ctrl_lab_inventor_20260706_4e91df",
+      "name": "ctrl_lab_inventor_20260706_4e91df",
+      "mode": "generate",
+      "days": 157,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "scen_lab_inventor_20260706_4e91df",
+      "name": "scen_lab_inventor_20260706_4e91df",
+      "mode": "generate",
+      "days": 157,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "ctrl_first_aid_vi_20260706_644a70",
+      "name": "ctrl_first_aid_vi_20260706_644a70",
+      "mode": "generate",
+      "days": 157,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "scen_first_aid_vi_20260706_644a70",
+      "name": "scen_first_aid_vi_20260706_644a70",
+      "mode": "generate",
+      "days": 157,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "ctrl_water_cooler_20260601_1fc31a",
+      "name": "ctrl_water_cooler_20260601_1fc31a",
+      "mode": "generate",
+      "days": 157,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    },
+    {
+      "id": "benchmark_3month",
+      "name": "benchmark_3month",
+      "mode": "generate",
+      "days": 90,
+      "school": "Saraswati Heights Senior Secondary School",
+      "redacted": false
+    }
+  ]
+}

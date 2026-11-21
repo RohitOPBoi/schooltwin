@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SchoolTwin // Retro Arcade Simulation Cockpit</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      /* Two disciplined retro slate/midnight sister tones */
+      --tone-dark: #0c101c;
+      --tone-surface: #182033;
+      --tone-panel: #222c44;
+      --tone-border: #06080f;
+      --tone-border-subtle: #2d3b59;
+      
+      /* Cream/Bone retro pixel text */
+      --text-bone: #ede8d5;
+      --text-muted: #8b9bb4;
+      
+      /* The single Poppy Highlight Color */
+      --pop-vermilion: #ff2d4a;
+      --pop-gold: #ffb800;
+      --pop-cyan: #00d2ff;
+    }
+
+    body {
+      background-color: var(--tone-dark);
+      color: var(--text-bone);
+      font-family: monospace, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px;
+      user-select: none;
+      -webkit-font-smoothing: none;
+      image-rendering: pixelated;
+    }
+
+    /* 2-Bit / 3-Bit Pixel Graphics (Inline Crisp SVGs) */
+    .pixel-svg {
+      display: inline-block;
+      vertical-align: middle;
+      shape-rendering: crispEdges;
+      image-rendering: pixelated;
+    }
+
+    /* Chunky Arcade Cabinet Frames */
+    .arcade-frame {
+      max-width: 1260px;
+      width: 100%;
+      background: var(--tone-surface);
+      border: 4px solid var(--tone-border);
+      box-shadow: 8px 8px 0px var(--tone-border);
+      border-radius: 8px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .pixel-card {
+      background: var(--tone-panel);
+      border: 3px solid var(--tone-border);
+      box-shadow: 4px 4px 0px var(--tone-border);
+      border-radius: 6px;
+      padding: 16px;
+    }
+
+    /* Pixel Push Button Mechanics */
+    .pixel-btn {
+      background: var(--tone-panel);
+      color: var(--text-bone);
+      border: 3px solid var(--tone-border);
+      box-shadow: 4px 4px 0px var(--tone-border);
+      border-radius: 4px;
+      padding: 8px 14px;
+      font-family: monospace;
+      font-weight: 900;
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.12s ease;
+      text-transform: uppercase;
+    }
+
+    .pixel-btn:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 5px 5px 0px var(--tone-border);
+      background: #2b3754;
+      color: #fff;
+    }
+
+    .pixel-btn:active {
+      transform: translate(3px, 3px);
+      box-shadow: 1px 1px 0px var(--tone-border);
+    }
+
+    .btn-pop {
+      background: var(--pop-vermilion);
+      color: #fff;
+    }
+    .btn-pop:hover {
+      background: #ff4760;
+    }
+
+    .btn-gold {
+      background: var(--pop-gold);
+      color: #000;
+    }
+    .btn-gold:hover {
+      background: #ffc726;
+    }
+
+    /* CRT Scanlines Overlay */
+    .scanlines-overlay {
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.25),
+        rgba(0, 0, 0, 0.25) 1px,
+        transparent 1px,
+        transparent 3px
+      );
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    /* 2-Bit Frame-by-Frame Animations */
+    @keyframes spriteStep {
+      0%, 49% { transform: translateY(0); }
+      50%, 100% { transform: translateY(-3px); }
+    }
+    .anim-sprite {
+      animation: spriteStep 0.6s steps(2) infinite;
+    }
+
+    @keyframes cursorBlink {
+      0%, 49% { opacity: 1; }
+      50%, 100% { opacity: 0; }
+    }
+    .anim-blink {
+      animation: cursorBlink 0.7s steps(2) infinite;
+    }
+
+    @keyframes koFlash {
+      0%, 49% { background: var(--pop-vermilion); color: #fff; }
+      50%, 100% { background: #000; color: var(--pop-vermilion); }
+    }
+    .anim-ko {
+      animation: koFlash 0.5s steps(2) infinite;
+    }
+
+    /* Street Fighter / Pokemon Health Gauges */
+    .gauge-container {
+      height: 22px;
+      background: #000;
+      border: 3px solid var(--tone-border);
+      padding: 2px;
+      position: relative;
+    }
+    .gauge-bar {
+      height: 100%;
+      transition: width 0.3s steps(12);
+    }
+
+    /* Pokemon Dialogue Frame */
+    .dialogue-box {
+      background: #05070d;
+      border: 3px double #d6cfb8;
+      box-shadow: 4px 4px 0px var(--tone-border);
+      padding: 14px;
+      font-family: monospace;
+      font-size: 11.5px;
+      line-height: 1.6;
+      color: var(--text-bone);
+      position: relative;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP HEADER -->
+  <div style="text-align: center; margin-bottom: 18px;">
+    <div style="display: inline-flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+      <!-- Custom 2-bit Pixel Joystick -->
+      <svg class="pixel-svg" width="22" height="22" viewBox="0 0 16 16">
+        <rect x="6" y="2" width="4" height="4" fill="#ff2d4a" />
+        <rect x="7" y="6" width="2" height="4" fill="#8b9bb4" />
+        <rect x="2" y="10" width="12" height="4" fill="#222c44" />
+        <rect x="4" y="12" width="8" height="2" fill="#06080f" />
+      </svg>
+      <h1 style="font-size: 22px; font-weight: 900; letter-spacing: 0.05em; color: var(--pop-gold); text-shadow: 3px 3px 0 #000;">
+        SARASWATI SIM ARCADE // LEVEL 186
+      </h1>
+    </div>
+    <p style="color: var(--text-muted); font-size: 12px;">
+      100% Custom 2-Bit/3-Bit Pixel Simulation Engine • Zero Emojis • Zero AI Slop
+    </p>
+  </div>
+
+  <!-- MAIN ARCADE CABINET -->
+  <div class="arcade-frame">
+    <!-- CRT Filter -->
+    <div id="crt-screen" class="scanlines-overlay"></div>
+
+    <!-- 1. STREET FIGHTER / MARIO TOP MARQUEE STRIP -->
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid var(--tone-border); padding-bottom: 14px; margin-bottom: 18px; position: relative; z-index: 20;">
+      <!-- Logo + Credits -->
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <!-- Pixel School Icon -->
+        <svg class="pixel-svg" width="30" height="30" viewBox="0 0 16 16">
+          <rect x="7" y="1" width="2" height="3" fill="#ff2d4a" />
+          <rect x="2" y="4" width="12" height="2" fill="#ede8d5" />
+          <rect x="3" y="6" width="10" height="8" fill="#2b3754" />
+          <rect x="7" y="10" width="2" height="4" fill="#ffb800" />
+          <rect x="4" y="8" width="2" height="2" fill="#00d2ff" />
+          <rect x="10" y="8" width="2" height="2" fill="#00d2ff" />
+        </svg>
+        <div>
+          <div style="font-size: 14px; font-weight: 900; color: var(--text-bone); letter-spacing: 0.06em;">
+            SARASWATI HEIGHTS DIGITAL TWIN
+          </div>
+          <div style="font-size: 10px; color: var(--text-muted);">
+            CBSE DELHI // CAUSAL REALITY SIMULATOR
+          </div>
+        </div>
+      </div>
+
+      <!-- Marquee Telemetry Badges -->
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <!-- Coin Counter (Mario Style) -->
+        <div style="background: #000; border: 2px solid var(--tone-border-subtle); padding: 5px 12px; border-radius: 4px; display: flex; align-items: center; gap: 6px;">
+          <!-- 2-bit Coin -->
+          <svg class="pixel-svg" width="14" height="14" viewBox="0 0 10 10">
+            <rect x="3" y="1" width="4" height="8" fill="#ffb800" />
+            <rect x="2" y="2" width="6" height="6" fill="#ffb800" />
+            <rect x="4" y="3" width="2" height="4" fill="#ede8d5" />
+          </svg>
+          <span style="font-size: 12px; font-weight: 900; color: var(--pop-gold);">+₹14.28 L</span>
+        </div>
+
+        <!-- High Score (Street Fighter Style) -->
+        <div style="background: #000; border: 2px solid var(--tone-border-subtle); padding: 5px 12px; border-radius: 4px; text-align: center;">
+          <span style="font-size: 8px; color: var(--text-muted); display: block;">SCORE</span>
+          <span style="font-size: 12px; font-weight: 900; color: #ede8d5;">98,400</span>
+        </div>
+
+        <!-- Credits -->
+        <div style="background: #000; border: 2px solid var(--tone-border-subtle); padding: 5px 12px; border-radius: 4px; text-align: center;">
+          <span style="font-size: 8px; color: var(--text-muted); display: block;">CREDIT</span>
+          <span style="font-size: 12px; font-weight: 900; color: var(--pop-vermilion);">02</span>
+        </div>
+
+        <!-- CRT Toggle -->
+        <button onclick="toggleCRT()" id="crt-toggle" class="pixel-btn" style="padding: 6px 10px; font-size: 10px; background: #2f2547; color: #d8b4fe;">
+          CRT: ON
+        </button>
+      </div>
+    </div>
+
+    <!-- 2. MAIN 3-PANEL COCKPIT -->
+    <div style="display: grid; grid-template-columns: 310px 1fr 320px; gap: 18px; position: relative; z-index: 20;">
+
+      <!-- =================================================================
+           LEFT PANEL: STREET FIGHTER / POKEMON PARTY & VITALS
+           ================================================================= -->
+      <div class="pixel-card" style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--tone-border-subtle); padding-bottom: 8px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <!-- 2-bit Heart -->
+            <svg class="pixel-svg" width="14" height="14" viewBox="0 0 10 10">
+              <rect x="2" y="1" width="2" height="2" fill="#ff2d4a" />
+              <rect x="6" y="1" width="2" height="2" fill="#ff2d4a" />
+              <rect x="1" y="2" width="8" height="3" fill="#ff2d4a" />
+              <rect x="2" y="5" width="6" height="2" fill="#ff2d4a" />
+              <rect x="3" y="7" width="4" height="1" fill="#ff2d4a" />
+              <rect x="4" y="8" width="2" height="1" fill="#ff2d4a" />
+            </svg>
+            <span style="font-size: 11px; font-weight: 900; color: var(--pop-gold); letter-spacing: 0.05em;">CAMPUS HP & VITALS</span>
+          </div>
+          <span style="font-size: 9px; color: #00d2ff; font-weight: 700;">LEVEL 186</span>
+        </div>
+
+        <!-- Attendance HP Gauge (Street Fighter KO Gauge) -->
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 10.5px; font-weight: 900; margin-bottom: 4px;">
+            <span>ATTENDANCE HP</span>
+            <span id="hp-text" style="color: #ede8d5;">94.2%</span>
+          </div>
+          <div class="gauge-container">
+            <div id="hp-bar" class="gauge-bar" style="width: 94.2%; background: #00d2ff;"></div>
+          </div>
+          <div style="font-size: 9px; color: var(--text-muted); margin-top: 4px; display: flex; justify-content: space-between;">
+            <span>1,233 / 1,309 In School</span>
+            <span style="color: var(--text-bone);">KO AT &lt; 75%</span>
+          </div>
+        </div>
+
+        <!-- Budget Mana (Pokemon PP Gauge) -->
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 10.5px; font-weight: 900; margin-bottom: 4px;">
+            <span>BUDGET PP</span>
+            <span id="mana-text" style="color: var(--pop-gold);">+₹14.28 L</span>
+          </div>
+          <div class="gauge-container">
+            <div id="mana-bar" class="gauge-bar" style="width: 82%; background: var(--pop-gold);"></div>
+          </div>
+          <div style="font-size: 9px; color: var(--text-muted); margin-top: 4px;">
+            Burn: ₹42,800/d • Fiscal Surplus
+          </div>
+        </div>
+
+        <!-- Instruction XP Gauge (Pokemon EXP Bar) -->
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 10.5px; font-weight: 900; margin-bottom: 4px;">
+            <span>INSTRUCTION XP</span>
+            <span id="xp-text" style="color: #ede8d5;">0.0 DEBT</span>
+          </div>
+          <div class="gauge-container">
+            <div id="xp-bar" class="gauge-bar" style="width: 100%; background: #ede8d5;"></div>
+          </div>
+          <div style="font-size: 9px; color: var(--text-muted); margin-top: 4px;">
+            62 Instructors • Period Ratio 100%
+          </div>
+        </div>
+
+        <!-- Pokemon Status Conditions Pill -->
+        <div style="background: #000; border: 2px solid var(--tone-border-subtle); border-radius: 4px; padding: 10px; font-size: 9.5px;">
+          <div style="font-weight: 900; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">Party Status</div>
+          <div id="status-pill-1" style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+            <!-- 2-bit Shield -->
+            <svg class="pixel-svg" width="12" height="12" viewBox="0 0 10 10">
+              <rect x="2" y="1" width="6" height="5" fill="#00d2ff" />
+              <rect x="3" y="6" width="4" height="2" fill="#00d2ff" />
+              <rect x="4" y="8" width="2" height="1" fill="#00d2ff" />
+            </svg>
+            <span style="color: var(--text-bone);">Baseline Guard: SHA-256 Locked</span>
+          </div>
+          <div id="status-pill-2" style="display: flex; align-items: center; gap: 6px;">
+            <!-- 2-bit Checkmark -->
+            <svg class="pixel-svg" width="12" height="12" viewBox="0 0 10 10">
+              <rect x="7" y="2" width="2" height="2" fill="#ede8d5" />
+              <rect x="5" y="4" width="2" height="2" fill="#ede8d5" />
+              <rect x="3" y="6" width="2" height="2" fill="#ede8d5" />
+              <rect x="1" y="4" width="2" height="2" fill="#ede8d5" />
+            </svg>
+            <span style="color: var(--text-bone);">CBSE Equilibrium: Active</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- =================================================================
+           CENTER PANEL: MARIO / POKEMON 8-BIT WORLD MAP TILES
+           ================================================================= -->
+      <div class="pixel-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <!-- Map Header -->
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--tone-border-subtle); padding-bottom: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <!-- 2-bit Map Flag -->
+            <svg class="pixel-svg" width="14" height="14" viewBox="0 0 10 10">
+              <rect x="2" y="1" width="2" height="9" fill="#ede8d5" />
+              <rect x="4" y="2" width="5" height="4" fill="#ff2d4a" />
+            </svg>
+            <span style="font-size: 11px; font-weight: 900; color: var(--pop-gold);">CAMPUS WORLD MAP // 8-BIT TILES</span>
+          </div>
+          <span id="zone-header-tip" style="font-size: 9px; color: var(--text-muted);">SELECT ZONE</span>
+        </div>
+
+        <!-- 4 World Map Tiles -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0;">
+          
+          <!-- Tile 1: Classrooms Block -->
+          <div onclick="selectZone('Classroom Block A', '420 students actively engaged in CBSE classes. 18 teachers active in core subjects.')" class="pixel-btn" style="flex-direction: column; align-items: flex-start; padding: 12px; background: var(--tone-panel);">
+            <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 11px; font-weight: 900; color: #fff;">ACADEMIC A</span>
+              <!-- 2-bit Student Sprite -->
+              <svg class="pixel-svg anim-sprite" width="16" height="16" viewBox="0 0 10 10">
+                <rect x="3" y="1" width="4" height="3" fill="#ffb800" />
+                <rect x="2" y="4" width="6" height="4" fill="#00d2ff" />
+                <rect x="3" y="8" width="2" height="2" fill="#ede8d5" />
+                <rect x="5" y="8" width="2" height="2" fill="#ede8d5" />
+              </svg>
+            </div>
+            <div style="font-size: 9px; color: #00d2ff; margin-top: 6px;">420/450 IN CLASS</div>
+          </div>
+
+          <!-- Tile 2: Science Labs -->
+          <div onclick="selectZone('Science Laboratories', '88 students running Physics optics and Chemistry titrations under lab safety protocols.')" class="pixel-btn" style="flex-direction: column; align-items: flex-start; padding: 12px; background: var(--tone-panel);">
+            <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 11px; font-weight: 900; color: #fff;">SCIENCE LABS</span>
+              <!-- 2-bit Flask Sprite -->
+              <svg class="pixel-svg anim-sprite" width="16" height="16" viewBox="0 0 10 10">
+                <rect x="4" y="1" width="2" height="3" fill="#ede8d5" />
+                <rect x="3" y="4" width="4" height="2" fill="#ede8d5" />
+                <rect x="2" y="6" width="6" height="3" fill="#00d2ff" />
+              </svg>
+            </div>
+            <div style="font-size: 9px; color: #00d2ff; margin-top: 6px;">88/90 PRACTICAL</div>
+          </div>
+
+          <!-- Tile 3: Water Cooler Station -->
+          <div id="tile-cooler" onclick="selectZone('Water Cooler Station', 'Central hydration station with 3 commercial purification units.')" class="pixel-btn" style="flex-direction: column; align-items: flex-start; padding: 12px; background: var(--tone-panel);">
+            <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+              <span id="cooler-name" style="font-size: 11px; font-weight: 900; color: #fff;">COOLER HUB</span>
+              <!-- 2-bit Water Drop Sprite -->
+              <svg id="cooler-icon" class="pixel-svg anim-sprite" width="16" height="16" viewBox="0 0 10 10">
+                <rect x="4" y="1" width="2" height="2" fill="#00d2ff" />
+                <rect x="3" y="3" width="4" height="3" fill="#00d2ff" />
+                <rect x="2" y="5" width="6" height="3" fill="#00d2ff" />
+                <rect x="3" y="8" width="4" height="1" fill="#00d2ff" />
+              </svg>
+            </div>
+            <div id="cooler-status" style="font-size: 9px; color: #00d2ff; margin-top: 6px;">100% PRESSURE NOMINAL</div>
+          </div>
+
+          <!-- Tile 4: Bus Transit Depot -->
+          <div onclick="selectZone('Transport Bus Depot', '14 yellow school buses parked in bay. All morning transit routes 100% completed.')" class="pixel-btn" style="flex-direction: column; align-items: flex-start; padding: 12px; background: var(--tone-panel);">
+            <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 11px; font-weight: 900; color: #fff;">BUS DEPOT</span>
+              <!-- 2-bit Bus Sprite -->
+              <svg class="pixel-svg anim-sprite" width="16" height="16" viewBox="0 0 10 10">
+                <rect x="1" y="2" width="8" height="5" fill="#ffb800" />
+                <rect x="2" y="3" width="2" height="2" fill="#0c101c" />
+                <rect x="5" y="3" width="2" height="2" fill="#0c101c" />
+                <rect x="2" y="7" width="2" height="2" fill="#ede8d5" />
+                <rect x="6" y="7" width="2" height="2" fill="#ede8d5" />
+              </svg>
+            </div>
+            <div style="font-size: 9px; color: #00d2ff; margin-top: 6px;">14/14 VEHICLES CLEAR</div>
+          </div>
+        </div>
+
+        <!-- Retro Tile Inspector Log -->
+        <div style="background: #000; border: 2px solid var(--tone-border-subtle); border-radius: 4px; padding: 10px; font-size: 10px; color: var(--text-bone); display: flex; gap: 8px;">
+          <span style="color: var(--pop-vermilion); font-weight: 900;">&gt;</span>
+          <span id="zone-log">Click on any campus zone tile above to inspect real-time agent density</span>
+        </div>
+      </div>
+
+      <!-- =================================================================
+           RIGHT PANEL: POKEMON BATTLE DIALOGUE & STREET FIGHTER KO
+           ================================================================= -->
+      <div class="pixel-card" style="display: flex; flex-direction: column; justify-content: space-between; gap: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--tone-border-subtle); padding-bottom: 8px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <!-- 2-bit Scroll -->
+            <svg class="pixel-svg" width="14" height="14" viewBox="0 0 10 10">
+              <rect x="1" y="2" width="8" height="6" fill="#ede8d5" />
+              <rect x="2" y="3" width="6" height="4" fill="#182033" />
+            </svg>
+            <span style="font-size: 11px; font-weight: 900; color: var(--pop-gold);">QUEST LOG</span>
+          </div>
+          <span id="ko-badge" style="font-size: 9px; font-weight: 900; padding: 2px 6px; border-radius: 2px; background: #000; color: #00d2ff; border: 1px solid var(--tone-border-subtle);">
+            NORMAL
+          </span>
+        </div>
+
+        <!-- Pokemon Dialogue Frame -->
+        <div class="dialogue-box">
+          <div style="color: var(--pop-gold); font-weight: 900; margin-bottom: 6px; font-size: 10px; text-transform: uppercase;">
+            ACTIVE QUEST: CAMPUS HARMONY
+          </div>
+          <div id="dialogue-content">
+            Saraswati Heights is running smoothly. 1,309 agents are active across 4 periods. No critical issues reported.
+          </div>
+          <div style="text-align: right; margin-top: 6px;">
+            <span class="anim-blink" style="color: var(--pop-gold); font-size: 10px;">▼</span>
+          </div>
+        </div>
+
+        <!-- Street Fighter Battle Action Buttons -->
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <!-- Trigger Incident -->
+          <button onclick="triggerIncident()" id="btn-trigger" class="pixel-btn btn-pop" style="width: 100%; justify-content: center; padding: 10px;">
+            <!-- 2-bit Skull -->
+            <svg class="pixel-svg" width="14" height="14" viewBox="0 0 10 10">
+              <rect x="2" y="1" width="6" height="5" fill="#fff" />
+              <rect x="3" y="3" width="1" height="2" fill="#000" />
+              <rect x="6" y="3" width="1" height="2" fill="#000" />
+              <rect x="3" y="6" width="4" height="2" fill="#fff" />
+              <rect x="4" y="7" width="2" height="2" fill="#000" />
+            </svg>
+            TRIGGER WATER INCIDENT
+          </button>
+
+          <!-- Resolve Incident -->
+          <button onclick="resolveIncident()" id="btn-resolve" class="pixel-btn btn-gold" style="width: 100%; justify-content: center; padding: 10px; display: none;">
+            <!-- 2-bit Wrench -->
+            <svg class="pixel-svg" width="14" height="14" viewBox="0 0 10 10">
+              <rect x="2" y="1" width="3" height="3" fill="#000" />
+              <rect x="5" y="4" width="3" height="3" fill="#000" />
+              <rect x="4" y="7" width="2" height="2" fill="#000" />
+            </svg>
+            DISPATCH PLUMBER (+HP REPAIR)
+          </button>
+
+          <div style="background: #000; border: 2px solid var(--tone-border-subtle); border-radius: 4px; padding: 8px; text-align: center; font-size: 9.5px; color: var(--text-muted);">
+            STREET FIGHTER // DECISION TREE
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. MARIO / RETRO TIMELINE SCRUBBER DECK -->
+    <div style="border-top: 4px solid var(--tone-border); margin-top: 18px; padding-top: 14px; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 20;">
+      <!-- Playback Controls -->
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <button onclick="togglePlay()" id="play-btn" class="pixel-btn btn-gold" style="padding: 6px 12px;">
+          <!-- 2-bit Play Triangle -->
+          <svg class="pixel-svg" width="10" height="10" viewBox="0 0 8 8">
+            <polygon points="1,1 1,7 7,4" fill="#000" />
+          </svg>
+          <span id="play-text">PLAY</span>
+        </button>
+
+        <button onclick="stepHour()" class="pixel-btn" style="padding: 6px 10px;">
+          +1 HR
+        </button>
+
+        <span id="clock-pill" style="background: #000; border: 2px solid var(--tone-border-subtle); padding: 5px 10px; border-radius: 4px; color: var(--pop-gold); font-size: 11px; font-weight: 900;">
+          11:45 AM // PERIOD 4
+        </span>
+      </div>
+
+      <!-- Scrubber Track -->
+      <div style="flex: 1; margin: 0 20px; height: 16px; background: #000; border: 2px solid var(--text-bone); padding: 2px;">
+        <div id="timeline-bar" style="height: 100%; width: 58%; background: var(--pop-vermilion); transition: width 0.15s steps(8);"></div>
+      </div>
+
+      <!-- Speed Toggles -->
+      <div style="display: flex; gap: 6px;">
+        <button onclick="setSpeed(1, this)" class="pixel-btn btn-speed" style="padding: 5px 10px; background: var(--pop-gold); color: #000;">1x</button>
+        <button onclick="setSpeed(2, this)" class="pixel-btn btn-speed" style="padding: 5px 10px;">2x</button>
+        <button onclick="setSpeed(5, this)" class="pixel-btn btn-speed" style="padding: 5px 10px;">5x</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let crtActive = true;
+    let playing = false;
+    let clockHour = 11;
+
+    function toggleCRT() {
+      crtActive = !crtActive;
+      const overlay = document.getElementById('crt-screen');
+      const btn = document.getElementById('crt-toggle');
+      if (crtActive) {
+        overlay.style.display = 'block';
+        btn.textContent = 'CRT: ON';
+        btn.style.background = '#2f2547';
+        btn.style.color = '#d8b4fe';
+      } else {
+        overlay.style.display = 'none';
+        btn.textContent = 'CRT: OFF';
+        btn.style.background = '#182033';
+        btn.style.color = '#8b9bb4';
+      }
+    }
+
+    function selectZone(title, info) {
+      document.getElementById('zone-header-tip').textContent = title.toUpperCase();
+      document.getElementById('zone-log').textContent = info;
+    }
+
+    function triggerIncident() {
+      // Drop Attendance HP (Street Fighter health depletion)
+      document.getElementById('hp-bar').style.width = '89.4%';
+      document.getElementById('hp-bar').style.background = 'var(--pop-vermilion)';
+      document.getElementById('hp-text').textContent = '89.4% (-4.8%)';
+      document.getElementById('hp-text').style.color = 'var(--pop-vermilion)';
+
+      // Drain Budget Mana
+      document.getElementById('mana-bar').style.width = '75%';
+      document.getElementById('mana-text').textContent = '+₹13.83 L (-45k)';
+      document.getElementById('mana-text').style.color = 'var(--pop-vermilion)';
+
+      // Cooler Alert Tile
+      document.getElementById('tile-cooler').style.background = '#3b1219';
+      document.getElementById('cooler-name').textContent = 'COOLER LEAK!';
+      document.getElementById('cooler-status').textContent = 'PRESSURE 0 PSI (FAIL)';
+      document.getElementById('cooler-status').style.color = 'var(--pop-vermilion)';
+
+      // KO Badge Flash
+      const badge = document.getElementById('ko-badge');
+      badge.textContent = 'K.O. WARNING';
+      badge.className = 'anim-ko';
+      badge.style.border = '1px solid var(--pop-vermilion)';
+
+      // Update Pokemon Dialogue
+      document.getElementById('dialogue-content').innerHTML = '<span style="color:var(--pop-vermilion);font-weight:900;">A WILD INCIDENT APPEARED!</span> Water Cooler malfunctioned during peak heatwave. Attendance HP is dropping rapidly!';
+
+      // Status Pill update
+      document.getElementById('status-pill-1').innerHTML = '<svg class="pixel-svg" width="12" height="12" viewBox="0 0 10 10"><rect x="2" y="1" width="6" height="5" fill="#ff2d4a"/><rect x="3" y="6" width="4" height="2" fill="#ff2d4a"/></svg> <span style="color:var(--pop-vermilion);font-weight:900;">DEBUFF: Heatwave Dip (-4.8%)</span>';
+
+      // Swap Buttons
+      document.getElementById('btn-trigger').style.display = 'none';
+      document.getElementById('btn-resolve').style.display = 'inline-flex';
+    }
+
+    function resolveIncident() {
+      // Restore HP & Mana
+      document.getElementById('hp-bar').style.width = '94.2%';
+      document.getElementById('hp-bar').style.background = '#00d2ff';
+      document.getElementById('hp-text').textContent = '94.2%';
+      document.getElementById('hp-text').style.color = '#ede8d5';
+
+      document.getElementById('mana-bar').style.width = '82%';
+      document.getElementById('mana-text').textContent = '+₹14.28 L';
+      document.getElementById('mana-text').style.color = 'var(--pop-gold)';
+
+      // Reset Cooler Tile
+      document.getElementById('tile-cooler').style.background = 'var(--tone-panel)';
+      document.getElementById('cooler-name').textContent = 'COOLER HUB';
+      document.getElementById('cooler-status').textContent = '100% PRESSURE NOMINAL';
+      document.getElementById('cooler-status').style.color = '#00d2ff';
+
+      // Reset Badge
+      const badge = document.getElementById('ko-badge');
+      badge.textContent = 'NORMAL';
+      badge.className = '';
+      badge.style.background = '#000';
+      badge.style.color = '#00d2ff';
+      badge.style.border = '1px solid var(--tone-border-subtle)';
+
+      // Reset Dialogue
+      document.getElementById('dialogue-content').innerHTML = '<span style="color:#00d2ff;font-weight:900;">CRITICAL REPAIR SUCCESSFUL!</span> Emergency plumber repaired cooler. Attendance HP recovered to baseline.';
+
+      // Reset Status Pill
+      document.getElementById('status-pill-1').innerHTML = '<svg class="pixel-svg" width="12" height="12" viewBox="0 0 10 10"><rect x="2" y="1" width="6" height="5" fill="#00d2ff"/><rect x="3" y="6" width="4" height="2" fill="#00d2ff"/><rect x="4" y="8" width="2" height="1" fill="#00d2ff"/></svg> <span style="color:var(--text-bone);">Baseline Guard: SHA-256 Locked</span>';
+
+      // Swap Buttons
+      document.getElementById('btn-trigger').style.display = 'inline-flex';
+      document.getElementById('btn-resolve').style.display = 'none';
+    }
+
+    function togglePlay() {
+      playing = !playing;
+      const text = document.getElementById('play-text');
+      if (playing) {
+        text.textContent = 'PAUSE';
+      } else {
+        text.textContent = 'PLAY';
+      }
+    }
+
+    function stepHour() {
+      clockHour++;
+      if (clockHour > 14) clockHour = 8;
+      document.getElementById('clock-pill').textContent = `${clockHour}:00 ${clockHour < 12 ? 'AM' : 'PM'} // PERIOD ${clockHour - 7}`;
+      const progress = ((clockHour - 7.5) / 7) * 100;
+      document.getElementById('timeline-bar').style.width = Math.min(100, Math.max(10, progress)) + '%';
+    }
+
+    function setSpeed(spd, btn) {
+      document.querySelectorAll('.btn-speed').forEach(b => {
+        b.style.background = 'var(--tone-panel)';
+        b.style.color = 'var(--text-bone)';
+      });
+      btn.style.background = 'var(--pop-gold)';
+      btn.style.color = '#000';
+    }
+  </script>
+</body>
+</html>

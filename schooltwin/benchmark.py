@@ -6,9 +6,7 @@ and persistence against the 15-30 second target.
 import json
 import os
 import platform
-import tempfile
 import time
-from pathlib import Path
 
 from .config import ROOT
 from .engine import Engine

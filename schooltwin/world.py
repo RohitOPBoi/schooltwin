@@ -1,5 +1,5 @@
 """The 2D campus: zones with a rectangle, a capacity and (sometimes) an aggregate counter."""
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from .story import grade_short, room_id
 

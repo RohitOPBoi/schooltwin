@@ -55,11 +55,113 @@
   const SPEEDS = { day: [['1 min / s', 1], ['5 min / s', 5], ['15 min / s', 15], ['30 min / s', 30], ['60 min / s', 60]],
                    term: [['1 day / s', 1], ['3 days / s', 3], ['7 days / s', 7], ['14 days / s', 14]] };
 
+  function pxIcon(name, extraClass = '') {
+    const cls = extraClass ? ` ${extraClass}` : '';
+    switch (name) {
+      case 'temple':
+      case 'historical':
+      case 'operations':
+        return `<svg class="px-icon${cls}" width="14" height="14" viewBox="0 0 16 16" shape-rendering="crispEdges"><polygon points="8,1 1,5 15,5" fill="currentColor"/><rect x="1" y="5" width="14" height="2" fill="currentColor"/><rect x="2" y="7" width="2" height="6" fill="currentColor"/><rect x="6" y="7" width="2" height="6" fill="currentColor"/><rect x="10" y="7" width="2" height="6" fill="currentColor"/><rect x="14" y="7" width="2" height="6" fill="currentColor"/><rect x="1" y="13" width="14" height="2" fill="currentColor"/></svg>`;
+      case 'microscope':
+      case 'experiment':
+        return `<svg class="px-icon${cls}" width="14" height="14" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="4" y="1" width="3" height="4" fill="currentColor"/><rect x="6" y="5" width="3" height="3" fill="currentColor"/><rect x="3" y="10" width="7" height="2" fill="currentColor"/><rect x="9" y="5" width="2" height="8" fill="currentColor"/><rect x="2" y="13" width="12" height="2" fill="currentColor"/></svg>`;
+      case 'chart':
+      case 'impact':
+      case 'table':
+        return `<svg class="px-icon${cls}" width="14" height="14" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="2" y="1" width="2" height="13" fill="currentColor"/><rect x="2" y="13" width="13" height="2" fill="currentColor"/><rect x="5" y="9" width="2" height="4" fill="currentColor"/><rect x="8" y="6" width="2" height="7" fill="currentColor"/><rect x="11" y="3" width="2" height="10" fill="var(--pop-highlight)"/></svg>`;
+      case 'cards':
+        return `<svg class="px-icon${cls}" width="14" height="14" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="1" y="3" width="10" height="11" fill="currentColor"/><rect x="5" y="1" width="10" height="11" fill="var(--pop-highlight)"/><rect x="6" y="2" width="8" height="9" fill="#000"/></svg>`;
+      case 'flag':
+      case 'user':
+        return `<svg class="px-icon${cls}" width="14" height="14" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="2" y="1" width="2" height="14" fill="currentColor"/><polygon points="4,2 14,5 4,8" fill="var(--pop-highlight)"/></svg>`;
+      case 'warn':
+      case 'incident':
+        return `<svg class="px-icon anim-sprite${cls}" width="14" height="14" viewBox="0 0 16 16" shape-rendering="crispEdges"><polygon points="8,1 1,14 15,14" fill="var(--pop-highlight)"/><rect x="7" y="5" width="2" height="5" fill="#000"/><rect x="7" y="11" width="2" height="2" fill="#000"/></svg>`;
+      case 'bell':
+      case 'alert':
+        return `<svg class="px-icon anim-sprite${cls}" width="14" height="14" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="7" y="1" width="2" height="2" fill="currentColor"/><path d="M4 6 L12 6 L14 11 L2 11 Z" fill="currentColor"/><rect x="7" y="12" width="2" height="2" fill="var(--pop-highlight)"/></svg>`;
+      case 'money':
+      case 'school_fee_increase':
+      case 'finance':
+        return `<svg class="px-icon anim-sprite${cls}" width="14" height="14" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="5" y="1" width="6" height="14" fill="#ffb800"/><rect x="3" y="3" width="10" height="10" fill="#ffb800"/><rect x="6" y="4" width="4" height="8" fill="#ede8d5"/><rect x="7" y="2" width="2" height="12" fill="#000"/></svg>`;
+      case 'cooler':
+      case 'water_cooler_breakdown':
+        return `<svg class="px-icon anim-sprite${cls}" width="14" height="14" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="5" y="1" width="6" height="6" fill="#00d2ff"/><rect x="4" y="7" width="8" height="7" fill="currentColor"/><rect x="7" y="9" width="2" height="2" fill="#00d2ff"/><rect x="7" y="12" width="2" height="2" fill="#00d2ff"/></svg>`;
+      case 'bus':
+      case 'transport_strike':
+      case 'bus_breakdown':
+        return `<svg class="px-icon anim-sprite${cls}" width="14" height="14" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="1" y="3" width="14" height="9" fill="#ffb800"/><rect x="3" y="4" width="3" height="3" fill="#000"/><rect x="8" y="4" width="3" height="3" fill="#000"/><rect x="3" y="12" width="3" height="3" fill="#000"/><rect x="10" y="12" width="3" height="3" fill="#000"/></svg>`;
+      case 'fan':
+      case 'classroom_fan_failure':
+        return `<svg class="px-icon${cls}" width="14" height="14" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="7" y="7" width="2" height="2" fill="var(--pop-highlight)"/><rect x="7" y="2" width="2" height="4" fill="currentColor"/><rect x="7" y="10" width="2" height="4" fill="currentColor"/><rect x="2" y="7" width="4" height="2" fill="currentColor"/><rect x="10" y="7" width="4" height="2" fill="currentColor"/></svg>`;
+      case 'fight':
+      case 'serious_student_fight':
+      case 'vs':
+      case 'diverged':
+        return `<svg class="px-icon anim-sprite${cls}" width="14" height="14" viewBox="0 0 16 16" shape-rendering="crispEdges"><polygon points="2,2 4,1 14,11 15,14 12,15 11,14" fill="var(--pop-highlight)"/><polygon points="14,2 12,1 2,11 1,14 4,15 5,14" fill="#ede8d5"/></svg>`;
+      case 'weather':
+      case 'weather_attendance_dip':
+        return `<svg class="px-icon anim-sprite${cls}" width="14" height="14" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="3" y="3" width="10" height="5" fill="#8b9bb4"/><rect x="4" y="9" width="2" height="3" fill="#00d2ff"/><rect x="8" y="10" width="2" height="3" fill="#00d2ff"/><rect x="12" y="9" width="2" height="3" fill="#00d2ff"/></svg>`;
+      case 'teacher':
+      case 'additional_teacher_hired':
+        return `<svg class="px-icon${cls}" width="14" height="14" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="6" y="2" width="4" height="4" fill="#ffb800"/><rect x="4" y="6" width="8" height="8" fill="currentColor"/><rect x="2" y="7" width="2" height="5" fill="#ede8d5"/></svg>`;
+      case 'policy':
+      case 'decision':
+      case 'policies':
+        return `<svg class="px-icon${cls}" width="14" height="14" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="3" y="1" width="10" height="14" fill="currentColor"/><rect x="5" y="3" width="6" height="2" fill="#000"/><rect x="5" y="6" width="6" height="2" fill="#000"/><rect x="5" y="9" width="4" height="2" fill="#000"/></svg>`;
+      case 'calendar':
+        return `<svg class="px-icon${cls}" width="14" height="14" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="2" y="2" width="12" height="12" fill="currentColor"/><rect x="4" y="1" width="2" height="2" fill="#000"/><rect x="10" y="1" width="2" height="2" fill="#000"/><rect x="4" y="6" width="2" height="2" fill="var(--pop-highlight)"/><rect x="7" y="6" width="2" height="2" fill="#000"/><rect x="10" y="6" width="2" height="2" fill="#000"/></svg>`;
+      case 'academics':
+        return `<svg class="px-icon${cls}" width="14" height="14" viewBox="0 0 16 16" shape-rendering="crispEdges"><polygon points="8,1 1,5 8,9 15,5" fill="currentColor"/><rect x="4" y="9" width="8" height="4" fill="currentColor"/></svg>`;
+      case 'wellbeing':
+        return `<svg class="px-icon anim-sprite${cls}" width="14" height="14" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="3" y="3" width="10" height="8" fill="var(--pop-highlight)"/><rect x="5" y="2" width="6" height="10" fill="var(--pop-highlight)"/><rect x="6" y="5" width="4" height="4" fill="#000"/></svg>`;
+      case 'check':
+        return `<svg class="px-icon${cls}" width="12" height="12" viewBox="0 0 10 10" shape-rendering="crispEdges"><polygon points="8,2 9,3 4,8 1,5 2,4 4,6" fill="var(--pop-highlight)"/></svg>`;
+      case 'search':
+        return `<svg class="px-icon${cls}" width="12" height="12" viewBox="0 0 10 10" shape-rendering="crispEdges"><circle cx="4" cy="4" r="3" stroke="currentColor" stroke-width="1.5" fill="none"/><line x1="6" y1="6" x2="9" y2="9" stroke="currentColor" stroke-width="1.5"/></svg>`;
+      case 'sun':
+        return `<svg class="px-icon anim-sprite${cls}" width="14" height="14" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="6" y="6" width="4" height="4" fill="#ffb800"/><rect x="7" y="1" width="2" height="3" fill="#ffb800"/><rect x="7" y="12" width="2" height="3" fill="#ffb800"/><rect x="1" y="7" width="3" height="2" fill="#ffb800"/><rect x="12" y="7" width="3" height="2" fill="#ffb800"/></svg>`;
+      case 'moon':
+        return `<svg class="px-icon anim-sprite${cls}" width="14" height="14" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="4" y="2" width="5" height="12" fill="#ede8d5"/><rect x="9" y="3" width="2" height="10" fill="#ede8d5"/><rect x="6" y="4" width="6" height="8" fill="var(--tone-ground)"/></svg>`;
+      case 'play':
+        return `<svg class="px-icon${cls}" width="12" height="12" viewBox="0 0 12 12" shape-rendering="crispEdges"><polygon points="3,2 10,6 3,10" fill="currentColor"/></svg>`;
+      case 'pause':
+        return `<svg class="px-icon${cls}" width="12" height="12" viewBox="0 0 12 12" shape-rendering="crispEdges"><rect x="2" y="2" width="3" height="8" fill="currentColor"/><rect x="7" y="2" width="3" height="8" fill="currentColor"/></svg>`;
+      case 'jump-start':
+        return `<svg class="px-icon${cls}" width="10" height="10" viewBox="0 0 10 10" shape-rendering="crispEdges"><rect x="1" y="1" width="2" height="8" fill="currentColor"/><polygon points="8,1 3,5 8,9" fill="currentColor"/></svg>`;
+      case 'gear':
+        return `<svg class="px-icon${cls}" width="12" height="12" viewBox="0 0 12 12" shape-rendering="crispEdges"><rect x="4" y="2" width="4" height="8" fill="currentColor"/><rect x="2" y="4" width="8" height="4" fill="currentColor"/><rect x="5" y="5" width="2" height="2" fill="#000"/></svg>`;
+      case 'print':
+        return `<svg class="px-icon${cls}" width="12" height="12" viewBox="0 0 12 12" shape-rendering="crispEdges"><rect x="3" y="1" width="6" height="3" fill="currentColor"/><rect x="1" y="4" width="10" height="5" fill="currentColor"/><rect x="3" y="8" width="6" height="3" fill="var(--pop-highlight)"/></svg>`;
+      default:
+        return `<svg class="px-icon${cls}" width="14" height="14" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="2" y="2" width="12" height="12" fill="var(--pop-highlight)"/><rect x="6" y="6" width="4" height="4" fill="#000"/></svg>`;
+    }
+  }
+
+  function applyCRT(on) {
+    S.crt = !!on;
+    if (typeof document !== 'undefined') {
+      const overlay = $('#crtOverlay');
+      const btn = $('#btnCrtToggle');
+      if (document.body) document.body.classList.toggle('crt-off', !S.crt);
+      if (overlay) overlay.style.display = S.crt ? 'block' : 'none';
+      if (btn) {
+        btn.textContent = S.crt ? 'CRT: ON' : 'CRT: OFF';
+        btn.classList.toggle('active', S.crt);
+      }
+    }
+    try { if (typeof localStorage !== 'undefined') localStorage.setItem('st-crt', S.crt ? '1' : '0'); } catch (e) {}
+  }
+  function toggleCRT() {
+    applyCRT(!S.crt);
+  }
+
   const S = {
     base: new URLSearchParams(location.search).get('pack') || 'pack/', index: null, run: null, meta: null, hist: null,
     days: new Map(), day: 0, minute: 525, dayF: 0, playing: false, busy: false, mode: 'day', speed: 15, view: 'operator',
     layer: 'reality', color: 'grade', floor: 'all', sel: null, tab: 'now', userFlags: [], api: false, cmp: null,
     dirty: true, last: 0, hits: [], lastPanel: 0, snapMinute: 630, approvals: {}, theme: 'light', motionSetting: 'full',
+    crt: true,
     pairedMode: false, pairMeta: null, ctrlMeta: null, trtMeta: null,
     ctrlDays: new Map(), trtDays: new Map(), randomProfile: 'balanced', pairSeed: 20261014,
   };
@@ -192,8 +294,8 @@
     }
     const btn = typeof $ === 'function' ? $('#btnThemeToggle') : null;
     if (btn) {
-      btn.textContent = isLight ? 'Light' : 'Dark';
-      btn.title = `Switch to ${isLight ? 'Dark' : 'Light'} Mode (Shortcut: T)`;
+      btn.innerHTML = `${pxIcon(isLight ? 'sun' : 'moon')} ${isLight ? 'Light' : 'Dark'}`;
+      btn.title = `Active Theme: ${isLight ? 'Light (Ivory)' : 'Dark (Ink Midnight)'}. Click to switch (Shortcut: T)`;
     }
     try { if (typeof localStorage !== 'undefined') localStorage.setItem('st-theme', theme); } catch (e) {}
     S.dirty = true;
@@ -217,6 +319,8 @@
     bindUI();
     const savedTheme = (typeof localStorage !== 'undefined' && localStorage.getItem('st-theme')) || 'light';
     applyTheme(savedTheme);
+    const savedCrt = (typeof localStorage !== 'undefined' && localStorage.getItem('st-crt')) !== '0';
+    applyCRT(savedCrt);
     try { S.index = await getJSON(S.base + 'index.json'); } catch (e) { toast('No packs found. Run scripts/run_story.py first.'); return; }
     const sel = $('#runSel');
     sel.innerHTML = S.index.runs.map(r => `<option value="${esc(r.id)}">${esc(r.name)} · ${esc(r.mode)}${r.redacted ? ' · operator-only' : ''}</option>`).join('');
@@ -255,8 +359,19 @@
     S.clock = M.clock; S.nDays = M.days.length;
     S.redacted = !!M.run.redacted;
     if (S.redacted) { S.view = 'operator'; $$('#viewSeg button').forEach(b => { b.disabled = b.dataset.v === 'author'; }); }
-    try { S.userFlags = JSON.parse(localStorage.getItem('st-flags-' + id) || '[]'); } catch (e) { S.userFlags = []; }
-    if (S.api) { try { const sv = await getJSON('api/flags?run=' + encodeURIComponent(id)); sv.forEach(f => { if (!S.userFlags.find(x => x.id === f.id)) S.userFlags.push(f); }); } catch (e) { /* none saved */ } }
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        S.userFlags = JSON.parse(sessionStorage.getItem('st-flags-' + id) || '[]');
+      } else {
+        S.userFlags = [];
+      }
+    } catch (e) { S.userFlags = []; }
+    if (S.api) {
+      try {
+        const sv = await getJSON('api/flags?run=' + encodeURIComponent(id) + '&session=' + encodeURIComponent(getSessionId()));
+        sv.forEach(f => { if (!S.userFlags.find(x => x.id === f.id)) S.userFlags.push(f); });
+      } catch (e) { /* none saved */ }
+    }
     $('#schoolName').textContent = M.run.school + ' · ' + M.run.mode + ' mode';
     const first = M.days.findIndex(d => d.open && d.i >= M.run.start_day);
     S.dayF = Math.max(first, 0);
@@ -416,29 +531,29 @@
     const sevLabels = ['Info', 'Low Priority', 'Medium Priority', 'High / Critical'];
 
     const icons = {
-      incident: '⚠️',
-      alert: '🔔',
-      decision: '📋',
-      event: '⚡',
-      calendar: '🗓️',
-      user: '⚑',
-      policy: '📋',
-      school_fee_increase: '💰',
-      additional_teacher_hired: '👩‍🏫',
-      water_cooler_breakdown: '🚰',
-      classroom_fan_failure: '💨',
-      serious_student_fight: '🚨',
-      weather_attendance_dip: '🌧️',
-      transport_strike: '🚌',
-      bus_breakdown: '🚌'
+      incident: pxIcon('warn'),
+      alert: pxIcon('bell'),
+      decision: pxIcon('policy'),
+      event: pxIcon('diverged'),
+      calendar: pxIcon('calendar'),
+      user: pxIcon('flag'),
+      policy: pxIcon('policy'),
+      school_fee_increase: pxIcon('money'),
+      additional_teacher_hired: pxIcon('teacher'),
+      water_cooler_breakdown: pxIcon('cooler'),
+      classroom_fan_failure: pxIcon('fan'),
+      serious_student_fight: pxIcon('fight'),
+      weather_attendance_dip: pxIcon('weather'),
+      transport_strike: pxIcon('bus'),
+      bus_breakdown: pxIcon('bus')
     };
-    const icon = icons[f.type] || icons[kind] || '📌';
+    const icon = icons[f.type] || icons[kind] || pxIcon('warn');
 
     const titleEl = $('#evModalTitle');
     if (titleEl) titleEl.textContent = f.title || f.type || 'Operational Event';
 
     const iconEl = $('#evModalIcon');
-    if (iconEl) iconEl.textContent = icon;
+    if (iconEl) iconEl.innerHTML = icon;
 
     const kindEl = $('#evModalKind');
     if (kindEl) {
@@ -565,12 +680,29 @@
 
     modal.style.display = 'flex';
   }
+  function getSessionId() {
+    try {
+      if (typeof sessionStorage === 'undefined') return 'ephemeral';
+      let sid = sessionStorage.getItem('st-session-id');
+      if (!sid) {
+        sid = 'st_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+        sessionStorage.setItem('st-session-id', sid);
+      }
+      return sid;
+    } catch (e) {
+      return 'ephemeral';
+    }
+  }
   function addUserFlag(title, sev) {
     const f = { id: 'U-' + Date.now(), day: S.day, date: curMeta().date, minute: Math.round(S.minute), kind: 'user', sev: sev || 2, vis: 'user',
                 title: title || 'Flagged moment', text: 'Flagged by you.', zone: S.sel && S.sel.type === 'zone' ? S.sel.id : '', ref: '' };
     S.userFlags.push(f);
-    try { localStorage.setItem('st-flags-' + S.run, JSON.stringify(S.userFlags)); } catch (e) { /* private mode */ }
-    if (S.api) fetch('api/flags', { method: 'POST', body: JSON.stringify({ run: S.run, flag: f }) }).catch(() => {});
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem('st-flags-' + S.run, JSON.stringify(S.userFlags));
+      }
+    } catch (e) { /* private mode */ }
+    if (S.api) fetch('api/flags', { method: 'POST', body: JSON.stringify({ run: S.run, flag: f, session: getSessionId() }) }).catch(() => {});
     toast('Flagged ' + f.date + ' ' + fmtT(f.minute));
     S.dirty = true; renderFlags(); drawStrips();
     return f;
@@ -589,9 +721,10 @@
     S.playing = true; S.last = performance.now(); syncPlay();
   }
   function syncPlay() {
-    $('#bPlay').textContent = S.playing ? '⏸' : '';
+    const playBtn = $('#bPlay');
+    if (playBtn) playBtn.innerHTML = S.playing ? pxIcon('pause') : pxIcon('play');
     const sBtn = $('#scenBannerToggleBtn');
-    if (sBtn) sBtn.textContent = S.playing ? '⏸ Pause' : 'Resume';
+    if (sBtn) sBtn.innerHTML = S.playing ? `${pxIcon('pause')} Pause` : `${pxIcon('play')} Resume`;
   }
   async function goTo(day, minute, opt) {
     day = clamp(Math.round(day), 0, S.nDays - 1);
@@ -2035,7 +2168,7 @@
         <button class="${bTab === 'events' ? 'on' : ''}" data-act="bTab" data-tab="events">Quick Event Simulator</button>
         <button class="${bTab === 'levers' ? 'on' : ''}" data-act="bTab" data-tab="levers">Policy Levers</button>
         <button class="${bTab === 'nlp' ? 'on' : ''}" data-act="bTab" data-tab="nlp">AI Assistant</button>
-        <button class="${bTab === 'setup' ? 'on' : ''}" data-act="bTab" data-tab="setup">⚙️ Advanced & Checkpoints</button>
+        <button class="${bTab === 'setup' ? 'on' : ''}" data-act="bTab" data-tab="setup">${pxIcon('gear')} Advanced & Checkpoints</button>
       </nav>
 
       <div id="bTabContent">
@@ -2045,8 +2178,8 @@
       ${bTab === 'setup' ? `
         <div style="margin:12px 0 6px;display:flex;gap:6px;flex-wrap:wrap">
           <button class="primary" data-act="runScenarioTimeLapse" ${S.api ? '' : 'disabled'}>Run & Watch Time-lapse</button>
-          <button data-act="validateScenario">✓ Validate</button>
-          <button data-act="restoreBaseline">⏮ Restore Baseline</button>
+          <button data-act="validateScenario">${pxIcon('check')} Validate</button>
+          <button data-act="restoreBaseline">${pxIcon('jump-start')} Restore Baseline</button>
           <button data-act="dlOverview">Export JSON</button>
         </div>
         <div id="runStatus" class="mut" style="font-weight:600"></div>
@@ -2060,37 +2193,37 @@
   }
 
   const CBSE_EVENTS_2026 = {
-    '2026-01-26': { title: 'Republic Day (National Holiday)', icon: '🇮🇳', badge: 'holiday' },
-    '2026-03-04': { title: 'Holi (Festival of Colours)', icon: '🪔', badge: 'holiday' },
-    '2026-04-01': { title: 'New Academic Session 2026-27 Begins', icon: '🎒', badge: 'event' },
-    '2026-04-03': { title: 'Good Friday', icon: '✝️', badge: 'holiday' },
-    '2026-04-14': { title: 'Dr. B.R. Ambedkar Jayanti', icon: '⚖️', badge: 'holiday' },
-    '2026-05-18': { title: 'Summer Vacation Begins', icon: '☀️', badge: 'break' },
-    '2026-07-01': { title: 'School Reopens (Term 2 Begins)', icon: '🎒', badge: 'reopen' },
-    '2026-08-15': { title: 'Independence Day (National Holiday)', icon: '🇮🇳', badge: 'holiday' },
-    '2026-08-28': { title: 'Raksha Bandhan', icon: '🪢', badge: 'holiday' },
-    '2026-09-04': { title: 'Janmashtami', icon: '🪔', badge: 'holiday' },
-    '2026-09-05': { title: 'Teachers\' Day Celebrations', icon: '👩‍🏫', badge: 'event' },
-    '2026-09-14': { title: 'CBSE Mid-Term Exams Begin', icon: '📝', badge: 'exam' },
-    '2026-09-26': { title: 'CBSE Mid-Term Exams Conclude', icon: '📝', badge: 'exam' },
-    '2026-10-02': { title: 'Mahatma Gandhi Jayanti (National Holiday)', icon: '🇮🇳', badge: 'holiday' },
-    '2026-10-19': { title: 'Maha Navami', icon: '🏹', badge: 'holiday' },
-    '2026-10-20': { title: 'Dussehra / Vijayadashami', icon: '🏹', badge: 'holiday' },
-    '2026-11-08': { title: 'Diwali (Deepavali)', icon: '🪔', badge: 'holiday' },
-    '2026-11-09': { title: 'Govardhan Puja', icon: '🪔', badge: 'holiday' },
-    '2026-11-10': { title: 'Bhai Dooj', icon: '🪔', badge: 'holiday' },
-    '2026-11-14': { title: 'Children\'s Day & Annual Sports Carnival', icon: '🎈', badge: 'event' },
-    '2026-11-24': { title: 'Guru Nanak Jayanti', icon: '☬', badge: 'holiday' },
-    '2026-12-14': { title: 'Class 10 & 12 Pre-Board Exams Begin', icon: '📝', badge: 'exam' },
-    '2026-12-22': { title: 'Class 10 & 12 Pre-Board Exams Conclude', icon: '📝', badge: 'exam' },
-    '2026-12-23': { title: 'Annual Day Cultural Gala & Winter Exhibition', icon: '🎭', badge: 'event' },
-    '2026-12-25': { title: 'Christmas Day', icon: '🎄', badge: 'holiday' },
-    '2026-12-26': { title: 'Winter Vacation Begins', icon: '❄️', badge: 'break' },
-    '2026-12-27': { title: 'Winter Vacation', icon: '❄️', badge: 'break' },
-    '2026-12-28': { title: 'Winter Vacation', icon: '❄️', badge: 'break' },
-    '2026-12-29': { title: 'Winter Vacation', icon: '❄️', badge: 'break' },
-    '2026-12-30': { title: 'Winter Vacation', icon: '❄️', badge: 'break' },
-    '2026-12-31': { title: 'Winter Vacation', icon: '❄️', badge: 'break' }
+    '2026-01-26': { title: 'Republic Day (National Holiday)', icon: pxIcon('flag'), badge: 'holiday' },
+    '2026-03-04': { title: 'Holi (Festival of Colours)', icon: pxIcon('sun'), badge: 'holiday' },
+    '2026-04-01': { title: 'New Academic Session 2026-27 Begins', icon: pxIcon('academics'), badge: 'event' },
+    '2026-04-03': { title: 'Good Friday', icon: pxIcon('temple'), badge: 'holiday' },
+    '2026-04-14': { title: 'Dr. B.R. Ambedkar Jayanti', icon: pxIcon('policy'), badge: 'holiday' },
+    '2026-05-18': { title: 'Summer Vacation Begins', icon: pxIcon('sun'), badge: 'break' },
+    '2026-07-01': { title: 'School Reopens (Term 2 Begins)', icon: pxIcon('academics'), badge: 'reopen' },
+    '2026-08-15': { title: 'Independence Day (National Holiday)', icon: pxIcon('flag'), badge: 'holiday' },
+    '2026-08-28': { title: 'Raksha Bandhan', icon: pxIcon('policy'), badge: 'holiday' },
+    '2026-09-04': { title: 'Janmashtami', icon: pxIcon('sun'), badge: 'holiday' },
+    '2026-09-05': { title: 'Teachers\' Day Celebrations', icon: pxIcon('teacher'), badge: 'event' },
+    '2026-09-14': { title: 'CBSE Mid-Term Exams Begin', icon: pxIcon('academics'), badge: 'exam' },
+    '2026-09-26': { title: 'CBSE Mid-Term Exams Conclude', icon: pxIcon('academics'), badge: 'exam' },
+    '2026-10-02': { title: 'Mahatma Gandhi Jayanti (National Holiday)', icon: pxIcon('flag'), badge: 'holiday' },
+    '2026-10-19': { title: 'Maha Navami', icon: pxIcon('temple'), badge: 'holiday' },
+    '2026-10-20': { title: 'Dussehra / Vijayadashami', icon: pxIcon('fight'), badge: 'holiday' },
+    '2026-11-08': { title: 'Diwali (Deepavali)', icon: pxIcon('sun'), badge: 'holiday' },
+    '2026-11-09': { title: 'Govardhan Puja', icon: pxIcon('sun'), badge: 'holiday' },
+    '2026-11-10': { title: 'Bhai Dooj', icon: pxIcon('sun'), badge: 'holiday' },
+    '2026-11-14': { title: 'Children\'s Day & Annual Sports Carnival', icon: pxIcon('wellbeing'), badge: 'event' },
+    '2026-11-24': { title: 'Guru Nanak Jayanti', icon: pxIcon('temple'), badge: 'holiday' },
+    '2026-12-14': { title: 'Class 10 & 12 Pre-Board Exams Begin', icon: pxIcon('academics'), badge: 'exam' },
+    '2026-12-22': { title: 'Class 10 & 12 Pre-Board Exams Conclude', icon: pxIcon('academics'), badge: 'exam' },
+    '2026-12-23': { title: 'Annual Day Cultural Gala & Winter Exhibition', icon: pxIcon('wellbeing'), badge: 'event' },
+    '2026-12-25': { title: 'Christmas Day', icon: pxIcon('temple'), badge: 'holiday' },
+    '2026-12-26': { title: 'Winter Vacation Begins', icon: pxIcon('weather'), badge: 'break' },
+    '2026-12-27': { title: 'Winter Vacation', icon: pxIcon('weather'), badge: 'break' },
+    '2026-12-28': { title: 'Winter Vacation', icon: pxIcon('weather'), badge: 'break' },
+    '2026-12-29': { title: 'Winter Vacation', icon: pxIcon('weather'), badge: 'break' },
+    '2026-12-30': { title: 'Winter Vacation', icon: pxIcon('weather'), badge: 'break' },
+    '2026-12-31': { title: 'Winter Vacation', icon: pxIcon('weather'), badge: 'break' }
   };
 
   function renderHorizonCalendar(F) {
@@ -2741,18 +2874,18 @@
       const id = (m.id || '').toLowerCase();
       const cat = (m.category || '').toLowerCase();
       if (cat.includes('finance') || id.includes('cash') || id.includes('receivable') || id.includes('cost') || id.includes('fee') || id.includes('inflow') || id.includes('outflow')) {
-        return { domain: 'finance', icon: '💰', group: 'Financial Health' };
+        return { domain: 'finance', icon: pxIcon('money'), group: 'Financial Health' };
       }
       if (cat.includes('academic') || cat.includes('instruction') || id.includes('mastery') || id.includes('hour') || id.includes('clash')) {
-        return { domain: 'academics', icon: '📚', group: 'Academics & Instructional Delivery' };
+        return { domain: 'academics', icon: pxIcon('academics'), group: 'Academics & Instructional Delivery' };
       }
       if (cat.includes('wellbeing') || cat.includes('sentiment') || id.includes('mood') || id.includes('stress')) {
-        return { domain: 'wellbeing', icon: '🧠', group: 'Student & Staff Wellbeing' };
+        return { domain: 'wellbeing', icon: pxIcon('wellbeing'), group: 'Student & Staff Wellbeing' };
       }
       if (cat.includes('policy') || id.includes('teacher') || id.includes('revision') || id.includes('recruit')) {
-        return { domain: 'policies', icon: '📋', group: 'Configured Policy Levers' };
+        return { domain: 'policies', icon: pxIcon('policy'), group: 'Configured Policy Levers' };
       }
-      return { domain: 'operations', icon: '🏛️', group: 'Operations & Attendance' };
+      return { domain: 'operations', icon: pxIcon('operations'), group: 'Operations & Attendance' };
     }
 
     const divergedCount = metrics.filter(m => m.abs_diff != null && m.abs_diff !== 0 && m.abs_diff !== '–' && m.abs_diff !== '0').length;
@@ -2785,7 +2918,7 @@
       finSpotlightHtml = `
         <div class="financial-spotlight-card">
           <div class="financial-spotlight-header">
-            <span class="financial-spotlight-title">💰 Direct Financial Comparison</span>
+            <span class="financial-spotlight-title">${pxIcon('money')} Direct Financial Comparison</span>
             <span class="badge ${cshM.status === 'Computed' ? 'badge-computed' : 'badge-configured'}">${esc(cshM.status)}</span>
           </div>
           <div class="financial-grid-2col">
@@ -3105,17 +3238,17 @@
       <!-- Comparison Toolbar: View Toggle & Filters -->
       <div class="compare-toolbar">
         <div class="compare-view-seg">
-          <button class="compare-view-btn ${cmpView === 'cards' ? 'active' : ''}" data-view="cards">🎴 Card View (Sidebar Fit)</button>
-          <button class="compare-view-btn ${cmpView === 'table' ? 'active' : ''}" data-view="table">📊 Table View (Full Spec)</button>
+          <button class="compare-view-btn ${cmpView === 'cards' ? 'active' : ''}" data-view="cards">${pxIcon('cards')} Card View (Sidebar Fit)</button>
+          <button class="compare-view-btn ${cmpView === 'table' ? 'active' : ''}" data-view="table">${pxIcon('table')} Table View (Full Spec)</button>
         </div>
         <div class="compare-filters">
           <button class="compare-filter-pill ${cmpFilter === 'all' ? 'active' : ''}" data-filter="all">All (${metrics.length})</button>
-          <button class="compare-filter-pill ${cmpFilter === 'diverged' ? 'active' : ''}" data-filter="diverged">⚡ Diverged (${divergedCount})</button>
-          <button class="compare-filter-pill ${cmpFilter === 'operations' ? 'active' : ''}" data-filter="operations">🏛️ Operations</button>
-          <button class="compare-filter-pill ${cmpFilter === 'finance' ? 'active' : ''}" data-filter="finance">💰 Finance</button>
-          <button class="compare-filter-pill ${cmpFilter === 'academics' ? 'active' : ''}" data-filter="academics">📚 Academics</button>
-          <button class="compare-filter-pill ${cmpFilter === 'wellbeing' ? 'active' : ''}" data-filter="wellbeing">🧠 Wellbeing</button>
-          <button class="compare-filter-pill ${cmpFilter === 'policies' ? 'active' : ''}" data-filter="policies">📋 Policies</button>
+          <button class="compare-filter-pill ${cmpFilter === 'diverged' ? 'active' : ''}" data-filter="diverged">${pxIcon('diverged')} Diverged (${divergedCount})</button>
+          <button class="compare-filter-pill ${cmpFilter === 'operations' ? 'active' : ''}" data-filter="operations">${pxIcon('operations')} Operations</button>
+          <button class="compare-filter-pill ${cmpFilter === 'finance' ? 'active' : ''}" data-filter="finance">${pxIcon('money')} Finance</button>
+          <button class="compare-filter-pill ${cmpFilter === 'academics' ? 'active' : ''}" data-filter="academics">${pxIcon('academics')} Academics</button>
+          <button class="compare-filter-pill ${cmpFilter === 'wellbeing' ? 'active' : ''}" data-filter="wellbeing">${pxIcon('wellbeing')} Wellbeing</button>
+          <button class="compare-filter-pill ${cmpFilter === 'policies' ? 'active' : ''}" data-filter="policies">${pxIcon('policy')} Policies</button>
         </div>
       </div>
 
@@ -4322,8 +4455,12 @@
     if (bTheme) {
       bTheme.onclick = () => toggleTheme();
     }
+    const bCrt = $('#btnCrtToggle');
+    if (bCrt) {
+      bCrt.onclick = () => toggleCRT();
+    }
 
-    // Accessible Keyboard Shortcuts (Space, arrows, [, ], F, V, M, T)
+    // Accessible Keyboard Shortcuts (Space, arrows, [, ], F, V, M, T, C)
     if (typeof window !== 'undefined' && window.addEventListener) {
       window.addEventListener('keydown', e => {
         if (e.target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
@@ -4358,6 +4495,7 @@
         }
         else if (e.key === 'm' || e.key === 'M') { e.preventDefault(); if (bMot) bMot.click(); }
         else if (e.key === 't' || e.key === 'T') { e.preventDefault(); toggleTheme(); }
+        else if (e.key === 'c' || e.key === 'C') { e.preventDefault(); toggleCRT(); }
       });
     }
 
